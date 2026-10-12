@@ -11,7 +11,3 @@ index 19c7310d7471d55c52dca24ca8095f798fb44d60..d76a027778ddd799fe3898730f48d9ee
        {
          ignore: ["blockless-at-rules"],
        },
-@@ -281 +281 @@ module.exports = {
--    "stylelint-plugin-mozilla/use-design-tokens": true,
-+    "stylelint-plugin-mozilla/use-design-tokens": null,
- 
