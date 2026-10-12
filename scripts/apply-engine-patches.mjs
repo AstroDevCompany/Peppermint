@@ -31,8 +31,12 @@ function findPatchExe() {
       return candidate;
     }
   }
-  const which = spawnSync("where", ["patch"], { encoding: "utf8", shell: true });
-  if (which.status === 0) {
+  const locators = process.platform === "win32" ? ["where"] : ["command -v", "which"];
+  for (const locator of locators) {
+    const which = spawnSync(locator, ["patch"], { encoding: "utf8", shell: true });
+    if (which.status !== 0) {
+      continue;
+    }
     const line = which.stdout.split(/\r?\n/).find(Boolean);
     if (line && fs.existsSync(line.trim())) {
       return line.trim();
