@@ -17,11 +17,16 @@ const SCAN_LIMIT = 2000;
 const QUIET_MS = 15000;
 const compiledScripts = new Map();
 
+// Each scriptlet carries its own copy of the shared helpers. Run as bare
+// global scripts they redeclare each other's top-level bindings and rewire
+// helpers onto each other's wrappers, which breaks the page scripts. A
+// function scope keeps every scriptlet isolated, as uBlock Origin does.
 function compilePageScript(code) {
   let pending = compiledScripts.get(code);
   if (!pending) {
+    const wrapped = `(function () {\n${code}\n})();`.toWellFormed();
     pending = ChromeUtils.compileScript(
-      "data:text/javascript," + encodeURIComponent(code),
+      "data:text/javascript," + encodeURIComponent(wrapped),
       { filename: "zen-adblock-scriptlet.js" }
     );
     compiledScripts.set(code, pending);
