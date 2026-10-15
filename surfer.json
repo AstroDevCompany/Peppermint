@@ -22,7 +22,7 @@
       "release": {
         "displayVersion": "1.23.3b",
         "github": {
-          "repo": "AstroDevCompany/desktop"
+          "repo": "AstroDevCompany/Peppermint"
         },
         "archives": {
           "windows": "windows.mar",
@@ -42,7 +42,7 @@
       "release": {
         "displayVersion": "1.24t",
         "github": {
-          "repo": "AstroDevCompany/desktop"
+          "repo": "AstroDevCompany/Peppermint"
         }
       }
     }

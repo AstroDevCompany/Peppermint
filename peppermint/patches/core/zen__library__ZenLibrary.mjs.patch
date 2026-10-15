@@ -69,7 +69,7 @@
          l10nId: "library-footer-donate-button",
          command: () => {
 -          window.openTrustedLinkIn("https://www.zen-browser.app/donate", "tab");
-+          window.openTrustedLinkIn("https://github.com/AstroDevCompany/desktop", "tab");
++          window.openTrustedLinkIn("https://github.com/AstroDevCompany/Peppermint", "tab");
            ZenLibrary.animateProgress(0);
          },
        },

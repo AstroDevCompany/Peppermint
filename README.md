@@ -16,10 +16,10 @@ _Peppermint is an independent fork._
 
 [![License: MPL-2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 [![Firefox Version](https://img.shields.io/badge/Firefox-158.0-orange.svg)](https://www.mozilla.org/firefox/)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/AstroDevCompany/desktop/actions)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/AstroDevCompany/desktop/releases)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/AstroDevCompany/Peppermint/actions)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/AstroDevCompany/Peppermint/releases)
 
-[📥 Download Latest Release](https://github.com/AstroDevCompany/desktop/releases/latest) • [🐛 Report Bug](https://github.com/AstroDevCompany/desktop/issues/new?template=bug_report.md) • [💡 Request Feature](https://github.com/AstroDevCompany/desktop/issues/new?template=feature_request.md) • [📖 Documentation](https://github.com/AstroDevCompany/desktop/wiki)
+[📥 Download Latest Release](https://github.com/AstroDevCompany/Peppermint/releases/latest) • [🐛 Report Bug](https://github.com/AstroDevCompany/Peppermint/issues/new?template=bug_report.md) • [💡 Request Feature](https://github.com/AstroDevCompany/Peppermint/issues/new?template=feature_request.md) • [📖 Documentation](https://github.com/AstroDevCompany/Peppermint/wiki)
 
 </div>
 
@@ -84,7 +84,7 @@ Coming soon...
 
 ```bash
 # Clone with submodules
-git clone --recurse-submodules https://github.com/AstroDevCompany/desktop.git peppermint
+git clone --recurse-submodules https://github.com/AstroDevCompany/Peppermint.git peppermint
 cd peppermint
 
 # Guided first build (macOS/Linux)
@@ -213,9 +213,9 @@ We welcome contributions! Please read our [Contributing Guide](docs/contribute.m
 
 ### Good First Issues
 
-- [🏷️ `good first issue`](https://github.com/AstroDevCompany/desktop/labels/good%20first%20issue)
-- [🐛 `bug`](https://github.com/AstroDevCompany/desktop/labels/bug)
-- [📝 `documentation`](https://github.com/AstroDevCompany/desktop/labels/documentation)
+- [🏷️ `good first issue`](https://github.com/AstroDevCompany/Peppermint/labels/good%20first%20issue)
+- [🐛 `bug`](https://github.com/AstroDevCompany/Peppermint/labels/bug)
+- [📝 `documentation`](https://github.com/AstroDevCompany/Peppermint/labels/documentation)
 
 ### Development Workflow
 

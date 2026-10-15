@@ -74,7 +74,7 @@
          if (buttonPressed === 0) {
            win.openTrustedLinkIn(
 -            "https://docs.zen-browser.app/user-manual/window-sync",
-+            "https://github.com/AstroDevCompany/desktop",
++            "https://github.com/AstroDevCompany/Peppermint",
              "tab"
            );
          }
