@@ -119,10 +119,21 @@ if (-not (Test-Path "node_modules\.bin\surfer.cmd") -and -not (Test-Path "node_m
     if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
 }
 
+function Test-OverlayApplied {
+    $manifest = Join-Path $Root ".dotbuild\peppermint-overlay\applied.json"
+    if (-not (Test-Path $manifest)) { return $false }
+    return (Get-Content $manifest -Raw).Trim() -notin @("", "[]")
+}
+
 function Repair-EnginePatches {
-    node (Join-Path $Root "scripts\apply-engine-patches.mjs")
-    if ($LASTEXITCODE -ne 0) {
-        throw "apply-engine-patches failed"
+    # Zen's patches are already in the engine after `npm run import`, and the
+    # Peppermint overlay now edits some of the same lines, so applying them
+    # again would only conflict. `npm run import` is the place that re-applies them.
+    if (-not (Test-OverlayApplied)) {
+        node (Join-Path $Root "scripts\apply-engine-patches.mjs")
+        if ($LASTEXITCODE -ne 0) {
+            throw "apply-engine-patches failed"
+        }
     }
     node (Join-Path $Root "scripts\ensure-jar-manifest-patches.mjs")
     return $LASTEXITCODE -eq 2
@@ -190,17 +201,18 @@ else {
     Repair-EnginePatches | Out-Null
 }
 
-node (Join-Path $Root "scripts\run-python.mjs") -c @'
-from pathlib import Path
-vendor = Path("engine/browser/moz.configure")
-text = vendor.read_text(encoding="utf-8")
-old = "imply_option(\"MOZ_APP_VENDOR\", \"Mozilla\")"
-new = "imply_option(\"MOZ_APP_VENDOR\", \"MintFlow Technologies\")"
-if old in text:
-    vendor.write_text(text.replace(old, new, 1), encoding="utf-8")
-    print("Set the application vendor to MintFlow Technologies")
-'@
-if ($LASTEXITCODE -ne 0) { throw "vendor moz.configure update failed" }
+# Done in PowerShell: a multi-line `-c` script does not survive the shell that
+# run-python.mjs uses on Windows.
+$vendorFile = Join-Path $Root "engine\browser\moz.configure"
+$vendorText = [System.IO.File]::ReadAllText($vendorFile)
+$vendorOld = 'imply_option("MOZ_APP_VENDOR", "Mozilla")'
+$vendorNew = 'imply_option("MOZ_APP_VENDOR", "MintFlow Technologies")'
+$vendorAt = $vendorText.IndexOf($vendorOld)
+if ($vendorAt -ge 0) {
+    $vendorText = $vendorText.Remove($vendorAt, $vendorOld.Length).Insert($vendorAt, $vendorNew)
+    [System.IO.File]::WriteAllText($vendorFile, $vendorText, (New-Object System.Text.UTF8Encoding($false)))
+    Write-Host "Set the application vendor to MintFlow Technologies"
+}
 
 Invoke-Checked "Selecting the Peppermint release brand" { npm run surfer -- set brand release }
 

@@ -23,6 +23,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   engineDir,
+  findPatchExe,
   gitShow,
   listFiles,
   root,
@@ -34,11 +35,23 @@ import {
 const listFile = path.join(root, "peppermint", "compat-patches.txt");
 const MAX_ROUNDS = 60;
 
+// GNU diff ships next to GNU patch in MozillaBuild but is not on the Windows PATH.
+function diffExe() {
+  if (process.platform !== "win32") {
+    return "diff";
+  }
+  const beside = path.join(path.dirname(findPatchExe()), "diff.exe");
+  return fs.existsSync(beside) ? beside : "diff";
+}
+
 function runSurfer() {
-  const result = spawnSync("npx", ["surfer", "import"], {
+  // On Windows npx is npx.cmd, which cannot be spawned without a shell.
+  const windows = process.platform === "win32";
+  const result = spawnSync(windows ? "npx surfer import" : "npx", windows ? [] : ["surfer", "import"], {
     cwd: root,
     encoding: "utf8",
     maxBuffer: 1 << 28,
+    shell: windows,
   });
   return {
     ok: result.status === 0,
@@ -51,7 +64,8 @@ function failingPatch(output) {
   if (!match) {
     return null;
   }
-  const rel = path.relative(root, match[1]);
+  // Surfer prints native paths; normalise so the src/ check also works on Windows.
+  const rel = path.relative(root, match[1]).split(path.sep).join("/");
   return rel.startsWith("src/") ? rel : null;
 }
 
@@ -132,7 +146,7 @@ function regenerate(patchRel) {
     let out = "";
     for (const target of targets) {
       const diff = spawnSync(
-        "diff",
+        diffExe(),
         ["-u", "--label", `a/${target}`, "--label", `b/${target}`, path.join(before, target), path.join(after, target)],
         { encoding: "utf8", maxBuffer: 1 << 28 }
       );
@@ -152,6 +166,34 @@ function regenerate(patchRel) {
   } finally {
     fs.rmSync(work, { recursive: true, force: true });
   }
+}
+
+/**
+ * Windows checkouts with core.autocrlf turn every patch into CRLF, which makes
+ * `git apply` reject some of them and would send them through the adaptation
+ * above, rewriting Zen's files. Git stores them as LF, so converting the
+ * working copies back is invisible to git and matches what other platforms see.
+ */
+function normalizePatchLineEndings() {
+  const converted = [];
+  for (const file of listFiles(srcDir, f => f.endsWith(".patch"))) {
+    const text = fs.readFileSync(file, "latin1");
+    if (text.includes("\r\n")) {
+      fs.writeFileSync(file, text.replace(/\r\n/g, "\n"), "latin1");
+      converted.push(file);
+    }
+  }
+  // Put the checkout's line endings back on exit so git sees no change.
+  process.on("exit", () => {
+    for (const file of converted) {
+      const text = fs.readFileSync(file, "latin1");
+      fs.writeFileSync(file, text.replace(/\r?\n/g, "\r\n"), "latin1");
+    }
+  });
+}
+
+if (process.platform === "win32") {
+  normalizePatchLineEndings();
 }
 
 const rewritten = new Set(
