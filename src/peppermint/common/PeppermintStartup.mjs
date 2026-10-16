@@ -32,6 +32,11 @@ export const PeppermintStartup = {
   },
 
   late(window) {
+    start("Popular sites suggestions", () =>
+      ChromeUtils.importESModule(
+        "moz-src:///peppermint/urlbar/PeppermintUrlbarProviderPopularSites.sys.mjs"
+      ).registerPopularSitesProvider()
+    );
     start("Notepad watcher", () =>
       ChromeUtils.importESModule(
         "resource:///actors/ZenNotepadParent.sys.mjs"

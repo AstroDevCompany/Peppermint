@@ -1,0 +1,15 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Suggest well known sites in the address bar, even when they were never visited.
+- name: peppermint.urlbar.popular-sites.enabled
+  value: true
+
+# Most popular sites suggested for one query.
+- name: peppermint.urlbar.popular-sites.max-results
+  value: 3
+
+# Shortest query, in characters, that gets popular site suggestions.
+- name: peppermint.urlbar.popular-sites.min-query-length
+  value: 2

@@ -11,6 +11,7 @@ BROWSER_CHROME_MANIFESTS += [
     "janitor/browser.toml",
     "new_tab/browser.toml",
     "notepad/browser.toml",
+    "popular_sites/browser.toml",
     "reader/browser.toml",
     "tab_unloader/browser.toml",
     "underpowered/browser.toml",

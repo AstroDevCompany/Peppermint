@@ -6,3 +6,7 @@ EXTRA_JS_MODULES += [
     "ZenUBNotepadProvider.sys.mjs",
     "ZenUrlbarProviderSnippets.sys.mjs",
 ]
+
+MOZ_SRC_FILES += [
+    "PeppermintUrlbarProviderPopularSites.sys.mjs",
+]
