@@ -67,6 +67,11 @@ export const PeppermintStartup = {
         "moz-src:///peppermint/janitor/PeppermintJanitor.sys.mjs"
       ).PeppermintJanitor.init(window)
     );
+    start("PeppermintTabNumbers", () =>
+      ChromeUtils.importESModule(
+        "moz-src:///peppermint/tab-numbers/PeppermintTabNumbers.sys.mjs"
+      ).PeppermintTabNumbers.init(window)
+    );
     start("PeppermintVault", () =>
       ChromeUtils.importESModule(
         "moz-src:///peppermint/vault/PeppermintVault.sys.mjs"

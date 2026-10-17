@@ -8,4 +8,5 @@
 #include reader/jar.inc.mn
 #include vault/jar.inc.mn
 #include fonts/jar.inc.mn
+#include tab-numbers/jar.inc.mn
 #include common/jar.inc.mn

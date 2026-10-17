@@ -1,0 +1,34 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* While the tab-switching modifier is held, a tab that can be reached with
+ * it shows its shortcut number where its icon normally is. The number takes
+ * the tab's own text color, so it follows every theme. */
+.tab-icon-stack[peppermint-tab-number] {
+  & > :not(.peppermint-tab-number) {
+    opacity: 0;
+  }
+
+  & > .peppermint-tab-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--icon-size, 16px);
+    height: var(--icon-size, 16px);
+    margin-inline: calc(var(--toolbarbutton-padding-inner) / 3) var(--toolbarbutton-padding-inner);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: inherit;
+    pointer-events: none;
+    user-select: none;
+  }
+}
+
+@media not (prefers-reduced-motion: reduce) {
+  .tab-icon-stack[peppermint-tab-number] > * {
+    transition: opacity 80ms ease;
+  }
+}

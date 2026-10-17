@@ -15,6 +15,7 @@ DIRS += [
     "janitor",
     "notepad",
     "reader",
+    "tab-numbers",
     "tab-unloader",
     "tests",
     "underpowered",
