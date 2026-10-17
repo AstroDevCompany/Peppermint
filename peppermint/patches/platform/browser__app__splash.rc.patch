@@ -1,0 +1,12 @@
+--- a/browser/app/splash.rc
++++ b/browser/app/splash.rc
+@@ -5,9 +5,6 @@
+ #include <windows.h>
+ #include "nsNativeAppSupportWin.h"
+ 
+-#define MANIFEST_PATH "firefox.exe.manifest" 
+-CREATEPROCESS_MANIFEST_RESOURCE_ID  RT_MANIFEST             MANIFEST_PATH
+-
+ IDI_APPICON ICON FIREFOX_ICO
+ IDI_DOCUMENT ICON DOCUMENT_ICO
+ IDI_APPLICATION ICON FIREFOX_ICO

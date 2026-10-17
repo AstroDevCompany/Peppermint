@@ -18,6 +18,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import {
   engineDir,
   filesDir,
@@ -74,11 +75,18 @@ export function recordPatch(input, feature, { source } = {}) {
     return replacement;
   }
 
+  // Windows checkouts can hand back CRLF files while the reference is LF.
+  const crlf = Buffer.from("\r\n");
+  const normalized =
+    !reference.includes(crlf) && current.includes(crlf)
+      ? Buffer.from(current.toString("latin1").replaceAll("\r\n", "\n"), "latin1")
+      : current;
+
   const work = tmpDir("pm-record-");
   let diff;
   try {
     fs.writeFileSync(path.join(work, "a"), reference);
-    fs.writeFileSync(path.join(work, "b"), current);
+    fs.writeFileSync(path.join(work, "b"), normalized);
     const result = spawnSync(
       "diff",
       ["-u", "--label", `a/${rel}`, "--label", `b/${rel}`, "a", "b"],
@@ -117,7 +125,7 @@ export function recordPatch(input, feature, { source } = {}) {
   return out;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const [input, feature] = process.argv.slice(2);
   if (!input) {
     console.error("usage: npm run pm:record -- <engine path> [feature]");
