@@ -26,6 +26,24 @@ _Peppermint is an independent fork._
 
 ---
 
+## Before we begin
+
+**Read this if you're worried about "AI slop". I would be too, so I get you.**
+
+MintFlow Technologies is simply a brand name I came up with to make my products feel more unified. I'm a solo developer, I work on my projects only in my free time, I don't earn anything from them, and I've been very interested in the LLM world ever since the 2023 boom.
+
+I'm not planning to add any AI-based features to this browser, as that would mostly defeat its "fast & light, clutter-free" premise. That said, of course, many of these features have been developed with assistance from LLM agents, sometimes through fully AI-driven workflows. Nevertheless, **I aim to use the strongest, smartest models available while carefully examining and double-checking their work**.
+
+This applies to most of my products (not all of them, but almost). So, while there's always a chance something might slip under my nose, you can generally trust the changes being made.
+
+This isn't my biggest project, not even close, but it's still the one I **care about the most**. I've dreamed of making a browser for as long as I can remember, simply because it's something I use every day and, by far, my most-used app on any desktop. That means you can generally trust that, with Peppermint, you'll get the version of a browser I've always wanted for myself, improved every time I come up with a new idea (and if you have any, feel free to reach out. Thanks!).
+
+With that said, thank you for taking the time to read this, and first and foremost, for choosing Peppermint.
+
+- Luca
+
+---
+
 ## ✨ Why Peppermint?
 
 Modern browsers focus too much on adding useless features that you'll maybe end up using once, instead of focusing on actual QoL features that will make your experience more enjoyable & hassle-free; No telemetry, sponsored shortcuts, and UI that fights for your attention. **Peppermint strips it all away and only focuses on making your experience smoother.**
