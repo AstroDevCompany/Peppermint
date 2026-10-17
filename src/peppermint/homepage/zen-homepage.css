@@ -107,14 +107,27 @@
 .zen-homepage-tagline {
   margin: 0;
   font-size: var(--zen-home-tagline-size);
+  /* The page glow is the primary color itself, so the text must be a bright
+     tint of it (never the raw primary) to stay readable on every theme. The
+     shadow is a deep shade of the same hue, which keeps the edges crisp on
+     light backgrounds too. */
   background-image: linear-gradient(
     to right,
-    var(--zen-primary-color, #2dd4bf) 0%,
-    color-mix(in srgb, var(--zen-primary-color, #2dd4bf) 35%, white) 100%
+    color-mix(in oklch, var(--zen-primary-color, #2dd4bf) 40%, white) 0%,
+    color-mix(in oklch, var(--zen-primary-color, #2dd4bf) 14%, white) 100%
   );
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
+  filter: drop-shadow(
+    0 1px 6px
+      color-mix(
+        in oklch,
+        color-mix(in oklch, var(--zen-primary-color, #2dd4bf) 40%, black)
+          light-dark(80%, 60%),
+        transparent
+      )
+  );
 }
 
 .zen-homepage-fresh {

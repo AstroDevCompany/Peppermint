@@ -8,3 +8,5 @@ prefs = [
 ]
 
 ["browser_new_tab_auxiliary_window.js"]
+
+["browser_new_tab_urlbar_stays_open.js"]

@@ -1,6 +1,6 @@
 --- a/browser/components/urlbar/content/UrlbarInputBase.mjs
 +++ b/browser/components/urlbar/content/UrlbarInputBase.mjs
-@@ -2569,15 +2569,23 @@
+@@ -2539,15 +2539,23 @@
     */
    onFirstResult(queryContext) {
      let firstResult = queryContext.results[0];
@@ -28,7 +28,17 @@
          entry: "typed",
          checkValue: false,
        })
-@@ -3314,6 +3322,16 @@
+@@ -3277,13 +3285,25 @@
+ 
+     this.toggleAttribute("breakout-extend", true);
+     this.window.gZenUIManager.onUrlbarOpen();
+-    if (this.zenUrlbarBehavior == 'float' || (this.zenUrlbarBehavior == 'floating-on-type' && !this.focusedViaMousedown)) {
++    // A new tab session (Cmd+T) always floats, even when the bar was last
++    // focused with the mouse and never blurred since.
++    if (this.zenUrlbarBehavior == 'float' || this.hasAttribute("zen-newtab") || (this.zenUrlbarBehavior == 'floating-on-type' && !this.focusedViaMousedown)) {
+       this.setAttribute("zen-floating-urlbar", "true");
+       this.window.gZenUIManager.onFloatingURLBarOpen();
+     } else {
        this.removeAttribute("zen-floating-urlbar");
      }
      this.#updateTextboxPosition();
@@ -45,7 +55,7 @@
    }
  
    #closePopover() {
-@@ -6130,6 +6148,7 @@
+@@ -6103,6 +6123,7 @@
        options.searchMode = this.searchMode;
        if (
          this.searchMode.source &&
