@@ -1,0 +1,60 @@
+--- a/services/sync/modules/service.sys.mjs
++++ b/services/sync/modules/service.sys.mjs
+@@ -829,14 +829,16 @@
+     return Math.min(512 * 1024, this.getMaxRecordPayloadSize());
+   },
+ 
+-  async verifyLogin(allow40XRecovery = true) {
++  async verifyLogin(allow40XRecovery = true, { prompt = true } = {}) {
+     // Attaching auth credentials to a request requires access to
+     // passwords, which means that Resource.get can throw MP-related
+     // exceptions!
+     // So we ask the identity to verify the login state after unlocking the
+     // master password (ie, this call is expected to prompt for MP unlock
+     // if necessary) while we still have control.
+-    this.status.login = await this.identity.unlockAndVerifyAuthState();
++    this.status.login = await this.identity.unlockAndVerifyAuthState({
++      prompt,
++    });
+     this._log.debug(
+       "Fetching unlocked auth state returned " + this.status.login
+     );
+@@ -888,7 +890,7 @@
+         case 404:
+           // Check that we're verifying with the correct cluster
+           if (allow40XRecovery && (await this.identity.setCluster())) {
+-            return await this.verifyLogin(false);
++            return await this.verifyLogin(false, { prompt });
+           }
+ 
+           // We must have the right cluster, but the server doesn't expect us.
+@@ -1058,7 +1060,7 @@
+     }
+   },
+ 
+-  async login() {
++  async login({ prompt = true } = {}) {
+     async function onNotify() {
+       this._loggedIn = false;
+       if (this.scheduler.offline) {
+@@ -1067,7 +1069,7 @@
+       }
+ 
+       this._log.info("User logged in successfully - verifying login.");
+-      if (!(await this.verifyLogin())) {
++      if (!(await this.verifyLogin(true, { prompt }))) {
+         // verifyLogin sets the failure states here.
+         throw new Error(`Login failed: ${this.status.login}`);
+       }
+@@ -1367,7 +1369,10 @@
+       // Make sure we're logged in.
+       if (this._shouldLogin()) {
+         this._log.debug("In sync: should login.");
+-        if (!(await this.login())) {
++        // Only a sync the user asked for may show the Primary Password
++        // dialog; automatic ones wait until it has been unlocked.
++        const prompt = !why || why == "aboutprefs" || why == "login";
++        if (!(await this.login({ prompt }))) {
+           this._log.debug("Not syncing: login returned false.");
+           return;
+         }

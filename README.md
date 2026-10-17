@@ -1,14 +1,15 @@
-<!--
-   - This Source Code Form is subject to the terms of the Mozilla Public
-   - License, v. 2.0. If a copy of the MPL was not distributed with this
-   - file, You can obtain one at http://mozilla.org/MPL/2.0/.
-   -->
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="branding-art/peppermint-full.png">
+    <img src="branding-art/peppermint-full.png" alt="Fresh News" width="120">
+  </picture>
+</p>
 
 <div align="center">
 
-# 🌿 Peppermint
+# Peppermint
 
-**A calm, productive Firefox-based browser. Built for focus, not noise.**
+**A performant, productive Firefox-based browser. Built for focus, convenience & speed.**
 
 _Peppermint is an independent fork._
 
@@ -27,7 +28,7 @@ _Peppermint is an independent fork._
 
 ## ✨ Why Peppermint?
 
-Modern browsers are cluttered; Endless toolbars, telemetry, sponsored shortcuts, and UI that fights for your attention. **Peppermint strips it all away.**
+Modern browsers focus too much on adding useless features that you'll maybe end up using once, instead of focusing on actual QoL features that will make your experience more enjoyable & hassle-free; No telemetry, sponsored shortcuts, and UI that fights for your attention. **Peppermint strips it all away and only focuses on making your experience smoother.**
 
 |       🎯 **Focus First**        |      🛡️ **Privacy by Default**      |  ⚡ **Performance Tuned**  |
 | :-----------------------------: | :---------------------------------: | :------------------------: |
@@ -54,7 +55,7 @@ Modern browsers are cluttered; Endless toolbars, telemetry, sponsored shortcuts,
 
 ### Improved upon Zen
 
-- All General Features
+- All Highlight Features
 - More organized settings
 - More consistent panels colors & design
 - Additional settings
@@ -115,24 +116,6 @@ npm start
 
 ---
 
-## 🏗️ Architecture
-
-```
-peppermint/
-├── engine/                 # Firefox source tree (git submodule)
-├── src/
-│   ├── browser/            # Peppermint frontend (React + TypeScript)
-│   │   ├── components/     # UI components (newtab, toolbar, tabs, etc.)
-│   │   ├── themes/         # Theme system (light/dark/auto + custom)
-│   │   └── styles/         # Global styles & CSS variables
-│   ├── external-patches/   # Upstream patches (LibreWolf, Firefox)
-│   └── preferences/        # Hardened user.js defaults
-├── prefs/                  # Preference definitions & schemas
-├── scripts/                # Build, sync, and utility scripts
-├── surfer.json             # Brand & build configuration
-└── package.json            # Node workspace & scripts
-```
-
 ### Key Technologies
 
 | Layer            | Technology                                               |
@@ -191,31 +174,9 @@ Smart bookmark folders that auto-populate from queries: `tag:work`, `domain:gith
 
 ---
 
-## 🔄 Release Channels
-
-| Channel      | Branch     | Version  | Update Frequency               |
-| ------------ | ---------- | -------- | ------------------------------ |
-| **Release**  | `stable`   | `1.23.x` | ~6 weeks (Firefox ESR cadence) |
-| **Twilight** | `twilight` | `1.24t`  | Weekly (cutting edge)          |
-
-```bash
-# Switch channels (rebuild required)
-git checkout stable    # Release
-git checkout twilight  # Twilight
-npm run init && npm run build
-```
-
----
-
 ## 🤝 Contributing
 
 We welcome contributions! Please read our [Contributing Guide](docs/contribute.md) and [Code of Conduct](CODE_OF_CONDUCT.md) first.
-
-### Good First Issues
-
-- [🏷️ `good first issue`](https://github.com/AstroDevCompany/Peppermint/labels/good%20first%20issue)
-- [🐛 `bug`](https://github.com/AstroDevCompany/Peppermint/labels/bug)
-- [📝 `documentation`](https://github.com/AstroDevCompany/Peppermint/labels/documentation)
 
 ### Development Workflow
 

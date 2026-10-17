@@ -1,0 +1,28 @@
+--- a/services/sync/modules/sync_auth.sys.mjs
++++ b/services/sync/modules/sync_auth.sys.mjs
+@@ -284,9 +284,10 @@
+    * Verify the current auth state, unlocking the master-password if necessary.
+    *
+    * Returns a promise that resolves with the current auth state after
+-   * attempting to unlock.
++   * attempting to unlock. With prompt set to false the Primary Password
++   * dialog is never shown and a locked one is reported as such.
+    */
+-  async unlockAndVerifyAuthState() {
++  async unlockAndVerifyAuthState({ prompt = true } = {}) {
+     let data = await this.getSignedInUser();
+     const fxa = this._fxaService;
+     if (!data) {
+@@ -312,6 +313,12 @@
+       return STATUS_OK;
+     }
+     // so no keys - ensure MP unlocked.
++    if (!prompt && Utils.mpLocked()) {
++      lazy.log.debug(
++        "unlockAndVerifyAuthState: master-password is locked, not prompting"
++      );
++      return MASTER_PASSWORD_LOCKED;
++    }
+     if (!Utils.ensureMPUnlocked()) {
+       // user declined to unlock, so we don't know if they are stored there.
+       lazy.log.debug(
