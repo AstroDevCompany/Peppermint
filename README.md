@@ -30,9 +30,9 @@ _Peppermint is an independent fork._
 
 **Read this if you're worried about "AI slop". I would be too, so I get you.**
 
-MintFlow Technologies is simply a brand name I came up with to make my products feel more unified. I'm a solo developer, I work on my projects only in my free time, I don't earn anything from them, and I've been very interested in the LLM world ever since the 2023 boom.
+MintFlow Technologies is simply a brand name I came up with to make my products feel more "unified". I'm a solo developer, I work on my projects only in my free time, I don't earn anything from them, and I've been very interested in the LLM world ever since the 2023 boom. I've been trying to fine-tune & benchmark LLMs since then.
 
-I'm not planning to add any AI-based features to this browser, as that would mostly defeat its "fast & light, clutter-free" premise. That said, of course, many of these features have been developed with assistance from LLM agents, sometimes through fully AI-driven workflows. Nevertheless, **I aim to use the strongest, smartest models available while carefully examining and double-checking their work**.
+I'm not planning to add any AI-based features to this browser, as that would mostly defeat its "fast & light, clutter-free" premise. That said, of course, many of these features have been developed with assistance from LLM agents, sometimes through fully AI-driven workflows. Nevertheless, **I aim to use the strongest, smartest models available while carefully examining and double-checking their work**. Since I always keep an eye on every LLM release, bechmarks + my own tests, you can trust I'll be using the best LLMs at all times.
 
 This applies to most of my products (not all of them, but almost). So, while there's always a chance something might slip under my nose, you can generally trust the changes being made.
 
@@ -40,7 +40,7 @@ This isn't my biggest project, not even close, but it's still the one I **care a
 
 With that said, thank you for taking the time to read this, and first and foremost, for choosing Peppermint.
 
-- Luca
+Oh, and I'm also pouring a decent amount of money into these agents and being a university students with 0 earnings, trust that I'll do my best to put them to good use.
 
 ---
 
@@ -80,9 +80,9 @@ Modern browsers focus too much on adding useless features that you'll maybe end 
 - Minor QoL features
 - Default themes & settings
 
-## 🖼️ Screenshots
+---
 
-Coming soon...
+## If you're not interested in the source-code or contributing, you can stop here.
 
 ---
 
