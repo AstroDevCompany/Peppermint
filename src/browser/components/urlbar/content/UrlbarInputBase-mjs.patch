@@ -56,7 +56,7 @@
          <div class="urlbarView-results"
               role="listbox"/>
          <panel-list class="urlbarView-result-menu" accesskey-conflicts-bug="2073892"></panel-list>
-@@ -252,6 +272,37 @@
+@@ -252,7 +272,38 @@
     * the window isn't in customize mode and the input isn't read-only.
     */
    #popoverAllowed = false;
@@ -66,7 +66,7 @@
 +   * blocks while showing.
 +   */
 +  #popoverBlockerCount = 0;
-+
+ 
 +  /**
 +   * Invalidates an anchor measurement that is still in flight when a newer one
 +   * starts.
@@ -91,9 +91,10 @@
 +  get #canOpenPopover() {
 +    return this.#popoverAllowed && !this.#popoverBlockerCount;
 +  }
- 
++
    #gBrowserListenersAdded = false;
    #isAddressbar = false;
+   /**
 @@ -532,8 +583,8 @@
  
      // Don't attach event listeners if the urlbar is readonly.
@@ -211,7 +212,7 @@
      }
  
      if (isCanonized) {
-@@ -3120,37 +3205,145 @@
+@@ -3120,37 +3205,148 @@
        this.#browserStates.set(browser, state);
      }
      return state;
@@ -304,6 +305,9 @@
 +    // user sees only sees two states: not expanded, and expanded with the view
 +    // open.
 +    if (!this.matches(":popover-open")) {
++      if (this.hasAttribute("breakout-extend") && this.focused) {
++        this.startQuery({ allowAutofill: false });
++      }
        return;
      }
  
@@ -367,7 +371,7 @@
    }
  
    /**
-@@ -3179,7 +3372,7 @@
+@@ -3179,7 +3375,7 @@
      forceUnifiedSearchButtonAvailable = false
    ) {
      let prevState = this.getAttribute("pageproxystate");
@@ -376,13 +380,10 @@
      this.setAttribute("pageproxystate", state);
      this._inputContainer.setAttribute("pageproxystate", state);
      this._identityBox?.setAttribute("pageproxystate", state);
-@@ -3410,6 +3603,91 @@
-     // need to close the view and search mode switcher popup explicitly.
-     this.searchModeSwitcher.closePanel();
-     this.view.close();
-+  }
-+
-+  /**
+@@ -3413,6 +3609,91 @@
+   }
+ 
+   /**
 +   * Hides the popover and releases the anchor state on its container, undoing
 +   * #measurePopoverAnchor. #closePopover only hides the popover, leaving the
 +   * anchor in place for the next open.
@@ -465,10 +466,13 @@
 +        resolve();
 +      });
 +    });
-   }
- 
-   /**
-@@ -3750,7 +4028,53 @@
++  }
++
++  /**
+    * Sets the input field value.
+    *
+    * @param {string} val The new value to set.
+@@ -3750,7 +4031,53 @@
        lazy.CustomizableUI.getPlacementOfWidget(this.parentElement.id)?.area ==
          lazy.CustomizableUI.AREA_FIXED_OVERFLOW_PANEL ||
        this.parentElement.getAttribute("overflowedItem") == "true"
@@ -522,7 +526,7 @@
    }
  
    _updateUrlTooltip() {
-@@ -3863,6 +4187,7 @@
+@@ -3863,6 +4190,7 @@
    }
  
    _toggleActionOverride(event) {
@@ -530,7 +534,7 @@
      if (
        event.keyCode == KeyEvent.DOM_VK_SHIFT ||
        event.keyCode == KeyEvent.DOM_VK_ALT ||
-@@ -3961,9 +4286,10 @@
+@@ -3961,9 +4289,10 @@
      if (!this.#isAddressbar) {
        return val;
      }
@@ -544,7 +548,7 @@
      // Only trim value if the directionality doesn't change to RTL and we're not
      // showing a strikeout https protocol.
      return UrlbarContentUtils.isTextDirectionRTL(trimmedValue, window) ||
-@@ -4171,6 +4497,11 @@
+@@ -4171,6 +4500,11 @@
      keepViewOpen = false,
      browserId = null,
    }) {
@@ -556,7 +560,7 @@
      let keyDownEnterDeferred;
      if (
        this._keyDownEnterDeferred &&
-@@ -4492,6 +4823,7 @@
+@@ -4492,6 +4826,7 @@
            this.setResultForCurrentValue(null);
            this.handleCommand();
            this.parentController.clearLastQueryContextCache();
@@ -564,7 +568,7 @@
  
            this._suppressStartQuery = false;
          });
-@@ -4503,7 +4835,6 @@
+@@ -4503,7 +4838,6 @@
          // Close the results pane, because paste and go doesn't want a result
          // selection. This has to happen before the menu opens: hiding the
          // popover once it's open keeps it from showing (bug 2037468).
@@ -572,7 +576,7 @@
  
          // The edit context menu is shared with other inputs in chrome, and
          // only the items we add here conflict, so mark it for this opening
-@@ -4778,7 +5109,11 @@
+@@ -4778,7 +5112,11 @@
      if (!engineName && !source && !this.hasAttribute("searchmode")) {
        return;
      }
@@ -585,7 +589,7 @@
      if (this._searchModeIndicatorTitle) {
        this._searchModeIndicatorTitle.textContent = "";
        this._searchModeIndicatorTitle.removeAttribute("data-l10n-id");
-@@ -5092,6 +5427,7 @@
+@@ -5092,6 +5430,7 @@
  
      this.document.l10n.setAttributes(
        this.inputField,
@@ -593,7 +597,7 @@
        l10nId,
        l10nId == "urlbar-placeholder-with-name"
          ? { name: engineName }
-@@ -5142,6 +5478,12 @@
+@@ -5142,6 +5481,12 @@
      }
  
      logger().debug("Blur Event");
@@ -606,7 +610,7 @@
      // We cannot count every blur events after a missed engagement as abandoment
      // because the user may have clicked on some view element that executes
      // a command causing a focus change. For example opening preferences from
-@@ -5196,6 +5538,7 @@
+@@ -5196,6 +5541,7 @@
      if (!UrlbarPrefs.get("ui.popup.disable_autohide")) {
        this.view.close();
      }
@@ -614,7 +618,7 @@
  
      // We may have hidden popup notifications, show them again if necessary.
      if (
-@@ -5221,6 +5564,11 @@
+@@ -5221,6 +5567,11 @@
    }
  
    _on_click(event) {
@@ -626,7 +630,7 @@
      switch (event.target) {
        case this.inputField:
        case this._inputContainer:
-@@ -5281,6 +5629,7 @@
+@@ -5281,6 +5632,7 @@
      if (!this._hideFocus) {
        this.toggleAttribute("focused", true);
      }
@@ -634,7 +638,7 @@
  
      // If the value was trimmed, check whether we should untrim it.
      // This is necessary when a protocol was typed, but the whole url has
-@@ -5315,10 +5664,11 @@
+@@ -5315,10 +5667,11 @@
        }
        if (untrim) {
          this.setValue(this._untrimmedValue);
@@ -647,7 +651,7 @@
        this.view.autoOpen({ event });
      } else {
        if (this._untrimOnFocusAfterKeydown) {
-@@ -5362,9 +5712,16 @@
+@@ -5362,9 +5715,16 @@
    }
  
    _on_mousedown(event) {
@@ -665,7 +669,7 @@
          if (
            event.target != this.inputField &&
            event.target != this._inputContainer &&
-@@ -5375,6 +5732,10 @@
+@@ -5375,6 +5735,10 @@
  
          this.focusedViaMousedown = !this.focused;
          this.#preventClickSelectsAll = this.focused;
@@ -676,7 +680,7 @@
  
          // Keep the focus status, since the attribute may be changed
          // upon calling this.focus().
-@@ -5410,7 +5771,7 @@
+@@ -5410,7 +5774,7 @@
          }
          // Don't close the view when clicking on a tab; we may want to keep the
          // view open on tab switch, and the TabSelect event arrived earlier.
@@ -685,7 +689,7 @@
            break;
          }
  
-@@ -5704,7 +6065,7 @@
+@@ -5704,7 +6068,7 @@
      // When we are in actions search mode we can show more results so
      // increase the limit.
      let maxResults =
