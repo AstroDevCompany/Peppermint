@@ -1,6 +1,8 @@
+diff --git a/browser/components/urlbar/content/UrlbarInputBase.mjs b/browser/components/urlbar/content/UrlbarInputBase.mjs
+index 9093501ce7d288a51ba4822637e58a67c3faa273..1b768808fba7706388588f66d7becfdc6381ea3e 100644
 --- a/browser/components/urlbar/content/UrlbarInputBase.mjs
 +++ b/browser/components/urlbar/content/UrlbarInputBase.mjs
-@@ -83,6 +83,12 @@
+@@ -83,6 +83,12 @@ if (lazy) {
        Ci.nsIURLQueryStringStripper,
      ],
    });
@@ -13,7 +15,7 @@
  }
  
  const logger = () => UrlbarShared.getLogger({ prefix: "Input" });
-@@ -94,6 +100,23 @@
+@@ -94,6 +100,23 @@ const UNLIMITED_MAX_RESULTS = 99;
  const SCHEMELESS_INPUT_SCHEMEFUL = 1;
  const SCHEMELESS_INPUT_SCHEMELESS = 2;
  
@@ -37,7 +39,7 @@
  const XHTML_NS = "http://www.w3.org/1999/xhtml";
  
  /**
-@@ -137,7 +160,6 @@
+@@ -137,7 +160,6 @@ export class UrlbarInputBase extends HTMLElement {
      return `
        <div class="urlbar-background"/>
        <div class="urlbar-input-container"
@@ -45,7 +47,7 @@
             pageproxystate="invalid">
          <moz-urlbar-slot name="remote-control-box" />
  
-@@ -191,10 +213,8 @@
+@@ -191,10 +213,8 @@ ${
          <moz-urlbar-slot name="page-actions" />
        </div>
        <div class="urlbarView"
@@ -56,11 +58,10 @@
          <div class="urlbarView-results"
               role="listbox"/>
          <panel-list class="urlbarView-result-menu" accesskey-conflicts-bug="2073892"></panel-list>
-@@ -252,6 +272,37 @@
-    * the window isn't in customize mode and the input isn't read-only.
+@@ -253,6 +273,37 @@ ${
     */
    #popoverAllowed = false;
-+
+ 
 +  /**
 +   * How many things currently suppress the popover, e.g. a window-modal dialog
 +   * blocks while showing.
@@ -91,10 +92,11 @@
 +  get #canOpenPopover() {
 +    return this.#popoverAllowed && !this.#popoverBlockerCount;
 +  }
- 
++
    #gBrowserListenersAdded = false;
    #isAddressbar = false;
-@@ -532,8 +583,8 @@
+   /**
+@@ -532,8 +583,8 @@ ${
  
      // Don't attach event listeners if the urlbar is readonly.
      if (this.readOnly) {
@@ -104,7 +106,7 @@
        // Focused won't be updated so remove it to avoid it becoming stale.
        this.removeAttribute("focused");
        return;
-@@ -565,6 +616,7 @@
+@@ -565,6 +616,7 @@ ${
      // recording abandonment events when the command causes a blur event.
      this.view.panel.addEventListener("command", this, true);
  
@@ -112,7 +114,7 @@
      if (this.window.gBrowser) {
        // On startup, this will be called again by browser-init.js
        // once gBrowser has been initialized.
-@@ -581,14 +633,17 @@
+@@ -581,14 +633,17 @@ ${
      }
  
      this.#popoverAllowed =
@@ -135,15 +137,15 @@
  
      this._addObservers();
  
-@@ -627,6 +682,7 @@
-     // This is used to detect commands launched from the panel, to avoid
+@@ -628,6 +683,7 @@ ${
      // recording abandonment events when the command causes a blur event.
      this.view.panel.removeEventListener("command", this, true);
-+
  
++
      if (this.#gBrowserListenersAdded) {
        this.window.gBrowser.tabContainer.removeEventListener("TabSelect", this);
-@@ -877,7 +933,16 @@
+       this.window.gBrowser.tabContainer.removeEventListener("TabClose", this);
+@@ -877,7 +933,16 @@ ${
      // See _on_select().  HTMLInputElement.select() dispatches a "select"
      // event but does not set the primary selection.
      this._suppressPrimaryAdjustment = true;
@@ -160,7 +162,7 @@
      this._suppressPrimaryAdjustment = false;
    }
  
-@@ -952,6 +1017,10 @@
+@@ -952,6 +1017,10 @@ ${
      hideSearchTerms = false,
      isSameDocument = false,
    } = {}) {
@@ -171,7 +173,7 @@
      if (!this.#isAddressbar) {
        throw new Error(
          "Cannot set URI for UrlbarInput that is not an address bar"
-@@ -1254,7 +1323,16 @@
+@@ -1254,7 +1323,16 @@ ${
        this.searchModeSwitcher?.updateSearchIcon();
      }
  
@@ -188,7 +190,7 @@
    }
  
    /**
-@@ -1366,6 +1444,9 @@
+@@ -1366,6 +1444,9 @@ ${
        where,
        query: searchString,
      });
@@ -198,7 +200,7 @@
      this.parentController.openSERP(
        engine.id,
        searchString,
-@@ -1850,7 +1931,11 @@
+@@ -1850,7 +1931,11 @@ ${
      openParams.avoidBrowserFocus = keepViewOpen;
  
      if (!this.#providesSearchMode(result) && !keepViewOpen) {
@@ -211,12 +213,10 @@
      }
  
      if (isCanonized) {
-@@ -3120,37 +3205,145 @@
-       this.#browserStates.set(browser, state);
-     }
+@@ -3122,35 +3207,146 @@ ${
      return state;
-+  }
-+
+   }
+ 
 +  async #updatePopoverAnchor() {
 +    if (!this.#canOpenPopover) {
 +      return;
@@ -234,8 +234,8 @@
 +      return;
 +    }
 +    await this.#measurePopoverAnchor();
-   }
- 
++  }
++
 +  zenFormatURLValue() {
 +    return this.#getValueFormatter().update();
 +  }
@@ -304,6 +304,9 @@
 +    // user sees only sees two states: not expanded, and expanded with the view
 +    // open.
 +    if (!this.matches(":popover-open")) {
++      if (this.hasAttribute("breakout-extend") && this.focused) {
++        this.startQuery({ allowAutofill: false });
++      }
        return;
      }
  
@@ -367,7 +370,7 @@
    }
  
    /**
-@@ -3179,7 +3372,7 @@
+@@ -3179,7 +3375,7 @@ ${
      forceUnifiedSearchButtonAvailable = false
    ) {
      let prevState = this.getAttribute("pageproxystate");
@@ -376,12 +379,10 @@
      this.setAttribute("pageproxystate", state);
      this._inputContainer.setAttribute("pageproxystate", state);
      this._identityBox?.setAttribute("pageproxystate", state);
-@@ -3410,6 +3603,91 @@
-     // need to close the view and search mode switcher popup explicitly.
-     this.searchModeSwitcher.closePanel();
+@@ -3412,6 +3608,91 @@ ${
      this.view.close();
-+  }
-+
+   }
+ 
 +  /**
 +   * Hides the popover and releases the anchor state on its container, undoing
 +   * #measurePopoverAnchor. #closePopover only hides the popover, leaving the
@@ -465,16 +466,15 @@
 +        resolve();
 +      });
 +    });
-   }
- 
-   /**
-@@ -3750,7 +4028,53 @@
-       lazy.CustomizableUI.getPlacementOfWidget(this.parentElement.id)?.area ==
-         lazy.CustomizableUI.AREA_FIXED_OVERFLOW_PANEL ||
-       this.parentElement.getAttribute("overflowedItem") == "true"
-+    );
 +  }
 +
+   /**
+    * Sets the input field value.
+    *
+@@ -3753,6 +4034,52 @@ ${
+     );
+   }
+ 
 +  /**
 +   * Should be directly after every showPopover to fix the popover order
 +   * among urlbar and searchbar.
@@ -487,7 +487,7 @@
 +  #fixAddressbarSearchbarOrder() {
 +    let addressbar = /** @type {?UrlbarInput} */ (
 +      this.document.getElementById("urlbar")
-     );
++    );
 +    let searchbar = /** @type {?UrlbarInput} */ (
 +      this.document.getElementById("searchbar-new")
 +    );
@@ -519,10 +519,12 @@
 +      addressbar.hidePopover();
 +      addressbar.showPopover();
 +    }
-   }
- 
++  }
++
    _updateUrlTooltip() {
-@@ -3863,6 +4187,7 @@
+     if (this.focused || !this._overflowing) {
+       this.inputField.removeAttribute("title");
+@@ -3863,6 +4190,7 @@ ${
    }
  
    _toggleActionOverride(event) {
@@ -530,7 +532,7 @@
      if (
        event.keyCode == KeyEvent.DOM_VK_SHIFT ||
        event.keyCode == KeyEvent.DOM_VK_ALT ||
-@@ -3961,9 +4286,10 @@
+@@ -3961,9 +4289,10 @@ ${
      if (!this.#isAddressbar) {
        return val;
      }
@@ -544,7 +546,7 @@
      // Only trim value if the directionality doesn't change to RTL and we're not
      // showing a strikeout https protocol.
      return UrlbarContentUtils.isTextDirectionRTL(trimmedValue, window) ||
-@@ -4171,6 +4497,11 @@
+@@ -4171,6 +4500,11 @@ ${
      keepViewOpen = false,
      browserId = null,
    }) {
@@ -556,7 +558,7 @@
      let keyDownEnterDeferred;
      if (
        this._keyDownEnterDeferred &&
-@@ -4492,6 +4823,7 @@
+@@ -4492,6 +4826,7 @@ ${
            this.setResultForCurrentValue(null);
            this.handleCommand();
            this.parentController.clearLastQueryContextCache();
@@ -564,7 +566,7 @@
  
            this._suppressStartQuery = false;
          });
-@@ -4503,7 +4835,6 @@
+@@ -4503,7 +4838,6 @@ ${
          // Close the results pane, because paste and go doesn't want a result
          // selection. This has to happen before the menu opens: hiding the
          // popover once it's open keeps it from showing (bug 2037468).
@@ -572,7 +574,7 @@
  
          // The edit context menu is shared with other inputs in chrome, and
          // only the items we add here conflict, so mark it for this opening
-@@ -4778,7 +5109,11 @@
+@@ -4778,7 +5112,11 @@ ${
      if (!engineName && !source && !this.hasAttribute("searchmode")) {
        return;
      }
@@ -585,7 +587,7 @@
      if (this._searchModeIndicatorTitle) {
        this._searchModeIndicatorTitle.textContent = "";
        this._searchModeIndicatorTitle.removeAttribute("data-l10n-id");
-@@ -5092,6 +5427,7 @@
+@@ -5092,6 +5430,7 @@ ${
  
      this.document.l10n.setAttributes(
        this.inputField,
@@ -593,7 +595,7 @@
        l10nId,
        l10nId == "urlbar-placeholder-with-name"
          ? { name: engineName }
-@@ -5142,6 +5478,12 @@
+@@ -5142,6 +5481,12 @@ ${
      }
  
      logger().debug("Blur Event");
@@ -606,7 +608,7 @@
      // We cannot count every blur events after a missed engagement as abandoment
      // because the user may have clicked on some view element that executes
      // a command causing a focus change. For example opening preferences from
-@@ -5196,6 +5538,7 @@
+@@ -5196,6 +5541,7 @@ ${
      if (!UrlbarPrefs.get("ui.popup.disable_autohide")) {
        this.view.close();
      }
@@ -614,7 +616,7 @@
  
      // We may have hidden popup notifications, show them again if necessary.
      if (
-@@ -5221,6 +5564,11 @@
+@@ -5221,6 +5567,11 @@ ${
    }
  
    _on_click(event) {
@@ -626,7 +628,7 @@
      switch (event.target) {
        case this.inputField:
        case this._inputContainer:
-@@ -5281,6 +5629,7 @@
+@@ -5281,6 +5632,7 @@ ${
      if (!this._hideFocus) {
        this.toggleAttribute("focused", true);
      }
@@ -634,7 +636,7 @@
  
      // If the value was trimmed, check whether we should untrim it.
      // This is necessary when a protocol was typed, but the whole url has
-@@ -5315,10 +5664,11 @@
+@@ -5315,10 +5667,11 @@ ${
        }
        if (untrim) {
          this.setValue(this._untrimmedValue);
@@ -647,7 +649,7 @@
        this.view.autoOpen({ event });
      } else {
        if (this._untrimOnFocusAfterKeydown) {
-@@ -5362,9 +5712,16 @@
+@@ -5362,9 +5715,16 @@ ${
    }
  
    _on_mousedown(event) {
@@ -665,7 +667,7 @@
          if (
            event.target != this.inputField &&
            event.target != this._inputContainer &&
-@@ -5375,6 +5732,10 @@
+@@ -5375,6 +5735,10 @@ ${
  
          this.focusedViaMousedown = !this.focused;
          this.#preventClickSelectsAll = this.focused;
@@ -676,7 +678,7 @@
  
          // Keep the focus status, since the attribute may be changed
          // upon calling this.focus().
-@@ -5410,7 +5771,7 @@
+@@ -5410,7 +5774,7 @@ ${
          }
          // Don't close the view when clicking on a tab; we may want to keep the
          // view open on tab switch, and the TabSelect event arrived earlier.
@@ -685,7 +687,7 @@
            break;
          }
  
-@@ -5704,7 +6065,7 @@
+@@ -5704,7 +6068,7 @@ ${
      // When we are in actions search mode we can show more results so
      // increase the limit.
      let maxResults =
