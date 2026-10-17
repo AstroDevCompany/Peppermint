@@ -18,6 +18,11 @@
 - name: browser.warnOnQuitShortcut
   value: false
 
+# Firefox defaults to offering full page translations. Keep it off until
+# the user turns on "Offer full page translations" in settings.
+- name: browser.translations.automaticallyPopup
+  value: false
+
 
 # --- firefox/urlbar.yaml
 
