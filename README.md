@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="branding-art/peppermint-full.png">
-    <img src="branding-art/peppermint-full.png" alt="Fresh News" width="120">
+    <img src="branding-art/peppermint-full.png" alt="Fresh News" width="200">
   </picture>
 </p>
 
