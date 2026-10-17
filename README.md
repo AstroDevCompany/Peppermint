@@ -82,6 +82,16 @@ Modern browsers focus too much on adding useless features that you'll maybe end 
 
 ---
 
+### Known issues
+
+- No QR code passkey sign-in on MacOS
+- Windows build keeps failing
+- Cookie refusal & ad-blocker can interfere with some websites
+
+(Known Issues TF.md) • [Temporary Fixes]
+
+---
+
 ## If you're not interested in the source-code or contributing, you can stop here.
 
 ---
