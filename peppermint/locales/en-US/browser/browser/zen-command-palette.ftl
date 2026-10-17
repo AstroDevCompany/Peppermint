@@ -10,3 +10,5 @@ zen-action-clear-cookie-exceptions = Clear Cookie Banner Exceptions
 zen-action-toggle-reader-mode = Toggle Reader Mode
 zen-action-save-article-offline = Save Article for Offline Reading
 zen-action-open-saved-articles = Open Saved Articles
+zen-action-almost-maximize-window = Almost Maximize Window
+zen-action-fullscreen-window = Fullscreen Window

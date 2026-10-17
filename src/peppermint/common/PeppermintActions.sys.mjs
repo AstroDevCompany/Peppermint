@@ -5,6 +5,9 @@
 const PREF_UNDERPOWERED = "zen.underpowered.enabled";
 const PREF_ADBLOCK = "zen.adblock.enabled";
 
+// Gap left on every side of the screen's usable area by "almost maximize".
+const ALMOST_MAXIMIZE_MARGIN = 24;
+
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -25,6 +28,51 @@ function togglePref(name) {
 function cookieConsent() {
   lazy.gZenCookieConsent.init();
   return lazy.gZenCookieConsent;
+}
+
+// Window bounds from before "almost maximize", so a second run restores them.
+const gRestoreBounds = new WeakMap();
+
+function almostMaximizedBounds(window) {
+  const { screen } = window;
+  return {
+    x: screen.availLeft + ALMOST_MAXIMIZE_MARGIN,
+    y: screen.availTop + ALMOST_MAXIMIZE_MARGIN,
+    width: screen.availWidth - ALMOST_MAXIMIZE_MARGIN * 2,
+    height: screen.availHeight - ALMOST_MAXIMIZE_MARGIN * 2,
+  };
+}
+
+function toggleAlmostMaximize(window) {
+  if (window.fullScreen) {
+    window.fullScreen = false;
+  }
+  if (window.windowState == window.STATE_MAXIMIZED) {
+    window.restore();
+  }
+  const target = almostMaximizedBounds(window);
+  const saved = gRestoreBounds.get(window);
+  const isAlmostMaximized =
+    window.screenX == target.x &&
+    window.screenY == target.y &&
+    window.outerWidth == target.width &&
+    window.outerHeight == target.height;
+  if (isAlmostMaximized && saved) {
+    gRestoreBounds.delete(window);
+    window.moveTo(saved.x, saved.y);
+    window.resizeTo(saved.width, saved.height);
+    return;
+  }
+  if (!isAlmostMaximized) {
+    gRestoreBounds.set(window, {
+      x: window.screenX,
+      y: window.screenY,
+      width: window.outerWidth,
+      height: window.outerHeight,
+    });
+  }
+  window.moveTo(target.x, target.y);
+  window.resizeTo(target.width, target.height);
 }
 
 function action(id, labelId, icon, command, isAvailable = () => true) {
@@ -80,6 +128,18 @@ const ACTIONS = [
     "zen-action-manage-url-snippets",
     "chrome://browser/skin/zen-icons/link.svg",
     window => window.openPreferences("paneZenUrlSnippets")
+  ),
+  action(
+    "almost-maximize-window",
+    "zen-action-almost-maximize-window",
+    "chrome://browser/skin/zen-icons/arrows-expand.svg",
+    window => toggleAlmostMaximize(window)
+  ),
+  action(
+    "fullscreen-window",
+    "zen-action-fullscreen-window",
+    "chrome://browser/skin/zen-icons/fullscreen.svg",
+    window => window.document.getElementById("View:FullScreen")?.doCommand()
   ),
   action(
     "toggle-adblock",
