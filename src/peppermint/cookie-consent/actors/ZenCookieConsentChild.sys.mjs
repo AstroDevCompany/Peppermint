@@ -86,12 +86,15 @@ export class ZenCookieConsentChild extends JSWindowActorChild {
     }
     this.#armHardStop(win);
     const run = () => this.#scan();
+    // The idle callback already has a timeout, so a second timer would only
+    // schedule the same first scan twice.
     if (win.requestIdleCallback) {
       const id = win.requestIdleCallback(run, { timeout: IDLE_TIMEOUT_MS });
       this.#timers.push(() => win.cancelIdleCallback?.(id));
+    } else {
+      const timer = win.setTimeout(run, IDLE_TIMEOUT_MS);
+      this.#timers.push(() => win.clearTimeout(timer));
     }
-    const timer = win.setTimeout(run, IDLE_TIMEOUT_MS);
-    this.#timers.push(() => win.clearTimeout(timer));
   }
 
   #armHardStop(win) {

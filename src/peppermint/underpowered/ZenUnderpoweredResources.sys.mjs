@@ -13,8 +13,9 @@ const WORKER_URL =
 
 /** CPU or RAM at or above this percent counts as very high. */
 export const HIGH_PERCENT = 90;
-export const SAMPLE_INTERVAL_MS = 5000;
-// A page load can pin the CPU for a moment. Only a sustained peak counts.
+export const SAMPLE_INTERVAL_MS = 10000;
+// A page load can pin the CPU for a moment. Only a sustained peak (about 30
+// seconds) counts. Sampling less often means fewer wake-ups on battery.
 export const HIGH_SAMPLES = 3;
 /** Both must stay under HIGH_PERCENT this long before the load counts as over. */
 export const STABLE_MS = 30000;

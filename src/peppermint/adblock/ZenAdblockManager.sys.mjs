@@ -24,6 +24,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   UBLOCK_ORIGIN_ID: "resource:///modules/zen/adblock/ZenAdblockLists.sys.mjs",
   hashString: "resource:///modules/zen/adblock/ZenAdblockLists.sys.mjs",
   needsVideoPageHook: "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs",
+  isYouTubeHost: "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs",
   shouldRewriteVideoAdResponse:
     "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs",
   VIDEO_PAGE_HOOK: "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs",
@@ -138,6 +139,8 @@ class ZenAdblockManager {
   #uboKnown = false;
   #addonListener = null;
   #invalidateTimer = null;
+  // Serialized form of freshly compiled engines, kept only until cached.
+  #engineBytes = new WeakMap();
 
   init() {
     if (this.#initialized || Services.appinfo.inSafeMode) {
@@ -612,7 +615,9 @@ class ZenAdblockManager {
     const engine = await this.#compileEngine(texts.join("\n"), level, resources);
     try {
       await IOUtils.makeDirectory(this.#cacheDir(), { ignoreExisting: true });
-      await IOUtils.write(binPath, engine.serialize());
+      // The worker already serialized this engine; reuse its bytes instead of
+      // serializing again on the main thread.
+      await IOUtils.write(binPath, this.#engineBytes.get(engine) || engine.serialize());
       await IOUtils.writeJSON(metaPath, {
         hash,
         updatedAt: Date.now(),
@@ -622,6 +627,7 @@ class ZenAdblockManager {
     } catch (error) {
       console.error("ZenAdblock failed to cache lists", error);
     }
+    this.#engineBytes.delete(engine);
     return engine;
   }
 
@@ -645,6 +651,15 @@ class ZenAdblockManager {
     let channel;
     try {
       channel = subject.QueryInterface(Ci.nsIHttpChannel);
+    } catch {
+      return;
+    }
+    // Nearly every response is not a YouTube one. A host compare is far
+    // cheaper than the URL parse the rewrite policy does.
+    try {
+      if (!lazy.isYouTubeHost(channel.URI.host)) {
+        return;
+      }
     } catch {
       return;
     }
@@ -705,7 +720,9 @@ class ZenAdblockManager {
           return;
         }
         try {
-          resolve(lazy.deserializeEngine(event.data.bytes));
+          const engine = lazy.deserializeEngine(event.data.bytes);
+          this.#engineBytes.set(engine, event.data.bytes);
+          resolve(engine);
         } catch (error) {
           console.error("ZenAdblock deserialize failed", error);
           resolve(this.#compileOnMainThread(text, level, resources));

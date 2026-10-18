@@ -236,25 +236,62 @@ export class VideoAdStreamListener {
     this.chunks = [];
     this.received = 0;
     this.overflow = false;
+    this.forwarded = 0;
     this.originalListener = channel.setNewListener(this);
   }
 
   onStartRequest() {}
 
-  onDataAvailable(_request, stream, _offset, count) {
+  onDataAvailable(request, stream, _offset, count) {
+    if (this.overflow) {
+      // Past the rewrite limit the body is no longer buffered: it streams
+      // straight through, so a chunked response cannot grow without bound.
+      this.originalListener.onDataAvailable(request, stream, this.forwarded, count);
+      this.forwarded += count;
+      return;
+    }
     const binary = Cc["@mozilla.org/binaryinputstream;1"].createInstance(
       Ci.nsIBinaryInputStream
     );
     binary.setInputStream(stream);
     const bytes = binary.readBytes(count);
     this.received += bytes.length;
+    this.chunks.push(bytes);
     if (this.received > MAX_REWRITE_BYTES) {
       this.overflow = true;
+      this.#flushBuffered(request);
     }
-    this.chunks.push(bytes);
+  }
+
+  /**
+   * Hands everything buffered so far to the page unchanged and starts
+   * forwarding. The original listener has not seen onStartRequest yet.
+   */
+  #flushBuffered(request) {
+    const body = this.chunks.join("");
+    this.chunks = [];
+    try {
+      this.originalListener.onStartRequest(request);
+      const replacement = Cc["@mozilla.org/io/string-input-stream;1"].createInstance(
+        Ci.nsIStringInputStream
+      );
+      replacement.setByteStringData(body);
+      this.originalListener.onDataAvailable(request, replacement, 0, body.length);
+      this.forwarded = body.length;
+    } catch (error) {
+      console.error("ZenAdblock video response passthrough failed", error);
+    }
   }
 
   onStopRequest(request, status) {
+    if (this.overflow) {
+      try {
+        this.originalListener.onStopRequest(request, status);
+      } catch (error) {
+        console.error("ZenAdblock video response passthrough failed", error);
+      }
+      return;
+    }
     let body = this.chunks.join("");
     this.chunks = [];
     if (!this.overflow && Components.isSuccessCode(status)) {
