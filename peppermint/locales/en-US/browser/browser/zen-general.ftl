@@ -106,3 +106,36 @@ zen-homepage-card-downloads = Nº Downloads
 zen-homepage-card-visited-sites = Nº Visited websites
 
 zen-homepage-card-version = Current Version
+
+# Variables:
+#   $shortcut (String): The keyboard shortcut that toggles compact mode.
+peppermint-toggle-compact-mode-button-shortcut =
+    .label = Compact Mode
+    .tooltiptext = Toggle Compact Mode ({ $shortcut })
+
+# Variables:
+#   $tabCount (Number): The number of tabs that will be closed.
+#   $shortcut (String): The keyboard shortcut that closes the tab.
+peppermint-tab-close-button-shortcut =
+    .tooltiptext =
+        { $tabCount ->
+            [one] Close tab ({ $shortcut })
+           *[other] Close { $tabCount } tabs ({ $shortcut })
+        }
+
+# Variables:
+#   $tabCount (Number): -1 when the tab is in a split view, otherwise the
+#   number of tabs that will be joined.
+peppermint-tab-split-button =
+    .label =
+        { $tabCount ->
+            [-1] Split Out Tab
+            [1] Add Split View...
+           *[other] Join { $tabCount } Tabs
+        }
+    .tooltiptext =
+        { $tabCount ->
+            [-1] Split Out Tab
+            [1] Add Split View...
+           *[other] Join { $tabCount } Tabs
+        }

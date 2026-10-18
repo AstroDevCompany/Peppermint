@@ -15,6 +15,7 @@ DIRS += [
     "janitor",
     "notepad",
     "reader",
+    "shortcut-tooltips",
     "tab-numbers",
     "tab-unloader",
     "tests",

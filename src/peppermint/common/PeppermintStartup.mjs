@@ -72,6 +72,11 @@ export const PeppermintStartup = {
         "moz-src:///peppermint/tab-numbers/PeppermintTabNumbers.sys.mjs"
       ).PeppermintTabNumbers.init(window)
     );
+    start("PeppermintShortcutTooltips", () =>
+      ChromeUtils.importESModule(
+        "moz-src:///peppermint/shortcut-tooltips/PeppermintShortcutTooltips.sys.mjs"
+      ).PeppermintShortcutTooltips.init(window)
+    );
     start("PeppermintVault", () =>
       ChromeUtils.importESModule(
         "moz-src:///peppermint/vault/PeppermintVault.sys.mjs"

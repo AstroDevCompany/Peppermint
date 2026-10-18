@@ -13,6 +13,7 @@ BROWSER_CHROME_MANIFESTS += [
     "notepad/browser.toml",
     "popular_sites/browser.toml",
     "reader/browser.toml",
+    "shortcut_tooltips/browser.toml",
     "tab_numbers/browser.toml",
     "tab_unloader/browser.toml",
     "underpowered/browser.toml",
