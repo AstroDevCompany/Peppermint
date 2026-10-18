@@ -552,10 +552,22 @@ class ZenUnderpoweredImpl {
   /**
    * @param {MozTabbrowserTab} tab
    * @param {MozTabbrowserTab} selected - The window's selected tab
-   * @returns {boolean} Whether the tab is live, off screen, and safe to unload
+   * @returns {boolean} Whether the tab is live, off screen, silent, and safe to unload
    */
   #canFreeze(tab, selected) {
-    return isUnloadSafe(tab, selected);
+    if (!isUnloadSafe(tab, selected)) {
+      return false;
+    }
+    // Pinned tabs may freeze (they reload on click), but a tab that is making
+    // sound, sharing a camera, microphone or screen, or backing a glance
+    // overlay must keep running.
+    return !(
+      tab.soundPlaying ||
+      tab.hasAttribute("soundplaying") ||
+      tab.hasAttribute("sharing") ||
+      tab.hasAttribute("zen-glance-tab") ||
+      tab.hasAttribute("glance-id")
+    );
   }
 
   async #freezeTab(win, tab) {

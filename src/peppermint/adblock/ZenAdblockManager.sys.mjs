@@ -37,6 +37,7 @@ const PREF_CUSTOM = "zen.adblock.customRules";
 const CACHE_VERSION = 1;
 const TOPIC = "zen-adblock-updated";
 const FETCH_TIMEOUT_MS = 20000;
+const INVALIDATE_DEBOUNCE_MS = 800;
 const CNAME_TIMEOUT_MS = 250;
 const INCOMPLETE_RETRY_MS = 60 * 60 * 1000;
 
@@ -136,6 +137,7 @@ class ZenAdblockManager {
   #uboActive = false;
   #uboKnown = false;
   #addonListener = null;
+  #invalidateTimer = null;
 
   init() {
     if (this.#initialized || Services.appinfo.inSafeMode) {
@@ -185,8 +187,15 @@ class ZenAdblockManager {
       }
       return;
     }
-    if (topic === "nsPref:changed" && (data === PREF_CUSTOM || data === PREF_LEVEL)) {
+    if (topic === "nsPref:changed" && data === PREF_CUSTOM) {
       this.#invalidateEngines();
+    }
+    if (topic === "nsPref:changed" && data === PREF_LEVEL) {
+      // Each level has its own cached engine; only the new one may be needed.
+      this.#notifyUpdated();
+      if (Services.prefs.getBoolPref(PREF_ENABLED, true) && !this.#uboActive) {
+        this.ensureEngine(this.getGlobalLevel());
+      }
     }
     if (topic === "nsPref:changed" && data === PREF_ENABLED) {
       this.#notifyUpdated();
@@ -302,7 +311,8 @@ class ZenAdblockManager {
     const generation = ++this.#generation[level];
     const loading = this.#buildEngine(level, force)
       .then(engine => {
-        if (this.#generation[level] === generation) {
+        // A failed rebuild (null) keeps the engine that is already blocking.
+        if (this.#generation[level] === generation && engine) {
           this.#engines[level] = engine;
           this.#notifyUpdated();
         }
@@ -482,12 +492,32 @@ class ZenAdblockManager {
     }, "browser-delayed-startup-finished");
   }
 
+  /**
+   * Custom rules changed. Loaded engines stay active until their replacement
+   * is built, so a slow or failed download never leaves blocking switched off.
+   * Typing in the rules box fires many changes; they collapse into one rebuild.
+   */
   #invalidateEngines() {
     this.#decisionCache.clear();
-    this.#engines = { light: null, medium: null, heavy: null };
-    if (Services.prefs.getBoolPref(PREF_ENABLED, true) && !this.#uboActive) {
-      this.ensureEngine(this.getGlobalLevel(), { force: true });
+    if (this.#invalidateTimer) {
+      lazy.clearTimeout(this.#invalidateTimer);
     }
+    this.#invalidateTimer = lazy.setTimeout(() => {
+      this.#invalidateTimer = null;
+      if (!Services.prefs.getBoolPref(PREF_ENABLED, true) || this.#uboActive) {
+        this.#engines = { light: null, medium: null, heavy: null };
+        return;
+      }
+      const levels = new Set([this.getGlobalLevel()]);
+      for (const level of Object.keys(this.#engines)) {
+        if (this.#engines[level]) {
+          levels.add(level);
+        }
+      }
+      for (const level of levels) {
+        this.ensureEngine(level, { force: true });
+      }
+    }, INVALIDATE_DEBOUNCE_MS);
   }
 
   #overridesPath() {
@@ -541,7 +571,25 @@ class ZenAdblockManager {
         // Cache miss. Build from the network.
       }
     }
-    return this.#fetchAndStore(level, hash, binPath, metaPath);
+    let fresh = null;
+    try {
+      fresh = await this.#fetchAndStore(level, hash, binPath, metaPath);
+    } catch (error) {
+      console.error("ZenAdblock list download failed", error);
+    }
+    if (fresh) {
+      return fresh;
+    }
+    // Offline or every list failed: a stale cache beats no blocking at all.
+    try {
+      const meta = await IOUtils.readJSON(metaPath);
+      if (meta?.version === CACHE_VERSION) {
+        return lazy.deserializeEngine(await IOUtils.read(binPath));
+      }
+    } catch {
+      // No usable cache either.
+    }
+    return null;
   }
 
   async #fetchAndStore(level, hash, binPath, metaPath) {

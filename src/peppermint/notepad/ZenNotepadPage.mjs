@@ -77,6 +77,7 @@ export async function attachNotepad(document_, bridge_) {
     menuIndex: 0,
     customTitle: null,
     editingTitle: false,
+    loadFailed: false,
   };
   const highlights = {};
   try {
@@ -658,6 +659,12 @@ export async function attachNotepad(document_, bridge_) {
   }
 
   async function persist({ auto = false } = {}) {
+    // The stored note could not be read, so what is on screen is not that
+    // note. Saving would overwrite it with this blank page.
+    if (state.loadFailed) {
+      setStatus("error");
+      return false;
+    }
     const markdown = markdownNow();
     const id = state.id || crypto.randomUUID();
     const wasArmed = state.armed;
@@ -904,6 +911,8 @@ export async function attachNotepad(document_, bridge_) {
         }
       } catch (error) {
         console.error("Notepad load failed", error);
+        state.loadFailed = true;
+        editor.contentEditable = "false";
         setStatus("error");
       }
     }
