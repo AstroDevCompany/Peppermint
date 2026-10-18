@@ -168,6 +168,19 @@ function pickArticle(article) {
 }
 
 /**
+ * An Error carrying a `code` so callers can tell the user why a save failed.
+ *
+ * @param {"private"|"unsupported"|"no-content"|"too-large"} code
+ * @param {string} message
+ * @returns {Error}
+ */
+function saveError(code, message) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+/**
  * Save an article, replacing the copy saved from the same page.
  *
  * @param {object} article - A parsed Reader article whose images are already
@@ -179,14 +192,14 @@ function pickArticle(article) {
  */
 export async function saveArticle(article, { isPrivate = false } = {}) {
   if (isPrivate) {
-    throw new Error("Articles are not saved from private windows");
+    throw saveError("private", "Articles are not saved from private windows");
   }
   const id = articleIdFor(article?.url);
   if (!id) {
-    throw new Error("This page cannot be saved");
+    throw saveError("unsupported", "This page cannot be saved");
   }
   if (typeof article.content !== "string" || !article.content.trim()) {
-    throw new Error("The article has no content");
+    throw saveError("no-content", "The article has no content");
   }
 
   const stored = pickArticle(article);
@@ -195,7 +208,7 @@ export async function saveArticle(article, { isPrivate = false } = {}) {
   const json = JSON.stringify(stored);
   const bytes = new TextEncoder().encode(json).length;
   if (bytes > maxArticleBytes()) {
-    throw new Error("The article is too large to save");
+    throw saveError("too-large", "The article is too large to save");
   }
 
   const record = {

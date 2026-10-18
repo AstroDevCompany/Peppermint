@@ -17,6 +17,8 @@ peppermint-reader-saved-toast = Saved for offline reading
 peppermint-reader-removed-toast = Removed from saved articles
 peppermint-reader-error-toast = Could not save this article
 peppermint-reader-no-text-toast = No readable text found on this page
+peppermint-reader-private-toast = Articles are not saved in private windows
+peppermint-reader-too-large-toast = This article is too large to save
 
 ## Saved articles page (about:saved)
 

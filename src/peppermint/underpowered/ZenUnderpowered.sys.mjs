@@ -14,6 +14,7 @@ const PREF_AUTO_ENABLED = "zen.underpowered.auto-enabled";
 const ROOT_ATTRIBUTE = "zen-underpowered";
 const BUTTON_ID = "zen-underpowered-button";
 const TOAST_ID = "zen-underpowered-enabled-toast";
+const TOAST_OFF_ID = "zen-underpowered-disabled-toast";
 const TOAST_TIMEOUT_MS = 1800;
 // Lets tab switches and Glance settle before the tab left behind is frozen.
 const FREEZE_DELAY_MS = 250;
@@ -216,18 +217,38 @@ class ZenUnderpoweredImpl {
     }
     if (!enabled) {
       this.#frozen = new WeakSet();
-    } else if (!startup) {
-      this.#announce();
+    }
+    if (!startup) {
+      this.#announce(enabled);
     }
   }
 
-  #announce() {
+  /**
+   * Tells the user the mode changed, and why when Peppermint did it itself,
+   * since the mode also changes pages (frozen tabs, no GIFs, less motion).
+   *
+   * @param {boolean} enabled
+   */
+  #announce(enabled) {
+    let descriptionId = "zen-underpowered-enabled-toast-description";
+    if (!enabled) {
+      descriptionId = this.#writingAuto
+        ? "zen-underpowered-auto-disabled-toast-description"
+        : "zen-underpowered-disabled-toast-description";
+    } else if (this.#writingAuto) {
+      descriptionId = this.#batteryLow
+        ? "zen-underpowered-battery-toast-description"
+        : "zen-underpowered-resources-toast-description";
+    }
     const win = Services.wm.getMostRecentBrowserWindow();
-    win?.gZenUIManager?.showToast(TOAST_ID, {
-      descriptionId: "zen-underpowered-enabled-toast-description",
-      timeout: TOAST_TIMEOUT_MS,
-      frosted: true,
-    });
+    win?.gZenUIManager?.showToast(
+      enabled ? TOAST_ID : TOAST_OFF_ID,
+      {
+        descriptionId,
+        timeout: TOAST_TIMEOUT_MS,
+        frosted: true,
+      }
+    );
   }
 
   *#browserWindows() {

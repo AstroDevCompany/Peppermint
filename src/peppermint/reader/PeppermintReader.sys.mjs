@@ -56,6 +56,13 @@ function isPrivateWindow(win) {
   return lazy.PrivateBrowsingUtils.isWindowPrivate(win);
 }
 
+// Save failures with a known cause say so instead of the generic message.
+const SAVE_ERROR_TOASTS = {
+  private: "peppermint-reader-private-toast",
+  "too-large": "peppermint-reader-too-large-toast",
+  "no-content": "peppermint-reader-no-text-toast",
+};
+
 function toast(win, messageId) {
   win?.gZenUIManager?.showToast(messageId, {
     timeout: TOAST_TIMEOUT_MS,
@@ -327,7 +334,7 @@ export const PeppermintReader = {
       return "saved";
     } catch (error) {
       console.error("Reader: the article could not be saved", error);
-      toast(win, "peppermint-reader-error-toast");
+      toast(win, SAVE_ERROR_TOASTS[error?.code] || "peppermint-reader-error-toast");
       return "error";
     } finally {
       if (controller) {

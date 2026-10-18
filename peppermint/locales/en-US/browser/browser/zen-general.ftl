@@ -12,6 +12,16 @@ zen-underpowered-enabled-toast = Underpowered Mode on
 
 zen-underpowered-enabled-toast-description = Background tabs are frozen to save power
 
+zen-underpowered-battery-toast-description = The battery is low. Background tabs are frozen to save power
+
+zen-underpowered-resources-toast-description = CPU or memory use is very high. Background tabs are frozen to save power
+
+zen-underpowered-disabled-toast = Underpowered Mode off
+
+zen-underpowered-disabled-toast-description = Background tabs reload when you open them
+
+zen-underpowered-auto-disabled-toast-description = Conditions are back to normal. Background tabs reload when you open them
+
 peppermint-janitor-prompt-title = Peppermint Janitor
 
 peppermint-janitor-prompt-message = Free up disk space every time { -brand-short-name } starts? The Janitor clears temporary files, usage traces, leftover update files and app caches that nothing has used for 72 hours. Your documents, downloads and browser data are never touched. You can change this at any time in Settings.
