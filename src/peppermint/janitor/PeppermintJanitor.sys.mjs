@@ -85,6 +85,8 @@ function sleep(ms) {
  * @property {GroupSummary[]} groups - Only groups that freed something.
  * @property {number} totalBytes - Bytes freed over all groups.
  * @property {boolean} dryRun - Nothing was deleted.
+ * @property {number} errors - Locations that could not be cleaned because
+ *   of an error (files in use or protected on purpose are not errors).
  */
 
 class PeppermintJanitorImpl {
@@ -255,7 +257,7 @@ class PeppermintJanitorImpl {
       options.dryRun ?? Services.prefs.getBoolPref(PREFS.dryRun, false);
     const groups = options.groups ?? this.#enabledGroups();
     const env = options.environment ?? getEnvironment();
-    const summary = { groups: [], totalBytes: 0, dryRun };
+    const summary = { groups: [], totalBytes: 0, dryRun, errors: 0 };
 
     if (env.home && env.tmp) {
       const home = normalizePath(env.home) ?? env.home;
@@ -280,6 +282,9 @@ class PeppermintJanitorImpl {
       if (env.os === "WINNT" && groups.includes("trash")) {
         const bin = await this.#emptyWindowsRecycleBin(dryRun);
         this.#add(summary, "trash", bin.bytes, bin.items, bin.bytes ? 1 : 0);
+        if (!bin.ok) {
+          summary.errors++;
+        }
       }
     }
 
@@ -306,6 +311,8 @@ class PeppermintJanitorImpl {
     for (const { unit, status, bytes, files } of results) {
       if (status === UnitStatus.CLEANED || status === UnitStatus.DRY_RUN) {
         this.#add(summary, unit.group, bytes, files, 1);
+      } else if (status === UnitStatus.ERROR) {
+        summary.errors++;
       }
     }
   }
@@ -368,12 +375,17 @@ class PeppermintJanitorImpl {
    * @param {boolean} manual
    */
   async #notify(summary, manual) {
+    // A run the user asked for reports everything it freed; the automatic
+    // one stays quiet about small amounts.
     const toasts = summary.groups
-      .filter(g => g.bytes >= MIN_TOAST_BYTES)
+      .filter(g => (manual ? g.bytes > 0 || g.files > 0 : g.bytes >= MIN_TOAST_BYTES))
       .map(g => ({
         messageId: `peppermint-janitor-toast-${g.group}`,
         size: formatSize(g.bytes),
       }));
+    if (manual && summary.errors) {
+      toasts.push({ messageId: "peppermint-janitor-toast-errors" });
+    }
     if (!toasts.length && manual) {
       toasts.push({ messageId: "peppermint-janitor-toast-nothing" });
     }
@@ -390,7 +402,9 @@ class PeppermintJanitorImpl {
         await win.gZenUIManager.showToast(messageId, {
           descriptionId: size
             ? "peppermint-janitor-toast-description"
-            : "peppermint-janitor-toast-nothing-description",
+            : messageId === "peppermint-janitor-toast-errors"
+              ? "peppermint-janitor-toast-errors-description"
+              : "peppermint-janitor-toast-nothing-description",
           size,
           timeout: TOAST_TIMEOUT_MS,
           frosted: true,

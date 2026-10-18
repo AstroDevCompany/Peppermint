@@ -345,9 +345,15 @@ zen-janitor-clean-caches =
     .label = App caches not used in the last 72 hours
 
 zen-janitor-clean-recycle-bin =
-    .label = Empty the recycle bin
+    .label = { PLATFORM() ->
+        [windows] Empty the recycle bin
+       *[other] Empty the Trash
+    }
 
-zen-janitor-recycle-bin-description = Files in the recycle bin cannot be restored afterwards. Off by default.
+zen-janitor-recycle-bin-description = { PLATFORM() ->
+    [windows] Files in the recycle bin cannot be restored afterwards. Off by default.
+   *[other] Files in the Trash cannot be restored afterwards. Off by default.
+}
 
 zen-janitor-notifications =
     .label = Show a notification for every location that was cleaned

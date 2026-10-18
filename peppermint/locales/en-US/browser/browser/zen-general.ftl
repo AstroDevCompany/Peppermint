@@ -38,7 +38,10 @@ peppermint-janitor-toast-updates = Update leftovers cleared
 
 peppermint-janitor-toast-caches = App caches cleared
 
-peppermint-janitor-toast-trash = Recycle bin emptied
+peppermint-janitor-toast-trash = { PLATFORM() ->
+    [windows] Recycle bin emptied
+   *[other] Trash emptied
+}
 
 # $size (String) - amount of space that was freed, for example "1.4 GB".
 peppermint-janitor-toast-description = { $size } freed
@@ -46,6 +49,10 @@ peppermint-janitor-toast-description = { $size } freed
 peppermint-janitor-toast-nothing = Already tidy
 
 peppermint-janitor-toast-nothing-description = There was nothing to clean
+
+peppermint-janitor-toast-errors = Some items could not be cleaned
+
+peppermint-janitor-toast-errors-description = They may be in use or locked by another program
 
 # $minutes (Number) - whole minutes remaining on a temporary grant.
 zen-site-data-setting-allow-timed = Allowed for { $minutes } min

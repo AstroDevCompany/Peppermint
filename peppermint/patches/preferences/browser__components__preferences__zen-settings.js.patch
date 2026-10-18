@@ -577,7 +577,7 @@
 -              preferencesWrapper.appendChild(checkbox);
 -              break;
 -            }
- 
+-
 -            case "string": {
 -              const container = document.createXULElement("hbox");
 -              container.classList.add("zenThemeMarketplaceItemPreference");
@@ -647,7 +647,7 @@
 -      }
 -      modList.appendChild(fragment);
 -    }
--
+ 
 -    this.modsList.replaceChildren(...modList.children);
 -    modList.remove();
 -  },
@@ -766,11 +766,11 @@
 +      Services.prefs.setStringPref(pref, spec);
 +      input.value = spec;
 +      input.blur();
-     });
++    });
 +    reset.addEventListener("command", () => {
 +      Services.prefs.setStringPref(pref, "Tab");
 +      show();
-+    });
+     });
 +    reset.addEventListener("click", () => {
 +      Services.prefs.setStringPref(pref, "Tab");
 +      show();
@@ -778,13 +778,10 @@
    },
  
    _initializeEvents() {
-@@ -1143,9 +594,252 @@
-     input.classList.remove(`${ZEN_CKS_INPUT_FIELD_CLASS}-not-set`);
-     input.value = modifiers.toDisplayString() + gZenKeyboardShortcutsManager.getKeyDisplay(shortcut);
-     this._latestValidKey = shortcut;
-+  },
-+};
-+
+@@ -1146,6 +597,243 @@
+   },
+ };
+ 
 +var gZenHomepageSettings = {
 +  init() {
 +    if (this.__hasInitialized) {
@@ -899,7 +896,7 @@
 +    urlInput.addEventListener("change", () => this._commitRow(row));
 +    removeButton.addEventListener("command", () => this._removeRow(row));
 +    return row;
-   },
++  },
 +
 +  _commitRow(row) {
 +    return this._enqueue(() => this._commitRowNow(row));
@@ -949,8 +946,8 @@
 +      row.remove();
 +    });
 +  },
- };
- 
++};
++
 +var gZenAdblockSettings = {
 +  init() {
 +    const { gZenAdblock } = ChromeUtils.importESModule(
@@ -974,15 +971,10 @@
 +};
 +
 +var gZenJanitorSettings = {
-+  _dependents: [
-+    "zenJanitorTemp",
-+    "zenJanitorTraces",
-+    "zenJanitorUpdates",
-+    "zenJanitorCaches",
-+    "zenJanitorRecycleBin",
-+    "zenJanitorNotifications",
-+    "zenJanitorCleanNow",
-+  ],
++  // Only the launch-time notification depends on the Janitor being on. The
++  // cleanup options and "Clean now" also drive a manual run, so they stay
++  // usable while the automatic cleaning is off.
++  _dependents: ["zenJanitorNotifications"],
 +
 +  init() {
 +    if (this.__hasInitialized) {
@@ -991,7 +983,6 @@
 +    this.__hasInitialized = true;
 +    const pref = "peppermint.janitor.enabled";
 +    const cleanNow = document.getElementById("zenJanitorCleanNow");
-+    // The options only matter while the Janitor is on.
 +    const syncDependents = () => {
 +      const enabled = Services.prefs.getBoolPref(pref, false);
 +      for (const id of this._dependents) {
@@ -1031,7 +1022,7 @@
  Preferences.addAll([
    {
      id: "zen.view.compact.toolbar-flash-popup",
-@@ -1158,11 +852,51 @@
+@@ -1158,11 +846,51 @@
      default: true,
    },
    {
@@ -1083,7 +1074,7 @@
      id: "zen.pinned-tab-manager.restore-pinned-tabs-to-pinned-url",
      type: "bool",
      default: true,
-@@ -1203,6 +937,11 @@
+@@ -1203,6 +931,11 @@
      default: "float",
    },
    {
@@ -1095,7 +1086,7 @@
      id: "zen.workspaces.separate-essentials",
      type: "bool",
      default: false,
-@@ -1225,11 +964,6 @@
+@@ -1225,11 +958,6 @@
    {
      id: "zen.workspaces.continue-where-left-off",
      type: "bool",
@@ -1107,7 +1098,7 @@
      default: true,
    },
    {
-@@ -1257,6 +991,106 @@
+@@ -1257,6 +985,106 @@
      type: "bool",
      default: false,
    },
