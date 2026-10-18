@@ -2,7 +2,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import { VIDEO_PAGE_HOOK } from "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs";
+import {
+  isYouTubeHost,
+  VIDEO_PAGE_HOOK,
+} from "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs";
 
 const lazy = {};
 
@@ -34,7 +37,10 @@ function compilePageScript(code) {
   return pending;
 }
 
-compilePageScript(VIDEO_PAGE_HOOK);
+// Long-lived pages (feeds, SPAs) keep adding nodes and new class names. Past
+// these sizes the bookkeeping is dropped and rebuilt rather than kept forever.
+const MAX_PENDING_NODES = 1000;
+const MAX_SEEN_ENTRIES = 10000;
 
 export class ZenAdblockChild extends JSWindowActorChild {
   #style = null;
@@ -58,10 +64,27 @@ export class ZenAdblockChild extends JSWindowActorChild {
       event.type === "DOMContentLoaded" ||
       event.type === "pageshow"
     ) {
+      if (event.type === "DOMDocElementInserted") {
+        this.#precompileVideoHook();
+      }
       this.#apply({ hostnameOnly: !this.#hostnameApplied });
       if (event.type !== "DOMDocElementInserted") {
         this.#scheduleDomScan();
       }
+    }
+  }
+
+  /**
+   * The video hook is only ever injected on YouTube hosts, so compile it
+   * ahead of the cosmetics reply there (cached per process) and nowhere else.
+   */
+  #precompileVideoHook() {
+    try {
+      if (isYouTubeHost(this.document?.location?.hostname)) {
+        compilePageScript(VIDEO_PAGE_HOOK);
+      }
+    } catch {
+      // It is compiled on demand when injected.
     }
   }
 
@@ -100,6 +123,12 @@ export class ZenAdblockChild extends JSWindowActorChild {
   #scheduleDomScan(nodes) {
     if (nodes?.length) {
       this.#pendingNodes.push(...nodes);
+      if (this.#pendingNodes.length > MAX_PENDING_NODES) {
+        // A burst this large is cheaper to cover with one bounded scan from
+        // the root than by holding every node until the page goes idle.
+        const root = this.document?.documentElement;
+        this.#pendingNodes = root ? [root] : [];
+      }
     }
     if (this.#destroyed) {
       return;
@@ -247,6 +276,11 @@ export class ZenAdblockChild extends JSWindowActorChild {
     const classes = [];
     const hrefs = [];
     let scanned = 0;
+    for (const seen of [this.#seenIds, this.#seenClasses, this.#seenHrefs]) {
+      if (seen.size > MAX_SEEN_ENTRIES) {
+        seen.clear();
+      }
+    }
     const visit = el => {
       if (!el || el.nodeType !== 1 || scanned >= SCAN_LIMIT) {
         return;
