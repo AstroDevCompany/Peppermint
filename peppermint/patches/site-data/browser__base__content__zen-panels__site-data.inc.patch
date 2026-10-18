@@ -1,6 +1,6 @@
 --- a/browser/base/content/zen-panels/site-data.inc
 +++ b/browser/base/content/zen-panels/site-data.inc
-@@ -87,6 +87,57 @@
+@@ -87,6 +87,66 @@
            <!-- settings will be inserted here -->
          </vbox>
        </vbox>
@@ -12,10 +12,13 @@
 +          </label>
 +          <label id="zen-site-data-adblock-reset"
 +                 data-l10n-id="zen-site-data-adblock-reset"
++                 role="button"
++                 tabindex="0"
 +                 hidden="true" />
 +        </hbox>
 +        <menulist id="zen-site-data-adblock-level"
 +                  class="zen-site-data-adblock-level"
++                  data-l10n-id="zen-site-data-adblock-level"
 +                  closemenu="none">
 +          <menupopup>
 +            <menuitem data-l10n-id="zen-site-data-adblock-light" value="light" />
@@ -26,11 +29,14 @@
 +        <hbox id="zen-site-data-adblock-pause"
 +              class="permission-popup-permission-item"
 +              align="center"
-+              role="group">
++              role="button"
++              tabindex="0"
++              aria-labelledby="zen-site-data-adblock-pause-label zen-site-data-adblock-pause-state">
 +          <toolbarbutton class="permission-popup-permission-icon zen-site-data-permission-icon zen-permission-shield-icon"
 +                         closemenu="none" />
 +          <vbox flex="1" class="permission-popup-permission-label-container" align="start">
-+            <label class="permission-popup-permission-label"
++            <label id="zen-site-data-adblock-pause-label"
++                   class="permission-popup-permission-label"
 +                   data-l10n-id="zen-site-data-adblock-pause" />
 +            <label id="zen-site-data-adblock-pause-state"
 +                   class="zen-permission-popup-permission-state-label" />
@@ -44,11 +50,14 @@
 +        <hbox id="zen-site-data-cookie-consent-pause"
 +              class="permission-popup-permission-item"
 +              align="center"
-+              role="group">
++              role="button"
++              tabindex="0"
++              aria-labelledby="zen-site-data-cookie-consent-pause-label zen-site-data-cookie-consent-pause-state">
 +          <toolbarbutton class="permission-popup-permission-icon zen-site-data-permission-icon zen-permission-shield-icon"
 +                         closemenu="none" />
 +          <vbox flex="1" class="permission-popup-permission-label-container" align="start">
-+            <label class="permission-popup-permission-label"
++            <label id="zen-site-data-cookie-consent-pause-label"
++                   class="permission-popup-permission-label"
 +                   data-l10n-id="zen-site-data-cookie-consent-pause" />
 +            <label id="zen-site-data-cookie-consent-pause-state"
 +                   class="zen-permission-popup-permission-state-label" />

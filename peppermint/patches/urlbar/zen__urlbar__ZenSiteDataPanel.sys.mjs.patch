@@ -17,25 +17,25 @@
    #iconMap = {
      install: "extension",
      "site-protection": "shield",
-@@ -81,6 +87,18 @@
-       .addEventListener("click", this);
+@@ -82,6 +88,18 @@
      this.document
        .getElementById("zen-site-data-settings-more")
-+      .addEventListener("click", this);
+       .addEventListener("click", this);
 +    this.document
 +      .getElementById("zen-site-data-adblock-level")
 +      .addEventListener("command", this);
-+    this.document
-+      .getElementById("zen-site-data-adblock-pause")
-+      .addEventListener("click", this);
-+    this.document
-+      .getElementById("zen-site-data-cookie-consent-pause")
-+      .addEventListener("click", this);
-+    this.document
-+      .getElementById("zen-site-data-adblock-reset")
-       .addEventListener("click", this);
++    for (const id of [
++      "zen-site-data-adblock-pause",
++      "zen-site-data-cookie-consent-pause",
++      "zen-site-data-adblock-reset",
++    ]) {
++      const button = this.document.getElementById(id);
++      button.addEventListener("click", this);
++      button.addEventListener("keydown", this);
++    }
      this.anchor.addEventListener("click", this);
      const kCommandIDs = [
+       "zen-site-data-header-share",
 @@ -108,6 +126,15 @@
          }
        },
@@ -52,7 +52,7 @@
      this.window.addEventListener(
        "unload",
        () => {
-@@ -234,12 +261,148 @@
+@@ -234,12 +261,150 @@
    #preparePanel() {
      this.#resetSiteOptionsList();
      this.#setSiteBoost();
@@ -62,7 +62,7 @@
      this.#setSiteSecurityInfo();
      this.#setSiteHeader();
      this.#setAddonsOverflow();
-   }
++  }
 +
 +  #setAdblock() {
 +    const section = this.document.getElementById("zen-site-data-adblock-section");
@@ -72,7 +72,7 @@
 +    if (!http) {
 +      return;
 +    }
- 
++
 +    const { gZenAdblock } = lazy;
 +    const spec = uri.spec;
 +    const override = gZenAdblock.getOverride(spec);
@@ -109,6 +109,7 @@
 +    const pause = this.document.getElementById("zen-site-data-adblock-pause");
 +    const paused = effective === "off";
 +    pause.setAttribute("state", paused ? "block" : "allow");
++    pause.setAttribute("aria-pressed", String(paused));
 +    this.document.l10n.setAttributes(
 +      this.document.getElementById("zen-site-data-adblock-pause-state"),
 +      paused ? "zen-site-data-adblock-paused" : "zen-site-data-adblock-on"
@@ -174,14 +175,15 @@
 +      "zen-site-data-cookie-consent-pause"
 +    );
 +    pause.setAttribute("state", paused ? "block" : "allow");
++    pause.setAttribute("aria-pressed", String(paused));
 +    this.document.l10n.setAttributes(
 +      this.document.getElementById("zen-site-data-cookie-consent-pause-state"),
 +      paused
 +        ? "zen-site-data-cookie-consent-paused"
 +        : "zen-site-data-cookie-consent-on"
 +    );
-+  }
-+
+   }
+ 
 +  #onCookieConsentPause() {
 +    const spec = this.window.gBrowser.currentURI.spec;
 +    const { gZenCookieConsent } = lazy;
@@ -201,10 +203,12 @@
    #setSiteBoost() {
      const domain = this.#getCurrentDomain();
      const uri = this.window.gBrowser.currentURI;
-@@ -649,6 +812,45 @@
+@@ -647,8 +812,47 @@
+     separator.hidden =
+       !settingElements.length || !crossSiteCookieElements.length;
      section.hidden = list.childElementCount < 2; // only the separator
-   }
- 
++  }
++
 +  #refreshSitePermissions() {
 +    const list = this.document.getElementById("zen-site-data-settings-list");
 +    list.innerHTML = "";
@@ -230,8 +234,8 @@
 +      };
 +    }
 +    return { id: this.#getPermissionStateLabelId(permission) };
-+  }
-+
+   }
+ 
 +  #applyPermissionStateLabel(stateLabel, permission) {
 +    let { id, args } = this.#permissionStateL10n(permission);
 +    if (!id) {
@@ -247,7 +251,7 @@
    #getPermissionStateLabelId(permission) {
      const { SitePermissions } = this.window;
      switch (permission.state) {
-@@ -734,10 +936,7 @@
+@@ -734,10 +938,7 @@
        // The key should be the site for cross-site cookies.
        stateLabel.textContent = key;
      } else {
@@ -259,7 +263,7 @@
      }
      labelContainer.appendChild(stateLabel);
  
-@@ -820,6 +1019,24 @@
+@@ -820,6 +1021,24 @@
    #onPermissionClick(label) {
      const { SitePermissions, gBrowser } = this.window;
      const permission = label._permission;
@@ -284,7 +288,7 @@
  
      let newState;
      switch (permission.state) {
-@@ -897,6 +1114,14 @@
+@@ -897,6 +1116,14 @@
    }
  
    #onClickEvent(event) {
@@ -299,7 +303,7 @@
      const id = event.target.id;
      switch (id) {
        case "zen-site-data-manage-addons": {
-@@ -905,6 +1130,10 @@
+@@ -905,6 +1132,10 @@
          this.unifiedPanel.hidePopup();
          break;
        }
@@ -310,7 +314,7 @@
        case "zen-site-data-settings-more": {
          const { BrowserCommands } = this.window;
          BrowserCommands.pageInfo(null, "permTab");
-@@ -943,6 +1172,12 @@
+@@ -943,8 +1174,23 @@
          this.#onClickEvent(event);
          break;
        case "command":
@@ -322,4 +326,15 @@
 +        }
          this.#onCommandEvent(event);
          break;
++      case "keydown":
++        if (
++          (event.key === "Enter" || event.key === " ") &&
++          event.target === event.currentTarget
++        ) {
++          event.preventDefault();
++          this.#onClickEvent({ target: event.currentTarget });
++        }
++        break;
        case "popupshowing":
+         this.#preparePanel();
+         break;

@@ -94,6 +94,9 @@ zen-site-data-adblock-paused = Paused
 
 zen-site-data-adblock-reset = Reset
 
+zen-site-data-adblock-level =
+    .aria-label = Ad blocking level for this site
+
 zen-site-data-adblock-count = { $count } blocked
 
 zen-site-data-adblock-ubo = uBlock Origin is active
