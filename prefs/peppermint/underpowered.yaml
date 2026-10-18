@@ -7,12 +7,17 @@
 
 # Turn Underpowered on while the battery is below the threshold and unplugged.
 - name: zen.underpowered.auto-on-battery
-  value: false
+  value: true
 
 # Percent. Auto-enable runs while the battery is below this and not charging.
 - name: zen.underpowered.battery-threshold
-  value: 20
+  value: 30
 
-# Set while auto-enable owns the mode, so plugging in only turns off its own session.
+# Turn Underpowered on while CPU or RAM use stays very high (90% or more), and
+# off again once both have stayed under 90% for 30 seconds.
+- name: zen.underpowered.auto-on-resources
+  value: true
+
+# Set while auto-enable owns the mode, so recovering only turns off its own session.
 - name: zen.underpowered.auto-enabled
   value: false

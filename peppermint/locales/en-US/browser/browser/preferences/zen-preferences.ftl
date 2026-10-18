@@ -309,6 +309,18 @@ zen-tab-unloader-minutes-label = Unload idle tabs after
 
 zen-tab-unloader-minutes-description = Minutes. Pinned tabs, essentials, the tab you are viewing, and tabs playing sound stay loaded.
 
+zen-underpowered-auto-header = Underpowered Mode
+
+zen-underpowered-auto-resources =
+    .label = Turn on automatically when CPU or RAM use is very high
+
+zen-underpowered-auto-resources-description = Starts when CPU or RAM use reaches 90% and stays there. Turns itself off again once both have stayed under 90% for 30 seconds. A session you started yourself is never turned off.
+
+zen-underpowered-auto-battery =
+    .label = Turn on automatically when the battery is low
+
+zen-underpowered-auto-battery-description = Starts when the battery is below { $percent }% and not charging. Turns itself off when you plug in. A session you started yourself is never turned off.
+
 zen-janitor-section-title = Peppermint Janitor
 
 zen-janitor-header = Free up disk space on launch

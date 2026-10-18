@@ -4,5 +4,11 @@
 
 MOZ_SRC_FILES += [
   "ZenUnderpowered.sys.mjs",
+  "ZenUnderpoweredResources.sys.mjs",
   "ZenUnderpoweredWidget.sys.mjs",
+]
+
+# A ChromeWorker needs a resource:/// URL, like the Janitor's recycle bin worker.
+EXTRA_JS_MODULES.zen.underpowered += [
+  "ZenUnderpoweredResources.worker.mjs",
 ]

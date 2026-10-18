@@ -1,0 +1,17 @@
+--- a/browser/components/preferences/zenPerformance.inc.xhtml
++++ b/browser/components/preferences/zenPerformance.inc.xhtml
+@@ -33,6 +33,14 @@
+             <html:input id="zenTabUnloaderMinutes" type="number" min="0" max="1440" style="width: 5em"/>
+       </hbox>
+       <description class="description-deemphasized" data-l10n-id="zen-tab-unloader-minutes-description"/>
++
++      <label><html:h2 data-l10n-id="zen-underpowered-auto-header"/></label>
++      <checkbox data-l10n-id="zen-underpowered-auto-resources"
++                preference="zen.underpowered.auto-on-resources"/>
++      <description class="description-deemphasized indent" data-l10n-id="zen-underpowered-auto-resources-description"/>
++      <checkbox data-l10n-id="zen-underpowered-auto-battery"
++                preference="zen.underpowered.auto-on-battery"/>
++      <description id="zenUnderpoweredBatteryDescription" class="description-deemphasized indent"/>
+ </groupbox>
+ 
+ </html:template>

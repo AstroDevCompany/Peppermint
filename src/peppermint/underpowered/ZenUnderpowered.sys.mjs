@@ -3,10 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { isUnloadSafe } from "moz-src:///peppermint/common/PeppermintTabs.sys.mjs";
+import { ResourceMonitor } from "moz-src:///peppermint/underpowered/ZenUnderpoweredResources.sys.mjs";
 
 const PREF_ENABLED = "zen.underpowered.enabled";
 const PREF_SAVED = "zen.underpowered.saved-prefs";
 const PREF_AUTO = "zen.underpowered.auto-on-battery";
+const PREF_AUTO_RESOURCES = "zen.underpowered.auto-on-resources";
 const PREF_THRESHOLD = "zen.underpowered.battery-threshold";
 const PREF_AUTO_ENABLED = "zen.underpowered.auto-enabled";
 const ROOT_ATTRIBUTE = "zen-underpowered";
@@ -85,6 +87,15 @@ class ZenUnderpoweredImpl {
   #onCharging = null;
   #batteryToken = 0;
   #writingAuto = false;
+  /** Whether the battery is low and unplugged. */
+  #batteryLow = false;
+  /** Whether CPU or RAM use is very high, and has not settled yet. */
+  #resourcesHigh = false;
+  #resources = new ResourceMonitor(high => {
+    this.#resourcesHigh = high;
+    this.#evaluateAuto();
+  });
+  /** The user turned off an automatic session that is still warranted. */
   #dismissed = false;
   /**
    * Tests replace this with a function that returns a battery manager.
@@ -100,9 +111,17 @@ class ZenUnderpoweredImpl {
     this.#initialized = true;
     Services.prefs.addObserver(PREF_ENABLED, this);
     Services.prefs.addObserver(PREF_AUTO, this);
+    Services.prefs.addObserver(PREF_THRESHOLD, this);
+    Services.prefs.addObserver(PREF_AUTO_RESOURCES, this);
     Services.obs.addObserver(this, "browser-delayed-startup-finished");
     this.#update(true);
+    // A session left on by the previous run is kept until every source has
+    // looked at the machine again, so a restart does not drop it early.
+    this.#batteryLow = this.#resourcesHigh =
+      Services.prefs.getBoolPref(PREF_ENABLED, false) &&
+      Services.prefs.getBoolPref(PREF_AUTO_ENABLED, false);
     this.#syncBattery();
+    this.#syncResources();
   }
 
   observe(subject, topic, data) {
@@ -118,6 +137,16 @@ class ZenUnderpoweredImpl {
       this.#syncBattery();
       return;
     }
+    if (data === PREF_THRESHOLD) {
+      if (this.#battery) {
+        this.#applyBattery(this.#battery);
+      }
+      return;
+    }
+    if (data === PREF_AUTO_RESOURCES) {
+      this.#syncResources();
+      return;
+    }
     if (data === PREF_ENABLED && !this.#writingAuto) {
       this.#noteManualToggle();
     }
@@ -131,6 +160,23 @@ class ZenUnderpoweredImpl {
    */
   syncBatteryForTests() {
     return this.#syncBattery();
+  }
+
+  /**
+   * The resource monitor, so tests can feed it readings.
+   *
+   * @returns {ResourceMonitor}
+   */
+  get resourceMonitorForTests() {
+    return this.#resources;
+  }
+
+  /**
+   * Start or stop the resource monitor to match its pref. Tests call this
+   * after installing a sample source.
+   */
+  syncResourcesForTests() {
+    this.#syncResources();
   }
 
   /**
@@ -192,15 +238,16 @@ class ZenUnderpoweredImpl {
     }
   }
 
-  // Battery
+  // Automatic sessions
 
   #noteManualToggle() {
     const enabled = Services.prefs.getBoolPref(PREF_ENABLED, false);
     if (enabled || !Services.prefs.getBoolPref(PREF_AUTO_ENABLED, false)) {
       return;
     }
-    // The user turned off a session we started. Stay off until they plug in.
-    this.#dismissed = true;
+    // The user turned off a session we started. Stay off until the cause is
+    // gone, so the same low battery or load does not turn it straight back on.
+    this.#dismissed = this.#autoWanted();
     this.#writeOwned(false);
   }
 
@@ -213,7 +260,7 @@ class ZenUnderpoweredImpl {
     }
   }
 
-  #setFromBattery(enabled) {
+  #setAuto(enabled) {
     this.#writingAuto = true;
     try {
       Services.prefs.setBoolPref(PREF_AUTO_ENABLED, enabled);
@@ -222,6 +269,56 @@ class ZenUnderpoweredImpl {
       this.#writingAuto = false;
     }
   }
+
+  #autoWanted() {
+    return this.#batteryLow || this.#resourcesHigh;
+  }
+
+  /**
+   * Turn the mode on when any source calls for it, and off again, but only
+   * if this code turned it on, once none does.
+   */
+  #evaluateAuto() {
+    const enabled = Services.prefs.getBoolPref(PREF_ENABLED, false);
+    if (this.#autoWanted()) {
+      if (!enabled && !this.#dismissed) {
+        this.#setAuto(true);
+      }
+      return;
+    }
+    this.#dismissed = false;
+    if (Services.prefs.getBoolPref(PREF_AUTO_ENABLED, false)) {
+      this.#setAuto(false);
+    }
+  }
+
+  /**
+   * A source was switched off. A session it started stays on as if the user
+   * had turned it on, unless another source still calls for it.
+   */
+  #releaseOwnership() {
+    if (this.#autoWanted()) {
+      return;
+    }
+    this.#dismissed = false;
+    if (Services.prefs.getBoolPref(PREF_AUTO_ENABLED, false)) {
+      this.#writeOwned(false);
+    }
+  }
+
+  // Resources
+
+  #syncResources() {
+    this.#resources.stop();
+    if (!Services.prefs.getBoolPref(PREF_AUTO_RESOURCES, false)) {
+      this.#resourcesHigh = false;
+      this.#releaseOwnership();
+      return;
+    }
+    this.#resources.start({ high: this.#resourcesHigh });
+  }
+
+  // Battery
 
   #batteryWindow() {
     if (this._batterySource) {
@@ -274,10 +371,8 @@ class ZenUnderpoweredImpl {
     const token = ++this.#batteryToken;
     this.#dropBattery();
     if (!Services.prefs.getBoolPref(PREF_AUTO, false)) {
-      this.#dismissed = false;
-      if (Services.prefs.getBoolPref(PREF_AUTO_ENABLED, false)) {
-        this.#writeOwned(false);
-      }
+      this.#batteryLow = false;
+      this.#releaseOwnership();
       return;
     }
     let battery = null;
@@ -292,47 +387,27 @@ class ZenUnderpoweredImpl {
       }
     } catch (error) {
       console.error("ZenUnderpowered could not read the battery", error);
+    }
+    if (token !== this.#batteryToken) {
       return;
     }
-    if (token !== this.#batteryToken || !battery) {
+    if (!battery) {
+      this.#batteryLow = false;
+      this.#evaluateAuto();
       return;
     }
-    this.#onLevel = () => this.#onBatteryEvent("levelchange");
-    this.#onCharging = () => this.#onBatteryEvent("chargingchange");
+    this.#onLevel = () => this.#applyBattery(battery);
+    this.#onCharging = () => this.#applyBattery(battery);
     battery.addEventListener("levelchange", this.#onLevel);
     battery.addEventListener("chargingchange", this.#onCharging);
     this.#battery = battery;
     this.#applyBattery(battery);
   }
 
-  #onBatteryEvent(type) {
-    const battery = this.#battery;
-    if (!battery) {
-      return;
-    }
-    if (type === "chargingchange" && battery.charging) {
-      this.#dismissed = false;
-    }
-    this.#applyBattery(battery);
-  }
-
   #applyBattery(battery) {
-    if (!Services.prefs.getBoolPref(PREF_AUTO, false)) {
-      return;
-    }
-    const threshold = Services.prefs.getIntPref(PREF_THRESHOLD, 20) / 100;
-    const low = battery.level < threshold && !battery.charging;
-    const enabled = Services.prefs.getBoolPref(PREF_ENABLED, false);
-    const owned = Services.prefs.getBoolPref(PREF_AUTO_ENABLED, false);
-    if (low) {
-      if (!enabled && !this.#dismissed) {
-        this.#setFromBattery(true);
-      }
-      return;
-    }
-    if (battery.charging && owned) {
-      this.#setFromBattery(false);
-    }
+    const threshold = Services.prefs.getIntPref(PREF_THRESHOLD, 30) / 100;
+    this.#batteryLow = battery.level < threshold && !battery.charging;
+    this.#evaluateAuto();
   }
 
   // Resource limits
