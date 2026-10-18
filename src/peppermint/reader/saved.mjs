@@ -20,7 +20,8 @@ const { PeppermintReader } = ChromeUtils.importESModule(
   "moz-src:///peppermint/reader/PeppermintReader.sys.mjs"
 );
 
-const CONFIRM_RESET_MS = 3000;
+// Long enough to read the new label and decide; leaving the button also cancels.
+const CONFIRM_RESET_MS = 6000;
 const ICON_PATH = "chrome://browser/skin/zen-icons/";
 
 const list = document.getElementById("saved-list");
@@ -166,6 +167,13 @@ function resetClearButton() {
   document.l10n.setAttributes(clearButton, "peppermint-saved-clear-all");
 }
 
+// Moving focus away abandons the confirmation instead of leaving it armed.
+clearButton.addEventListener("blur", () => {
+  if (confirmTimer) {
+    resetClearButton();
+  }
+});
+
 list.addEventListener("click", event => {
   const item = event.target.closest(".saved-item");
   if (!item) {
@@ -195,6 +203,7 @@ search.addEventListener("input", render);
 clearButton.addEventListener("click", () => {
   if (!confirmTimer) {
     clearButton.classList.add("confirming");
+    clearButton.setAttribute("aria-live", "polite");
     document.l10n.setAttributes(clearButton, "peppermint-saved-clear-confirm");
     confirmTimer = setTimeout(resetClearButton, CONFIRM_RESET_MS);
     return;

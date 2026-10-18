@@ -163,15 +163,20 @@ function ordinal(day) {
 }
 
 export function formatToday(date = new Date()) {
+  // Ordinal suffixes only exist in English; other languages get the
+  // locale's own long date.
+  if (!Services.locale.appLocaleAsBCP47.toLowerCase().startsWith("en")) {
+    return date.toLocaleDateString(undefined, { dateStyle: "long" });
+  }
   const month = date.toLocaleString(undefined, { month: "long" });
   return `${month} ${ordinal(date.getDate())}, ${date.getFullYear()}`;
 }
 
 export function formatClock(date = new Date()) {
+  // No forced 12-hour clock: the locale decides between 12 and 24 hours.
   return date.toLocaleTimeString(undefined, {
     hour: "numeric",
     minute: "2-digit",
-    hour12: true,
   });
 }
 

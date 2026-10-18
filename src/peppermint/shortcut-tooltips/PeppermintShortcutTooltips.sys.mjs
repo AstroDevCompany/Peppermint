@@ -82,10 +82,16 @@ class ShortcutTooltipsWindow {
   }
 
   init() {
-    this.#win.document.addEventListener("mouseover", this, true);
+    // Focus covers keyboard users, who never fire mouseover.
+    const doc = this.#win.document;
+    doc.addEventListener("mouseover", this, true);
+    doc.addEventListener("focusin", this, true);
     this.#win.addEventListener(
       "unload",
-      () => this.#win.document.removeEventListener("mouseover", this, true),
+      () => {
+        doc.removeEventListener("mouseover", this, true);
+        doc.removeEventListener("focusin", this, true);
+      },
       { once: true }
     );
   }

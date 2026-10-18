@@ -46,7 +46,14 @@ export function createLockScreen({
   let countdown = null;
   let pendingBlock = null;
 
-  function showError(l10n, args) {
+  function showError(l10n, args, { announce = true } = {}) {
+    // role="alert" speaks every text change; a ticking countdown would be
+    // read out twice a second, so quiet updates switch the region off.
+    if (announce) {
+      error.removeAttribute("aria-live");
+    } else {
+      error.setAttribute("aria-live", "off");
+    }
     document.l10n.setAttributes(error, l10n, args);
     error.hidden = false;
   }
@@ -67,6 +74,7 @@ export function createLockScreen({
     input.disabled = true;
     submit.disabled = true;
     const until = Date.now() + retryAfterMs;
+    let lastSeconds = 0;
     const tick = () => {
       const seconds = Math.ceil((until - Date.now()) / 1000);
       if (seconds <= 0) {
@@ -75,7 +83,13 @@ export function createLockScreen({
         input.focus();
         return;
       }
-      showError("peppermint-vault-error-wait", { seconds });
+      if (seconds === lastSeconds) {
+        return;
+      }
+      // Speak the first value, then every 10 seconds; the rest is visual.
+      const announce = !lastSeconds || seconds % 10 === 0;
+      lastSeconds = seconds;
+      showError("peppermint-vault-error-wait", { seconds }, { announce });
     };
     tick();
     countdown = setInterval(tick, 500);

@@ -33,7 +33,8 @@ const { PeppermintVaultSession, STATE_TOPIC } = ChromeUtils.importESModule(
 const AGENT_SHEET =
   "chrome://browser/content/zen-styles/peppermint-vault-agent.css";
 const TOAST_MS = 3500;
-const CONFIRM_RESET_MS = 3000;
+// Long enough to read the new label and decide; leaving the button also cancels.
+const CONFIRM_RESET_MS = 6000;
 const AUTO_LOCK_REASONS = new Set(["idle", "sleep", "hidden"]);
 
 try {
@@ -176,21 +177,30 @@ function renderShell() {
       : null;
 
   let offTimer = null;
+  function resetTurnOff() {
+    clearTimeout(offTimer);
+    offTimer = null;
+    document.l10n.setAttributes(turnOff, "peppermint-vault-turn-off");
+  }
   const turnOff = h("button", {
     class: "vault-link-button vault-danger",
     attrs: { type: "button" },
     l10n: "peppermint-vault-turn-off",
     on: {
+      // Moving focus away abandons the confirmation instead of leaving it armed.
+      blur() {
+        if (offTimer) {
+          resetTurnOff();
+        }
+      },
       async click() {
         if (!offTimer) {
+          turnOff.setAttribute("aria-live", "polite");
           document.l10n.setAttributes(
             turnOff,
             "peppermint-vault-turn-off-confirm"
           );
-          offTimer = setTimeout(() => {
-            offTimer = null;
-            document.l10n.setAttributes(turnOff, "peppermint-vault-turn-off");
-          }, CONFIRM_RESET_MS);
+          offTimer = setTimeout(resetTurnOff, CONFIRM_RESET_MS);
           return;
         }
         clearTimeout(offTimer);

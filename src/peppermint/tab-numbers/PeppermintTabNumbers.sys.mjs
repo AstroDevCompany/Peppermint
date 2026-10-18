@@ -163,6 +163,8 @@ class TabNumbersWindow {
       }
       const label = this.#win.document.createElementNS(HTML_NS, "span");
       label.className = NUMBER_CLASS;
+      // The shortcut hint is decoration; the tab already has its own name.
+      label.setAttribute("aria-hidden", "true");
       label.textContent = number;
       stack.setAttribute("peppermint-tab-number", number);
       stack.appendChild(label);
