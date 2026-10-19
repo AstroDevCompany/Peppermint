@@ -1,0 +1,10 @@
+--- a/browser/components/preferences/dialogs/syncChooseWhatToSync.js
++++ b/browser/components/preferences/dialogs/syncChooseWhatToSync.js
+@@ -22,6 +22,7 @@
+   { id: "services.sync.engine.addresses", type: "bool" },
+   { id: "services.sync.engine.creditcards", type: "bool" },
+   { id: "services.sync.engine.spaces", type: "bool" },
++  { id: "services.sync.engine.notes", type: "bool" },
+ ]);
+ 
+ let gSyncChooseWhatToSync = {

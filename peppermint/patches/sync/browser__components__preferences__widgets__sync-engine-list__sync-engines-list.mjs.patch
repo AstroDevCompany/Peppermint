@@ -1,0 +1,13 @@
+--- a/browser/components/preferences/widgets/sync-engine-list/sync-engines-list.mjs
++++ b/browser/components/preferences/widgets/sync-engine-list/sync-engines-list.mjs
+@@ -54,6 +54,10 @@
+     iconSrc: "chrome://devtools/skin/images/tool-storage.svg",
+     l10nId: "sync-currently-syncing-workspaces",
+   },
++  notes: {
++    iconSrc: "chrome://browser/skin/zen-icons/tab.svg",
++    l10nId: "sync-currently-syncing-notes",
++  },
+ };
+ 
+ /**

@@ -1,0 +1,84 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Peppermint settings that follow the user through Firefox Sync's "Settings"
+# data type. Vault settings are deliberately absent: Vault only works with a
+# Primary Password on the device, and its timings are a per-machine choice.
+
+# Ad blocking (custom rules stay per device: they can be large, and one oversized value would stop all settings from syncing)
+- name: services.sync.prefs.sync.zen.adblock.enabled
+  value: true
+
+- name: services.sync.prefs.sync.zen.adblock.level
+  value: true
+
+- name: services.sync.prefs.sync.zen.adblock.cname-uncloak
+  value: true
+
+
+# Cookie popups
+- name: services.sync.prefs.sync.zen.cookie-consent.enabled
+  value: true
+
+
+# Janitor (what to clean and whether to notify). Turning the Janitor on, its first-run prompt, the recycle bin, and dry-run stay per device, since they act on one machine's files
+- name: services.sync.prefs.sync.peppermint.janitor.clean-temp
+  value: true
+
+- name: services.sync.prefs.sync.peppermint.janitor.clean-traces
+  value: true
+
+- name: services.sync.prefs.sync.peppermint.janitor.clean-updates
+  value: true
+
+- name: services.sync.prefs.sync.peppermint.janitor.clean-caches
+  value: true
+
+- name: services.sync.prefs.sync.peppermint.janitor.notifications
+  value: true
+
+
+# Popular site suggestions
+- name: services.sync.prefs.sync.peppermint.urlbar.popular-sites.enabled
+  value: true
+
+- name: services.sync.prefs.sync.peppermint.urlbar.popular-sites.max-results
+  value: true
+
+- name: services.sync.prefs.sync.peppermint.urlbar.popular-sites.min-query-length
+  value: true
+
+
+# Tab search
+- name: services.sync.prefs.sync.peppermint.urlbar.tab-search.enabled
+  value: true
+
+
+# Reader (storage limits stay per device)
+- name: services.sync.prefs.sync.peppermint.reader.offline.inline-images
+  value: true
+
+
+# Notepad
+- name: services.sync.prefs.sync.zen.notepad.autocomplete-key
+  value: true
+
+- name: services.sync.prefs.sync.zen.notepad.auto-lock-minutes
+  value: true
+
+
+# Underpowered (the mode itself is runtime state and is never synced)
+- name: services.sync.prefs.sync.zen.underpowered.auto-on-battery
+  value: true
+
+- name: services.sync.prefs.sync.zen.underpowered.battery-threshold
+  value: true
+
+- name: services.sync.prefs.sync.zen.underpowered.auto-on-resources
+  value: true
+
+# Sync notes (end-to-end encrypted by Firefox Sync) across devices. Off until
+# the user picks it in the Sync settings.
+- name: services.sync.engine.notes
+  value: false

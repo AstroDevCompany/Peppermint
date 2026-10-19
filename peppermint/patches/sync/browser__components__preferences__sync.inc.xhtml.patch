@@ -1,0 +1,13 @@
+--- a/browser/components/preferences/sync.inc.xhtml
++++ b/browser/components/preferences/sync.inc.xhtml
+@@ -227,6 +227,10 @@
+                   <html:div engine_preference="services.sync.engine.spaces">
+                     <image class="sync-engine-image sync-engine-workspaces" alt=""/>
+                     <label data-l10n-id="sync-currently-syncing-workspaces"/>
++                  </html:div>
++                  <html:div engine_preference="services.sync.engine.notes">
++                    <image class="sync-engine-image sync-engine-notes" alt=""/>
++                    <label data-l10n-id="sync-currently-syncing-notes"/>
+                   </html:div>
+                 </html:div>
+                 <hbox>

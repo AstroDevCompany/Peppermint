@@ -1,0 +1,18 @@
+--- a/browser/components/preferences/config/account-sync.mjs
++++ b/browser/components/preferences/config/account-sync.mjs
+@@ -47,6 +47,7 @@
+   { id: "services.sync.engine.addons", type: "bool" },
+   { id: "services.sync.engine.prefs", type: "bool" },
+   { id: "services.sync.engine.spaces", type: "bool" },
++  { id: "services.sync.engine.notes", type: "bool" },
+   { id: "zen.spaces-sync.normal-tabs", type: "bool" },
+ ]);
+ 
+@@ -564,6 +565,7 @@
+   },
+   { id: "syncAddons", pref: "services.sync.engine.addons", type: "addons" },
+   { id: "syncSpaces", pref: "services.sync.engine.spaces", type: "workspaces" },
++  { id: "syncNotes", pref: "services.sync.engine.notes", type: "notes" },
+   { id: "syncSettings", pref: "services.sync.engine.prefs", type: "settings" },
+ ];
+ 

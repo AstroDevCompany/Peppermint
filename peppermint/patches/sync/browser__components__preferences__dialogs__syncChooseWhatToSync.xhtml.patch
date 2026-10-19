@@ -1,0 +1,15 @@
+--- a/browser/components/preferences/dialogs/syncChooseWhatToSync.xhtml
++++ b/browser/components/preferences/dialogs/syncChooseWhatToSync.xhtml
+@@ -96,6 +96,12 @@
+                 preference="services.sync.engine.spaces"
+         />
+       </html:div>
++      <html:div class="sync-engine-notes">
++        <checkbox
++                data-l10n-id="sync-engine-notes"
++                preference="services.sync.engine.notes"
++        />
++      </html:div>
+     </html:div>
+   </dialog>
+ </window>

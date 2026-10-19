@@ -112,10 +112,12 @@
    border: 2px solid light-dark(rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.1));
  }
  
-@@ -281,165 +306,6 @@
+@@ -279,167 +304,8 @@
+   border-radius: 50px;
+   background: var(--zen-primary-color);
    transform: translate(-50%, -50%);
- }
- 
+-}
+-
 -/* THemes marketplace */
 -
 -#category-zen-marketplace > .category-icon {
@@ -210,8 +212,8 @@
 -  align-items: center;
 -  margin-top: var(--space-small);
 -  justify-content: space-between;
--}
--
+ }
+ 
 -#zenThemeMarketplaceList {
 -  display: grid;
 -  gap: var(--space-medium);
@@ -288,7 +290,18 @@
  #websiteAdvertisingGroup,
  #helpButton,
  #support-firefox,
-@@ -502,6 +368,67 @@
+@@ -496,12 +362,78 @@
+   list-style-image: url("chrome://devtools/skin/images/tool-storage.svg");
+ }
+ 
++.sync-engine-notes .checkbox-icon,
++.sync-engine-notes.sync-engine-image {
++  list-style-image: url("chrome://browser/skin/zen-icons/tab.svg");
++}
++
+ @media -moz-pref("zen.theme.disable-lightweight") {
+   html|div[data-l10n-id="preferences-web-appearance-footer"] {
+     display: none;
    }
  }
  

@@ -394,3 +394,10 @@ peppermint-vault-settings-set-up =
 peppermint-vault-settings-open =
     .label = Open Peppermint Vault
     .description = Vault is on. The Primary Password cannot be turned off while it is on.
+
+sync-currently-syncing-notes = Notes
+
+sync-engine-notes =
+    .label = Notes
+    .tooltiptext = Sync your notes across devices
+    .accesskey = N

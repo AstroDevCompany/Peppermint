@@ -1,6 +1,17 @@
 --- a/services/sync/modules/service.sys.mjs
 +++ b/services/sync/modules/service.sys.mjs
-@@ -829,14 +829,16 @@
+@@ -110,6 +110,10 @@
+     module: "resource:///modules/zen/ZenSpacesSync.sys.mjs",
+     symbol: "ZenSpacesSyncEngine",
+   };
++  result.Notes = {
++    module: "resource:///modules/zen/notepad/PeppermintNotesSync.sys.mjs",
++    symbol: "PeppermintNotesEngine",
++  };
+   return result;
+ }
+ 
+@@ -829,14 +833,16 @@
      return Math.min(512 * 1024, this.getMaxRecordPayloadSize());
    },
  
@@ -19,7 +30,7 @@
      this._log.debug(
        "Fetching unlocked auth state returned " + this.status.login
      );
-@@ -888,7 +890,7 @@
+@@ -888,7 +894,7 @@
          case 404:
            // Check that we're verifying with the correct cluster
            if (allow40XRecovery && (await this.identity.setCluster())) {
@@ -28,7 +39,7 @@
            }
  
            // We must have the right cluster, but the server doesn't expect us.
-@@ -1058,7 +1060,7 @@
+@@ -1058,7 +1064,7 @@
      }
    },
  
@@ -37,7 +48,7 @@
      async function onNotify() {
        this._loggedIn = false;
        if (this.scheduler.offline) {
-@@ -1067,7 +1069,7 @@
+@@ -1067,7 +1073,7 @@
        }
  
        this._log.info("User logged in successfully - verifying login.");
@@ -46,7 +57,7 @@
          // verifyLogin sets the failure states here.
          throw new Error(`Login failed: ${this.status.login}`);
        }
-@@ -1367,7 +1369,10 @@
+@@ -1367,7 +1373,10 @@
        // Make sure we're logged in.
        if (this._shouldLogin()) {
          this._log.debug("In sync: should login.");

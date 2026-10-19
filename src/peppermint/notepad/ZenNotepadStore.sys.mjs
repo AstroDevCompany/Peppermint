@@ -252,6 +252,45 @@ export async function listNotes() {
 }
 
 /**
+ * @returns {Promise<string[]>} The ids of all notes, without opening them
+ */
+export async function listNoteIds() {
+  if (!(await IOUtils.exists(notesDirectory()))) {
+    return [];
+  }
+  const ids = [];
+  for (const path of await IOUtils.getChildren(notesDirectory())) {
+    if (path.endsWith(NOTE_SUFFIX)) {
+      const id = PathUtils.filename(path).slice(0, -NOTE_SUFFIX.length);
+      if (isNoteId(id)) {
+        ids.push(id);
+      }
+    }
+  }
+  return ids;
+}
+
+/**
+ * @param {string} id
+ * @returns {Promise<boolean>}
+ */
+export function noteExists(id) {
+  return IOUtils.exists(noteFilePath(id));
+}
+
+/**
+ * @param {string} id
+ * @returns {Promise<number>} Bytes the encrypted note takes on disk, 0 if absent
+ */
+export async function noteFileSize(id) {
+  try {
+    return (await IOUtils.stat(noteFilePath(id))).size;
+  } catch {
+    return 0;
+  }
+}
+
+/**
  * @param {string} url - Address of a page
  * @returns {Promise<string|null>} The id of the note about that page, if any
  */

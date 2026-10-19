@@ -14,3 +14,5 @@ prefs = [
 ["browser_notepad.js"]
 
 ["browser_notepad_list.js"]
+
+["browser_notes_sync.js"]
