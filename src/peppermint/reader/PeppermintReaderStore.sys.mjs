@@ -17,6 +17,10 @@ const INDEX_VERSION = 1;
 const ARTICLE_SUFFIX = ".json";
 const PREF_MAX_ARTICLE_BYTES = "peppermint.reader.offline.max-article-bytes";
 const DEFAULT_MAX_ARTICLE_BYTES = 12 * 1024 * 1024;
+const PREF_MAX_TOTAL_BYTES = "peppermint.reader.offline.max-total-bytes";
+const DEFAULT_MAX_TOTAL_BYTES = 200 * 1024 * 1024;
+const MAX_TAGS = 10;
+const MAX_TAG_LENGTH = 32;
 
 /** Notifies when the saved set changes; the subject is null, data the id. */
 export const STORE_CHANGED_TOPIC = "peppermint-reader-store-changed";
@@ -105,6 +109,69 @@ function maxArticleBytes() {
     PREF_MAX_ARTICLE_BYTES,
     DEFAULT_MAX_ARTICLE_BYTES
   );
+}
+
+function maxTotalBytes() {
+  return Services.prefs.getIntPref(
+    PREF_MAX_TOTAL_BYTES,
+    DEFAULT_MAX_TOTAL_BYTES
+  );
+}
+
+/**
+ * Cleans up a list of tags: trimmed, lower case, no empty or repeated ones,
+ * and no more than the store keeps per article.
+ *
+ * @param {string[]|string} input - Tags, or a comma separated string of them
+ * @returns {string[]}
+ */
+export function normalizeTags(input) {
+  const parts = Array.isArray(input) ? input : String(input ?? "").split(",");
+  const tags = [];
+  for (const part of parts) {
+    const tag = String(part).trim().toLowerCase().slice(0, MAX_TAG_LENGTH);
+    if (tag && !tags.includes(tag)) {
+      tags.push(tag);
+    }
+    if (tags.length >= MAX_TAGS) {
+      break;
+    }
+  }
+  return tags;
+}
+
+/**
+ * Chooses which articles to delete so the rest fit in `limit` bytes. Read
+ * articles go first, oldest first, then unread ones, oldest first. The
+ * article that was just saved is never chosen.
+ *
+ * @param {object[]} records - Index records
+ * @param {number} limit - Bytes the saved articles may take
+ * @param {string} [keepId] - An article that has to stay
+ * @returns {string[]} Ids to delete
+ */
+export function pickEvictions(records, limit, keepId = null) {
+  let total = records.reduce((sum, record) => sum + (record.bytes || 0), 0);
+  if (total <= limit) {
+    return [];
+  }
+  const order = records
+    .filter(record => record.id !== keepId)
+    .sort(
+      (a, b) =>
+        Number(!!b.read) - Number(!!a.read) ||
+        (a.read ? (a.readAt || a.savedAt) - (b.readAt || b.savedAt) : 0) ||
+        a.savedAt - b.savedAt
+    );
+  const evicted = [];
+  for (const record of order) {
+    if (total <= limit) {
+      break;
+    }
+    evicted.push(record.id);
+    total -= record.bytes || 0;
+  }
+  return evicted;
 }
 
 function isNotFound(error) {
@@ -233,8 +300,22 @@ export async function saveArticle(article, { isPrivate = false } = {}) {
     await IOUtils.writeUTF8(articlePath(id), json, {
       tmpPath: `${articlePath(id)}.tmp`,
     });
+    // Saving a page again refreshes its content, not what was done with it.
+    const previous = index.get(id);
+    record.read = !!previous?.read;
+    record.readAt = previous?.readAt || 0;
+    record.tags = previous?.tags || [];
     index.set(id, record);
+    const evicted = pickEvictions([...index.values()], maxTotalBytes(), id);
+    for (const evictedId of evicted) {
+      index.delete(evictedId);
+    }
     await writeIndex(index);
+    await Promise.all(
+      evicted.map(evictedId =>
+        IOUtils.remove(articlePath(evictedId), { ignoreAbsent: true })
+      )
+    );
   });
   notifyChanged(id);
   return record;
@@ -327,6 +408,62 @@ export async function clearArticles() {
     );
   });
   notifyChanged();
+}
+
+/**
+ * @param {string} idOrUrl
+ * @returns {Promise<object|null>} The index record, or null when not saved
+ */
+export async function getRecord(idOrUrl) {
+  const id = idFrom(idOrUrl);
+  return (id && (await loadIndex()).get(id)) || null;
+}
+
+async function updateRecord(idOrUrl, change) {
+  const id = idFrom(idOrUrl);
+  if (!id) {
+    return false;
+  }
+  const changed = await enqueue(async () => {
+    const index = await loadIndex();
+    const record = index.get(id);
+    if (!record) {
+      return false;
+    }
+    change(record);
+    await writeIndex(index);
+    return true;
+  });
+  if (changed) {
+    notifyChanged(id);
+  }
+  return changed;
+}
+
+/**
+ * @param {string} idOrUrl
+ * @param {boolean} read
+ * @returns {Promise<boolean>} The article is saved and was updated
+ */
+export function setRead(idOrUrl, read) {
+  return updateRecord(idOrUrl, record => {
+    if (!!record.read === !!read) {
+      return;
+    }
+    record.read = !!read;
+    record.readAt = read ? Date.now() : 0;
+  });
+}
+
+/**
+ * @param {string} idOrUrl
+ * @param {string[]|string} tags - See normalizeTags
+ * @returns {Promise<boolean>} The article is saved and was updated
+ */
+export function setTags(idOrUrl, tags) {
+  return updateRecord(idOrUrl, record => {
+    record.tags = normalizeTags(tags);
+  });
 }
 
 /**

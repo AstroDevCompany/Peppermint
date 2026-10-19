@@ -19,3 +19,9 @@
 # A saved article (text and pictures) is never larger than this many bytes.
 - name: peppermint.reader.offline.max-article-bytes
   value: 12582912
+
+# All saved articles together may take this many bytes. When a new one does
+# not fit, read articles are removed first (the one read longest ago), then
+# the oldest unread ones. The article just saved is always kept.
+- name: peppermint.reader.offline.max-total-bytes
+  value: 209715200

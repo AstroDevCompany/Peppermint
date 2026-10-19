@@ -6,6 +6,7 @@
 prefs = [
   "zen.adblock.enabled=false",
   "peppermint.reader.always-available=true",
+  "zen.notepad.auto-lock-minutes=0",
 ]
 support-files = [
   "head.js",
@@ -19,3 +20,5 @@ support-files = [
 ["browser_reader_offline.js"]
 
 ["browser_reader_saved_page.js"]
+
+["browser_reader_list.js"]

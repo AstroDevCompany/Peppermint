@@ -23,6 +23,30 @@ peppermint-reader-too-large-toast = This article is too large to save
 ## Saved articles page (about:saved)
 
 peppermint-saved-title = Saved articles
+
+peppermint-saved-filters =
+    .aria-label = Filter saved articles
+
+# $count (Number) - how many saved articles there are.
+peppermint-saved-filter-all = All ({ $count })
+
+# $count (Number) - how many saved articles have not been read yet.
+peppermint-saved-filter-unread = Unread ({ $count })
+
+peppermint-saved-unread-label =
+    .aria-label = Unread
+
+peppermint-saved-mark-read = Mark as read
+
+peppermint-saved-mark-unread = Mark as unread
+
+peppermint-saved-edit-tags = Tags
+
+peppermint-saved-tags-input =
+    .aria-label = Tags, separated by commas
+    .placeholder = work, to read
+
+peppermint-saved-send-to-notepad = Send to Notepad
 peppermint-saved-search =
     .placeholder = Search saved articles
     .aria-label = Search saved articles

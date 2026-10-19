@@ -16,9 +16,11 @@ import { isSavableUrl } from "moz-src:///peppermint/reader/PeppermintReaderAvail
 import {
   STORE_CHANGED_TOPIC,
   getArticle,
+  getRecord,
   hasArticle,
   removeArticle,
   saveArticle,
+  setRead,
 } from "moz-src:///peppermint/reader/PeppermintReaderStore.sys.mjs";
 
 const lazy = {};
@@ -27,6 +29,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   AboutReaderParent: "resource:///actors/AboutReaderParent.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   ReaderMode: "moz-src:///toolkit/components/reader/ReaderMode.sys.mjs",
+  noteURL: "resource:///modules/zen/notepad/ZenNotepadMarkdown.mjs",
+  saveNote: "resource:///modules/zen/notepad/ZenNotepadStore.sys.mjs",
 });
 
 export const SAVED_ARTICLES_URL = "about:saved";
@@ -50,6 +54,25 @@ function readerSourceUrl(browser) {
     return null;
   }
   return lazy.ReaderMode.getOriginalUrl(spec);
+}
+
+/**
+ * @param {object} record - A saved article's index record
+ * @returns {string} Markdown for a new note about the article
+ */
+export function articleNoteMarkdown(record) {
+  const lines = [`# ${record.title}`, "", `[${record.siteName || record.url}](${record.url})`];
+  if (record.byline) {
+    lines.push("", record.byline);
+  }
+  if (record.excerpt) {
+    lines.push("", `> ${record.excerpt.replace(/\s+/g, " ").trim()}`);
+  }
+  if (record.tags?.length) {
+    lines.push("", record.tags.map(tag => `#${tag}`).join(" "));
+  }
+  lines.push("", "");
+  return lines.join("\n");
 }
 
 function isPrivateWindow(win) {
@@ -371,6 +394,29 @@ export const PeppermintReader = {
       `about:reader?url=${encodeURIComponent(article.url)}`,
       where
     );
+    // Opening an article counts as reading it. The list can still flip it back.
+    setRead(id, true).catch(error =>
+      console.error("Reader: could not mark the article as read", error)
+    );
+    return true;
+  },
+
+  /**
+   * Starts a note about a saved article: its title, a link to it and its
+   * excerpt, and opens that note in a new tab.
+   *
+   * @param {Window} win
+   * @param {string} id - The saved article's id
+   * @returns {Promise<boolean>} The article was found and the note opened
+   */
+  async sendToNotepad(win, id) {
+    const record = await getRecord(id);
+    if (!record) {
+      return false;
+    }
+    const noteId = crypto.randomUUID();
+    await lazy.saveNote(noteId, articleNoteMarkdown(record));
+    win.openTrustedLinkIn(lazy.noteURL(noteId), "tab");
     return true;
   },
 
