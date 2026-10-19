@@ -5,6 +5,7 @@
 MOZ_SRC_FILES += [
     "PeppermintJanitor.sys.mjs",
     "PeppermintJanitorCleaner.sys.mjs",
+    "PeppermintJanitorHistory.sys.mjs",
     "PeppermintJanitorTargets.sys.mjs",
 ]
 

@@ -19,6 +19,17 @@
                 data-l10n-id="zen-janitor-enabled"
                 preference="peppermint.janitor.enabled"/>
 
+      <hbox align="center">
+            <label data-l10n-id="zen-janitor-schedule-label"/>
+            <menulist id="zenJanitorSchedule" preference="peppermint.janitor.schedule">
+                  <menupopup>
+                        <menuitem data-l10n-id="zen-janitor-schedule-startup" value="startup"/>
+                        <menuitem data-l10n-id="zen-janitor-schedule-daily" value="daily"/>
+                        <menuitem data-l10n-id="zen-janitor-schedule-weekly" value="weekly"/>
+                  </menupopup>
+            </menulist>
+      </hbox>
+
       <label><html:h2 data-l10n-id="zen-janitor-clean-header"/></label>
 
       <checkbox id="zenJanitorTemp"
@@ -45,6 +56,9 @@
       <hbox>
             <button id="zenJanitorCleanNow" data-l10n-id="zen-janitor-clean-now"/>
       </hbox>
+
+      <description id="zenJanitorLastRun" class="description-deemphasized"/>
+      <description id="zenJanitorTotals" class="description-deemphasized" hidden="true"/>
 </groupbox>
 
 </html:template>

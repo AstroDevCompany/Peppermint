@@ -15,6 +15,11 @@ import {
   UnitStatus,
 } from "moz-src:///peppermint/janitor/PeppermintJanitorCleaner.sys.mjs";
 import {
+  isRunDue,
+  lastRunAt,
+  recordRun,
+} from "moz-src:///peppermint/janitor/PeppermintJanitorHistory.sys.mjs";
+import {
   GROUPS,
   getEnvironment,
   getProtectedFolders,
@@ -27,6 +32,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   DownloadUtils: "resource://gre/modules/DownloadUtils.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
+  setInterval: "resource://gre/modules/Timer.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
 
@@ -34,6 +40,7 @@ export const PREFS = Object.freeze({
   enabled: "peppermint.janitor.enabled",
   prompted: "peppermint.janitor.prompted",
   notifications: "peppermint.janitor.notifications",
+  schedule: "peppermint.janitor.schedule",
   dryRun: "peppermint.janitor.dry-run",
   groups: {
     temp: "peppermint.janitor.clean-temp",
@@ -51,6 +58,9 @@ const WORKER_URL =
 
 // Stay out of the way of session restore and the first page loads.
 const START_DELAY_MS = 20 * 1000;
+// With a daily or weekly schedule the browser may stay open for days, so it
+// looks once an hour whether a run has become due.
+const DUE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
 // Groups that freed less than this stay silent.
 const MIN_TOAST_BYTES = 1024 * 1024;
 const TOAST_TIMEOUT_MS = 3500;
@@ -143,11 +153,14 @@ class PeppermintJanitorImpl {
 
   #schedule() {
     if (Services.prefs.getBoolPref(PREFS.enabled, false)) {
-      lazy.setTimeout(() => {
+      const check = atStart =>
         ChromeUtils.idleDispatch(() => {
-          this.run().catch(e => console.error("Janitor: run failed", e));
+          this.runIfDue({ atStart }).catch(e =>
+            console.error("Janitor: run failed", e)
+          );
         });
-      }, START_DELAY_MS);
+      lazy.setTimeout(() => check(true), START_DELAY_MS);
+      lazy.setInterval(() => check(false), DUE_CHECK_INTERVAL_MS);
     } else if (this.shouldPrompt()) {
       this.#promptWhenWelcomed();
     }
@@ -217,6 +230,27 @@ class PeppermintJanitorImpl {
       Services.prefs.setBoolPref(PREFS.enabled, true);
       await this.run();
     }
+  }
+
+  /**
+   * Runs the Janitor if the schedule says it is time. "Every launch" cleans
+   * once at start; "daily" and "weekly" clean when that long has passed since
+   * the last run, checked at start and then every hour.
+   *
+   * @param {object} [options]
+   * @param {boolean} [options.atStart] - The browser just started
+   * @param {object} [options.run] - Options passed on to run() (tests)
+   * @returns {Promise<RunSummary|null>} The run, or null when none was due
+   */
+  async runIfDue({ atStart = false, run = {} } = {}) {
+    if (!Services.prefs.getBoolPref(PREFS.enabled, false)) {
+      return null;
+    }
+    const schedule = Services.prefs.getStringPref(PREFS.schedule, "startup");
+    if (schedule === "startup") {
+      return atStart ? this.run(run) : null;
+    }
+    return isRunDue(schedule, await lastRunAt()) ? this.run(run) : null;
   }
 
   /**
@@ -296,6 +330,10 @@ class PeppermintJanitorImpl {
       console.warn(
         `Janitor dry run: ${summary.totalBytes} bytes in ${summary.groups.length} group(s)`
       );
+    }
+
+    if (!dryRun) {
+      await recordRun(summary, { manual: !!options.manual });
     }
 
     const notify =

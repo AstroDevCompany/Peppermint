@@ -1,6 +1,6 @@
 --- a/browser/components/preferences/zen-settings.js
 +++ b/browser/components/preferences/zen-settings.js
-@@ -3,655 +3,13 @@
+@@ -3,11 +3,6 @@
  // License, v. 2.0. If a copy of the MPL was not distributed with this
  // file, You can obtain one at http://mozilla.org/MPL/2.0/.
  
@@ -12,10 +12,10 @@
  const { nsKeyShortcutModifiers } = ChromeUtils.importESModule(
    "chrome://browser/content/zen-components/ZenKeyboardShortcuts.mjs",
    {
-     global: "current",
+@@ -15,643 +10,6 @@
    }
  );
--
+ 
 -var gZenMarketplaceManager = {
 -  async init() {
 -    const checkForUpdates = document.getElementById("zenThemeMarketplaceCheckForUpdates");
@@ -621,7 +621,7 @@
 -                  }
 -                }, 500)
 -              );
- 
+-
 -              const nameLabel = document.createXULElement("label");
 -              nameLabel.setAttribute("flex", "1");
 -              nameLabel.setAttribute("class", "zenThemeMarketplaceItemPreferenceLabel");
@@ -777,7 +777,7 @@
      });
    },
  
-@@ -1143,9 +594,320 @@
+@@ -1143,9 +594,352 @@
      input.classList.remove(`${ZEN_CKS_INPUT_FIELD_CLASS}-not-set`);
      input.value = modifiers.toDisplayString() + gZenKeyboardShortcutsManager.getKeyDisplay(shortcut);
      this._latestValidKey = shortcut;
@@ -828,9 +828,9 @@
 +      Services.prefs.setStringPref("zen.homepage.url", value);
 +    };
 +    input.addEventListener("change", commitURL);
-+  },
-+};
-+
+   },
+ };
+ 
 +var gZenUrlSnippetsSettings = {
 +  _manager: null,
 +  _queue: Promise.resolve(),
@@ -947,9 +947,9 @@
 +      }
 +      row.remove();
 +    });
-   },
- };
- 
++  },
++};
++
 +var gZenAdblockSettings = {
 +  init() {
 +    const { gZenAdblock } = ChromeUtils.importESModule(
@@ -1050,7 +1050,7 @@
 +  // Only the launch-time notification depends on the Janitor being on. The
 +  // cleanup options and "Clean now" also drive a manual run, so they stay
 +  // usable while the automatic cleaning is off.
-+  _dependents: ["zenJanitorNotifications"],
++  _dependents: ["zenJanitorNotifications", "zenJanitorSchedule"],
 +
 +  init() {
 +    if (this.__hasInitialized) {
@@ -1078,6 +1078,7 @@
 +      Services.prefs.removeObserver(pref, observer);
 +    });
 +    syncDependents();
++    this._showHistory();
 +
 +    cleanNow.addEventListener("command", async () => {
 +      const { PeppermintJanitor } = ChromeUtils.importESModule(
@@ -1090,15 +1091,46 @@
 +        console.error("Janitor: clean now failed", error);
 +      } finally {
 +        syncDependents();
++        this._showHistory();
 +      }
 +    });
++  },
++
++  async _showHistory() {
++    const { getHistory, summarizeHistory } = ChromeUtils.importESModule(
++      "moz-src:///peppermint/janitor/PeppermintJanitorHistory.sys.mjs"
++    );
++    const { formatSize } = ChromeUtils.importESModule(
++      "moz-src:///peppermint/janitor/PeppermintJanitor.sys.mjs"
++    );
++    const summary = summarizeHistory(await getHistory());
++    const last = document.getElementById("zenJanitorLastRun");
++    const totals = document.getElementById("zenJanitorTotals");
++    if (!summary.lastRun) {
++      document.l10n.setAttributes(last, "zen-janitor-never-run");
++      totals.hidden = true;
++      return;
++    }
++    const when = new Intl.DateTimeFormat(undefined, {
++      dateStyle: "medium",
++      timeStyle: "short",
++    }).format(summary.lastRun.at);
++    document.l10n.setAttributes(last, "zen-janitor-last-run", {
++      date: when,
++      size: formatSize(summary.lastRun.bytes),
++    });
++    document.l10n.setAttributes(totals, "zen-janitor-totals", {
++      size: formatSize(summary.bytes),
++      count: summary.runs,
++    });
++    totals.hidden = false;
 +  },
 +};
 +
  Preferences.addAll([
    {
      id: "zen.view.compact.toolbar-flash-popup",
-@@ -1154,15 +916,55 @@
+@@ -1154,15 +948,55 @@
    },
    {
      id: "zen.workspaces.hide-default-container-indicator",
@@ -1154,7 +1186,7 @@
      id: "zen.pinned-tab-manager.restore-pinned-tabs-to-pinned-url",
      type: "bool",
      default: true,
-@@ -1203,6 +1005,11 @@
+@@ -1203,6 +1037,11 @@
      default: "float",
    },
    {
@@ -1166,7 +1198,7 @@
      id: "zen.workspaces.separate-essentials",
      type: "bool",
      default: false,
-@@ -1225,11 +1032,6 @@
+@@ -1225,11 +1064,6 @@
    {
      id: "zen.workspaces.continue-where-left-off",
      type: "bool",
@@ -1178,7 +1210,7 @@
      default: true,
    },
    {
-@@ -1257,6 +1059,106 @@
+@@ -1257,6 +1091,111 @@
      type: "bool",
      default: false,
    },
@@ -1251,6 +1283,11 @@
 +    id: "peppermint.janitor.enabled",
 +    type: "bool",
 +    default: false,
++  },
++  {
++    id: "peppermint.janitor.schedule",
++    type: "string",
++    default: "startup",
 +  },
 +  {
 +    id: "peppermint.janitor.clean-temp",

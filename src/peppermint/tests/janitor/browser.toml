@@ -8,3 +8,5 @@ prefs = [
 ]
 
 ["browser_janitor.js"]
+
+["browser_janitor_schedule.js"]

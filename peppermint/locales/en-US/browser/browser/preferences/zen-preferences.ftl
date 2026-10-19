@@ -352,7 +352,18 @@ zen-janitor-header = Free up disk space on launch
 zen-janitor-description = Every time { -brand-short-name } starts, the Janitor clears files that nothing has used for 72 hours. Your documents, downloads and browser data are never touched.
 
 zen-janitor-enabled =
-    .label = Run the Janitor on every launch
+    .label = Clean automatically
+
+zen-janitor-schedule-label = Clean
+
+zen-janitor-schedule-startup =
+    .label = On every launch
+
+zen-janitor-schedule-daily =
+    .label = Once a day
+
+zen-janitor-schedule-weekly =
+    .label = Once a week
 
 zen-janitor-clean-header = What to clean
 
@@ -384,6 +395,19 @@ zen-janitor-notifications =
 
 zen-janitor-clean-now =
     .label = Clean now
+
+# $date (String) - when the Janitor last ran, for example "Oct 18, 2026, 3:04 PM".
+# $size (String) - the space it freed, for example "1.4 GB".
+zen-janitor-last-run = Last cleaned { $date }: { $size } freed.
+
+zen-janitor-never-run = The Janitor has not cleaned anything yet.
+
+# $size (String) - the space freed in total, for example "12.3 GB".
+# $count (Number) - how many cleanings that adds up.
+zen-janitor-totals = { $count ->
+    [one] { $size } freed in { $count } cleaning.
+   *[other] { $size } freed in { $count } cleanings.
+}
 
 ## Peppermint Vault, in the password settings
 

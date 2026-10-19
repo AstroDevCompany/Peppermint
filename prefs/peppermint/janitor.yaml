@@ -30,6 +30,11 @@
 - name: peppermint.janitor.notifications
   value: true
 
+# When the Janitor cleans on its own: "startup" (every launch), "daily" or
+# "weekly" (when that long has passed since the last run).
+- name: peppermint.janitor.schedule
+  value: startup
+
 # Developer switch (not in the settings): scan and log, delete nothing.
 - name: peppermint.janitor.dry-run
   value: false
