@@ -49,6 +49,7 @@ export class ZenNotepadChild extends JSWindowActorChild {
         "resource:///modules/zen/notepad/ZenNotepadPage.mjs"
       );
       const bridge = {
+        strings: () => this.sendQuery("ZenNotepad:Strings"),
         load: id => this.sendQuery("ZenNotepad:Load", { id }),
         save: (id, markdown, title) =>
           this.sendQuery("ZenNotepad:Save", { id, markdown, title }),

@@ -40,6 +40,17 @@ const COMMAND_LABELS = {
   "inline-code": "Inline code",
 };
 
+// Filled from the browser's Fluent messages when the page starts (see start).
+let localized = {};
+
+function str(id, fallback) {
+  return localized[id]?.value || fallback;
+}
+
+function strAttr(id, name, fallback) {
+  return localized[id]?.attributes?.[name] || fallback;
+}
+
 const STATUS_TEXT = {
   unsaved: "Unsaved",
   saving: "Saving…",
@@ -97,7 +108,7 @@ export async function attachNotepad(document_, bridge_) {
 
   function setStatus(name) {
     statusNode.dataset.state = name;
-    statusNode.textContent = STATUS_TEXT[name] || "";
+    statusNode.textContent = str(`zen-notepad-status-${name}`, STATUS_TEXT[name] || "");
     const l10nId = {
       unsaved: "zen-notepad-status-unsaved",
       saving: "zen-notepad-status-saving",
@@ -453,7 +464,7 @@ export async function attachNotepad(document_, bridge_) {
     if (!titleEl) {
       return;
     }
-    let tip = RENAME_TITLE_TOOLTIP;
+    let tip = strAttr(DEFAULT_TITLE_L10N, "title", RENAME_TITLE_TOOLTIP);
     if (doc.l10n?.formatMessagesSync) {
       try {
         const [message] = doc.l10n.formatMessagesSync([{ id: DEFAULT_TITLE_L10N }]);
@@ -476,7 +487,7 @@ export async function attachNotepad(document_, bridge_) {
       const derived = visibleTitle();
       const titleTag = doc.querySelector("title");
       if (!derived) {
-        doc.title = "Notepad";
+        doc.title = str(DEFAULT_TITLE_L10N, "Notepad");
         if (doc.l10n) {
           titleEl.setAttribute("data-l10n-id", DEFAULT_TITLE_L10N);
           titleEl.setAttribute("data-l10n-attrs", "title");
@@ -485,9 +496,9 @@ export async function attachNotepad(document_, bridge_) {
             doc.l10n.setAttributes(titleTag, DEFAULT_TITLE_L10N);
           }
         } else {
-          titleEl.textContent = "Notepad";
+          titleEl.textContent = str(DEFAULT_TITLE_L10N, "Notepad");
           if (titleTag) {
-            titleTag.textContent = "Notepad";
+            titleTag.textContent = str(DEFAULT_TITLE_L10N, "Notepad");
           }
           applyRenameTooltip();
         }
@@ -577,7 +588,10 @@ export async function attachNotepad(document_, bridge_) {
       option.className = "mint-note-option";
       option.role = "option";
       option.dataset.command = item.id;
-      option.textContent = COMMAND_LABELS[item.id] || item.id;
+      option.textContent = str(
+        `zen-notepad-command-${item.id}`,
+        COMMAND_LABELS[item.id] || item.id
+      );
       option.setAttribute("aria-selected", index === state.menuIndex ? "true" : "false");
       const l10nId = `zen-notepad-command-${item.id}`;
       doc.l10n?.setAttributes(option, l10nId);
@@ -893,7 +907,25 @@ export async function attachNotepad(document_, bridge_) {
   view.addEventListener("pagehide", flushOnHide);
   view.addEventListener("resize", refreshSoon);
 
+  function applyStaticStrings() {
+    const saveLabel = str("zen-notepad-save", "Save");
+    saveButton.title = saveLabel;
+    saveButton.setAttribute("aria-label", saveLabel);
+    if (exportButton) {
+      const exportLabel = str("zen-notepad-export-title", "Export");
+      exportButton.title = exportLabel;
+      exportButton.setAttribute("aria-label", exportLabel);
+    }
+    editor.setAttribute("aria-label", str("zen-notepad-editor-label", "Note"));
+  }
+
   async function start() {
+    try {
+      localized = (await bridge.strings?.()) || {};
+    } catch (error) {
+      console.error("Notepad strings unavailable", error);
+    }
+    applyStaticStrings();
     render([ { type: "paragraph", text: "" } ]);
     const parsed = parseNoteURL(view.location.href) || parseNoteURL(doc.documentURI);
     if (parsed?.id) {
@@ -941,8 +973,11 @@ export async function attachNotepad(document_, bridge_) {
         armed() {
           return state.armed;
         },
+        localizedStringCount() {
+          return Object.keys(localized).length;
+        },
         pageTitle() {
-          return visibleTitle() || "Notepad";
+          return visibleTitle() || str(DEFAULT_TITLE_L10N, "Notepad");
         },
       },
       scope,

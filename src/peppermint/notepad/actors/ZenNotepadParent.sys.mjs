@@ -13,7 +13,66 @@ ChromeUtils.defineESModuleGetters(lazy, {
   writePlainMarkdown: "resource:///modules/zen/notepad/ZenNotepadStore.sys.mjs",
 });
 
+ChromeUtils.defineLazyGetter(
+  lazy,
+  "l10n",
+  () => new Localization(["browser/zen-notepad.ftl"], true)
+);
+
 const EXPORT_PATH_PREF = "zen.notepad.test.export-path";
+
+const STRING_IDS = [
+  "zen-notepad-title",
+  "zen-notepad-save",
+  "zen-notepad-export-title",
+  "zen-notepad-editor-label",
+  "zen-notepad-picker-title",
+  "zen-notepad-status-unsaved",
+  "zen-notepad-status-saving",
+  "zen-notepad-status-saved",
+  "zen-notepad-status-error",
+  ...[
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "bullet",
+    "numbered",
+    "quote",
+    "code",
+    "task",
+    "hr",
+    "link",
+    "image",
+    "bold",
+    "strike",
+    "inline-code",
+  ].map(id => `zen-notepad-command-${id}`),
+];
+
+/**
+ * The page is served from mint:// and has no Fluent of its own, so the
+ * strings are formatted here and handed over by id.
+ *
+ * @returns {Object<string, {value: string|null, attributes: Object<string, string>}>}
+ */
+function localizedStrings() {
+  const messages = lazy.l10n.formatMessagesSync(STRING_IDS.map(id => ({ id })));
+  const strings = {};
+  messages.forEach((message, index) => {
+    if (!message) {
+      return;
+    }
+    const attributes = {};
+    for (const { name, value } of message.attributes || []) {
+      attributes[name] = value;
+    }
+    strings[STRING_IDS[index]] = { value: message.value, attributes };
+  });
+  return strings;
+}
 
 function exportBrowsingContext(actor) {
   const embedder = actor.browsingContext?.top?.embedderElement;
@@ -26,7 +85,12 @@ function exportMarkdown(browsingContext, markdown, fileName) {
     return lazy.writePlainMarkdown(override, markdown).then(() => true);
   }
   const picker = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
-  picker.init(browsingContext, "Export note", Ci.nsIFilePicker.modeSave);
+  const [pickerTitle] = lazy.l10n.formatValuesSync(["zen-notepad-picker-title"]);
+  picker.init(
+    browsingContext,
+    pickerTitle || "Export note",
+    Ci.nsIFilePicker.modeSave
+  );
   picker.defaultString = fileName || "note.md";
   picker.defaultExtension = "md";
   picker.appendFilter("Markdown", "*.md");
@@ -177,6 +241,8 @@ export class ZenNotepadParent extends JSWindowActorParent {
       case "ZenNotepad:ShowTabIcon":
         this.#syncTabIcon();
         return null;
+      case "ZenNotepad:Strings":
+        return localizedStrings();
       case "ZenNotepad:Load":
         return lazy.loadNote(message.data.id);
       case "ZenNotepad:Save":

@@ -32,6 +32,7 @@ async function notepad(tab = gBrowser.selectedTab) {
       menuOpen: note.menuOpen(),
       selectedCommand: note.selectedCommand(),
       armed: note.armed(),
+      localizedStringCount: note.localizedStringCount(),
       pageTitle: note.pageTitle(),
     };
   });
@@ -344,4 +345,23 @@ add_task(async function test_lock_closes_notes_and_drops_the_key() {
   ok(isKeyCached(), "The next read unwraps the key again");
   BrowserTestUtils.removeTab(background);
   BrowserTestUtils.removeTab(selected);
+});
+
+add_task(async function test_page_strings_come_from_fluent() {
+  const tab = await openNote();
+  const state = await notepad(tab);
+  Assert.greater(
+    state.localizedStringCount,
+    20,
+    "The page receives its strings from the browser's Fluent messages"
+  );
+  const labels = await SpecialPowers.spawn(tab.linkedBrowser, [], () => ({
+    save: content.document.getElementById("mint-note-save").title,
+    editor: content.document
+      .getElementById("mint-note-editor")
+      .getAttribute("aria-label"),
+  }));
+  Assert.equal(labels.save, "Save", "The Save button is labelled");
+  Assert.equal(labels.editor, "Note", "The editor is labelled");
+  BrowserTestUtils.removeTab(tab);
 });
