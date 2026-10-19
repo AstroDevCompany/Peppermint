@@ -5,10 +5,12 @@
 MOZ_SRC_FILES += [
     "PeppermintVault.sys.mjs",
     "PeppermintVaultClipboard.sys.mjs",
+    "PeppermintVaultCodes.sys.mjs",
     "PeppermintVaultLogins.sys.mjs",
     "PeppermintVaultPassword.sys.mjs",
     "PeppermintVaultRegistry.sys.mjs",
     "PeppermintVaultSession.sys.mjs",
+    "PeppermintVaultTotp.sys.mjs",
 ]
 
 # Registered through components.conf, which needs a resource:/// URL.

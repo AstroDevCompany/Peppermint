@@ -10,6 +10,8 @@ support-files = [
   "head.js",
 ]
 
+["browser_vault_codes.js"]
+
 ["browser_vault_logins.js"]
 
 ["browser_vault_page.js"]

@@ -15,7 +15,15 @@ const ERROR_L10N = {
   "empty-password": "peppermint-vault-error-empty-password",
   "not-found": "peppermint-vault-error-not-found",
   "reveal-blocked": "peppermint-vault-error-reveal-blocked",
+  "invalid-secret": "peppermint-vault-error-invalid-secret",
 };
+
+const CODE_TICK_MS = 1000;
+const secondsFormat = new Intl.NumberFormat(undefined, {
+  style: "unit",
+  unit: "second",
+  unitDisplay: "narrow",
+});
 
 export function errorL10n(error) {
   return ERROR_L10N[error?.code] ?? "peppermint-vault-error-generic";
@@ -42,6 +50,13 @@ function openWebLink(url) {
 export function createSectionView({ section, api, toast, query = "" }) {
   const state = { query, filter: "all", sort: section.sorts[0]?.id ?? "" };
   const revealed = new Map();
+  // Rows showing a one-time code, by item id.
+  const liveCodes = new Map();
+  let codeTimer = null;
+  // A section can word the shared dialogs and messages for what it holds.
+  const texts = section.texts ?? {};
+  const sectionErrorL10n = error =>
+    section.errors?.[error?.code] ?? errorL10n(error);
   let searchTimer = null;
   let generation = 0;
 
@@ -56,8 +71,11 @@ export function createSectionView({ section, api, toast, query = "" }) {
       class: "vault-hero-icon",
       attrs: { src: section.icon ?? ICONS.vault, alt: "" },
     }),
-    h("h2", { l10n: "peppermint-vault-empty-title" }),
-    h("p", { class: "vault-muted", l10n: "peppermint-vault-empty-description" })
+    h("h2", { l10n: texts.emptyTitle ?? "peppermint-vault-empty-title" }),
+    h("p", {
+      class: "vault-muted",
+      l10n: texts.emptyDescription ?? "peppermint-vault-empty-description",
+    })
   );
   const noResults = h("p", {
     class: "vault-muted vault-note",
@@ -222,10 +240,10 @@ export function createSectionView({ section, api, toast, query = "" }) {
       return;
     }
     openModal({
-      titleL10n: "peppermint-vault-edit-title",
+      titleL10n: texts.editTitle ?? "peppermint-vault-edit-title",
       submitL10n: "peppermint-vault-save",
       fields: section.editFields.map(id => fieldSpec(id, editable[id])),
-      errorL10n,
+      errorL10n: sectionErrorL10n,
       returnFocusTo: trigger,
       async onSubmit(values) {
         await api.call("update", item.id, values);
@@ -239,6 +257,16 @@ export function createSectionView({ section, api, toast, query = "" }) {
   }
 
   function fieldSpec(id, value = "") {
+    const formField = section.formFields?.[id];
+    if (formField) {
+      return {
+        id,
+        kind: formField.kind,
+        labelL10nId: formField.labelL10nId,
+        value,
+        required: !!formField.required,
+      };
+    }
     const field = section.fields.find(f => f.id == id) ?? {
       id,
       kind: id == "origin" ? "origin" : "text",
@@ -255,16 +283,109 @@ export function createSectionView({ section, api, toast, query = "" }) {
 
   function openCreate(trigger) {
     openModal({
-      titleL10n: "peppermint-vault-add-title",
+      titleL10n: texts.addTitle ?? "peppermint-vault-add-title",
       submitL10n: "peppermint-vault-add-submit",
       fields: section.createFields.map(id => fieldSpec(id)),
-      errorL10n,
+      errorL10n: sectionErrorL10n,
       returnFocusTo: trigger,
       async onSubmit(values) {
         await api.call("create", values);
         refresh();
       },
     });
+  }
+
+  function renderCodeField(item, field) {
+    const value = h("span", {
+      class: "vault-value vault-code",
+      text: item.values.code ?? "",
+    });
+    const timer = h("span", {
+      class: "vault-code-timer",
+      attrs: { "aria-hidden": "true" },
+    });
+    if (item.values.code) {
+      liveCodes.set(item.id, {
+        value,
+        timer,
+        expiresAt: Number(item.values.expiresAt),
+      });
+      updateTimer(liveCodes.get(item.id));
+    } else {
+      value.textContent = "";
+      document.l10n.setAttributes(value, "peppermint-vault-no-value");
+      value.classList.add("vault-muted");
+    }
+    const actions = [];
+    if (field.copy && item.values.code) {
+      const copyButton = iconButton(
+        ICONS.copy,
+        `peppermint-vault-copy-${field.id}`,
+        { site: item.title }
+      );
+      copyButton.addEventListener("click", () => copy(item, field));
+      actions.push(copyButton);
+    }
+    return h(
+      "div",
+      { class: "vault-field-row" },
+      h("dt", { l10n: field.labelL10nId }),
+      h(
+        "dd",
+        {},
+        value,
+        timer,
+        h("span", { class: "vault-field-actions" }, actions)
+      )
+    );
+  }
+
+  function updateTimer(entry) {
+    const seconds = Math.max(0, Math.ceil((entry.expiresAt - Date.now()) / 1000));
+    entry.timer.textContent = secondsFormat.format(seconds);
+    entry.timer.classList.toggle("vault-code-ending", seconds <= 5);
+    return seconds;
+  }
+
+  async function refreshCodes() {
+    let items;
+    try {
+      items = await api.call("list", {
+        query: state.query,
+        filter: state.filter,
+        sort: state.sort,
+      });
+    } catch (error) {
+      showFailure(error);
+      return;
+    }
+    const sameRows =
+      items.length == liveCodes.size && items.every(item => liveCodes.has(item.id));
+    if (!sameRows) {
+      refresh();
+      return;
+    }
+    for (const item of items) {
+      const entry = liveCodes.get(item.id);
+      entry.value.textContent = item.values.code ?? "";
+      entry.expiresAt = Number(item.values.expiresAt);
+      updateTimer(entry);
+    }
+  }
+
+  function startCodeTimer() {
+    if (codeTimer || !section.fields.some(f => f.kind == "code")) {
+      return;
+    }
+    codeTimer = setInterval(() => {
+      let expired = false;
+      for (const entry of liveCodes.values()) {
+        expired = updateTimer(entry) == 0 || expired;
+      }
+      if (expired) {
+        refreshCodes();
+      }
+    }, CODE_TICK_MS);
   }
 
   function renderRow(item) {
@@ -294,6 +415,9 @@ export function createSectionView({ section, api, toast, query = "" }) {
     editButton.addEventListener("click", () => openEdit(item, editButton));
 
     const fields = section.fields.map(field => {
+      if (field.kind == "code") {
+        return renderCodeField(item, field);
+      }
       const secret = field.kind == "secret";
       const text = secret ? MASK : (item.values[field.id] ?? "");
       const value = h("span", {
@@ -380,7 +504,9 @@ export function createSectionView({ section, api, toast, query = "" }) {
     }
     maskAll();
     clear(list);
+    liveCodes.clear();
     list.append(...items.map(renderRow));
+    startCodeTimer();
     const filtered = !!state.query.trim() || state.filter != "all";
     empty.hidden = !!items.length || filtered;
     noResults.hidden = !!items.length || !filtered;
@@ -413,6 +539,9 @@ export function createSectionView({ section, api, toast, query = "" }) {
     focusSearch: () => search.focus(),
     destroy() {
       clearTimeout(searchTimer);
+      clearInterval(codeTimer);
+      codeTimer = null;
+      liveCodes.clear();
       generation++;
       maskAll();
       clear(list);

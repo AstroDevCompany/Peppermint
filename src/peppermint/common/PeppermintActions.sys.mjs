@@ -19,6 +19,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource:///modules/zen/cookieconsent/ZenCookieConsentManager.sys.mjs",
   openTabSearch:
     "moz-src:///peppermint/urlbar/PeppermintUrlbarProviderTabSearch.sys.mjs",
+  PeppermintVault: "moz-src:///peppermint/vault/PeppermintVault.sys.mjs",
+  PeppermintVaultSession:
+    "moz-src:///peppermint/vault/PeppermintVaultSession.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "l10n", () => {
@@ -149,6 +152,20 @@ const ACTIONS = [
     "zen-action-open-notes",
     "chrome://browser/skin/zen-icons/tab.svg",
     window => window.openTrustedLinkIn("about:notes", "tab")
+  ),
+  action(
+    "open-vault",
+    "zen-action-open-vault",
+    "chrome://browser/skin/zen-icons/passwords.svg",
+    window => window.openTrustedLinkIn("about:vault", "tab"),
+    () => lazy.PeppermintVault.isEnabled
+  ),
+  action(
+    "lock-vault",
+    "zen-action-lock-vault",
+    "chrome://browser/skin/zen-icons/passwords.svg",
+    () => lazy.PeppermintVaultSession.lock("manual"),
+    () => lazy.PeppermintVault.state === "unlocked"
   ),
   action(
     "toggle-reader-mode",

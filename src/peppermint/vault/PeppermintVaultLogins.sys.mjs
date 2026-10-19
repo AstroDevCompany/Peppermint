@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { PeppermintVaultClipboard } from "moz-src:///peppermint/vault/PeppermintVaultClipboard.sys.mjs";
+import { isCodeLogin } from "moz-src:///peppermint/vault/PeppermintVaultCodes.sys.mjs";
 import { VaultSectionError } from "moz-src:///peppermint/vault/PeppermintVaultRegistry.sys.mjs";
 
 const lazy = {};
@@ -121,6 +122,7 @@ export const LoginsSection = {
     const matchesFilter = FILTERS[filter] ?? FILTERS.all;
     const logins = await lazy.LoginHelper.getAllUserFacingLogins();
     return logins
+      .filter(login => !isCodeLogin(login))
       .map(toItem)
       .filter(
         item =>

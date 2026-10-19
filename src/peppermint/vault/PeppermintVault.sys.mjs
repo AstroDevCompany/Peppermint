@@ -13,6 +13,7 @@
 import { PeppermintVaultPassword } from "moz-src:///peppermint/vault/PeppermintVaultPassword.sys.mjs";
 import { PeppermintVaultRegistry } from "moz-src:///peppermint/vault/PeppermintVaultRegistry.sys.mjs";
 import { PeppermintVaultSession } from "moz-src:///peppermint/vault/PeppermintVaultSession.sys.mjs";
+import { CodesSection } from "moz-src:///peppermint/vault/PeppermintVaultCodes.sys.mjs";
 import { LoginsSection } from "moz-src:///peppermint/vault/PeppermintVaultLogins.sys.mjs";
 
 export const VAULT_URL = "about:vault";
@@ -48,6 +49,7 @@ class PeppermintVaultImpl {
     if (!this.#started) {
       this.#started = true;
       PeppermintVaultRegistry.register(LoginsSection);
+      PeppermintVaultRegistry.register(CodesSection);
       Services.obs.addObserver(this, "passwordmgr-primary-pw-changed");
       if (Cu.isInAutomation) {
         return;

@@ -134,9 +134,12 @@ add_task(async function test_note_about_page_reuses_one_note() {
     );
   try {
     action.command(window);
+    // The first note creates the encryption key, which can take a moment.
     await TestUtils.waitForCondition(
       () => noteTabs().length === 1,
-      "The first run opens a note"
+      "The first run opens a note",
+      100,
+      200
     );
     await noteReady(noteTabs()[0]);
     const first = noteTabs()[0].linkedBrowser.currentURI.spec;

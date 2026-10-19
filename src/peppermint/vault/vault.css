@@ -530,6 +530,25 @@ a.vault-site {
   white-space: normal;
 }
 
+.vault-code {
+  flex: none;
+  font-family: ui-monospace, monospace;
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.vault-code-timer {
+  margin-inline: auto var(--vault-space-2);
+  color: var(--vault-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+
+  &.vault-code-ending {
+    color: var(--vault-danger);
+  }
+}
+
 .vault-field-actions {
   display: inline-flex;
   flex: none;

@@ -25,6 +25,7 @@ peppermint-vault-sections-label =
 peppermint-vault-locked-title = Vault is locked
 peppermint-vault-locked-description = Enter your Primary Password to see your saved data.
 peppermint-vault-lock-reason-idle = Vault locked after a period of inactivity.
+peppermint-vault-lock-reason-manual = Vault was locked.
 peppermint-vault-lock-reason-sleep = Vault locked when the computer went to sleep.
 peppermint-vault-lock-reason-hidden = Vault locked because its tab stayed in the background.
 peppermint-vault-confirm-title = Confirm it is you
@@ -148,3 +149,22 @@ peppermint-vault-error-empty-password = The password cannot be empty.
 peppermint-vault-error-not-found = This login no longer exists.
 peppermint-vault-error-reveal-blocked = Your organization does not allow showing passwords.
 peppermint-vault-error-generic = Something went wrong.
+
+## One-time codes
+
+peppermint-vault-section-codes = One-time codes
+peppermint-vault-field-account = Account
+peppermint-vault-field-code = Code
+peppermint-vault-field-service = Service
+peppermint-vault-field-setup-key = Setup key or otpauth:// address
+peppermint-vault-codes-add-title = Add one-time code
+peppermint-vault-codes-edit-title = Edit one-time code
+peppermint-vault-codes-empty-title = No one-time codes yet
+peppermint-vault-codes-empty-description = Add the setup key a service shows next to its QR code, or paste the otpauth:// address. Codes change every 30 seconds.
+peppermint-vault-codes-error-exists = A code for this service and account already exists.
+peppermint-vault-error-invalid-secret = That setup key is not valid. Use the letters and digits the service shows, or its otpauth:// address.
+
+# $site (String) - the service the code is for.
+peppermint-vault-copy-code =
+    .title = Copy the code for { $site }
+    .aria-label = Copy the code for { $site }

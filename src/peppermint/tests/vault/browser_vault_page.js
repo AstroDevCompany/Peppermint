@@ -243,3 +243,40 @@ add_task(async function test_sidebar_password_manager_switched_off() {
   Services.prefs.clearUserPref("browser.contextual-password-manager.enabled");
   PeppermintVault.testing.enter();
 });
+
+add_task(async function test_one_time_codes_section() {
+  unlockVault();
+  await PeppermintVaultRegistry.call("codes", "create", {
+    issuer: "Example",
+    account: "page@example.com",
+    secret: "JBSWY3DPEHPK3PXP",
+  });
+  const tab = await openVault();
+  try {
+    await waitFor(tab, ".vault-tabs", "Sections can be switched");
+    const tabs = [...doc(tab).querySelectorAll(".vault-tab")];
+    Assert.equal(tabs.length, 2, "Logins and one-time codes");
+    tabs[1].click();
+
+    const code = await waitFor(tab, ".vault-code", "A code is shown");
+    await TestUtils.waitForCondition(
+      () => /^\d{3} \d{3}$/.test(code.textContent),
+      "as a grouped six digit number"
+    );
+    const timer = doc(tab).querySelector(".vault-code-timer");
+    Assert.ok(timer?.textContent, "with a countdown");
+    Assert.ok(
+      !doc(tab).body.textContent.includes("JBSWY3DPEHPK3PXP"),
+      "the setup key is nowhere on the page"
+    );
+    Assert.ok(
+      doc(tab).querySelector(".vault-row-title")?.textContent.includes("Example"),
+      "the service is named"
+    );
+  } finally {
+    for (const item of await PeppermintVaultRegistry.call("codes", "list")) {
+      await PeppermintVaultRegistry.call("codes", "remove", item.id);
+    }
+    BrowserTestUtils.removeTab(tab);
+  }
+});
