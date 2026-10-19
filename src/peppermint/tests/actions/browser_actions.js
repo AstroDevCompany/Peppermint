@@ -25,6 +25,8 @@ add_task(function test_actions_are_in_the_palette() {
   const ids = [
     "peppermint:toggle-underpowered",
     "peppermint:open-notepad",
+    "peppermint:note-about-page",
+    "peppermint:open-notes",
     "peppermint:toggle-reader-mode",
     "peppermint:save-article-offline",
     "peppermint:open-saved-articles",
@@ -48,6 +50,7 @@ add_task(function test_actions_are_in_the_palette() {
       "peppermint:clear-cookie-exceptions",
       "peppermint:toggle-reader-mode",
       "peppermint:save-article-offline",
+      "peppermint:note-about-page",
     ];
     if (!dependsOnPage.includes(id)) {
       ok(action.isAvailable(window), `${id} is available`);
@@ -106,4 +109,58 @@ add_task(async function test_notepad_action_opens_a_note() {
     return !!tab;
   }, "The notepad action opens a note");
   BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function test_note_about_page_reuses_one_note() {
+  const tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "https://example.com/"
+  );
+  const action = byId("peppermint:note-about-page");
+  ok(action.isAvailable(window), "It is offered on a web page");
+  const noteReady = noteTab =>
+    TestUtils.waitForCondition(
+      () =>
+        SpecialPowers.spawn(
+          noteTab.linkedBrowser,
+          [],
+          () => !!content.wrappedJSObject.MintNotepad?.ready
+        ),
+      "the note page is ready"
+    );
+  const noteTabs = () =>
+    gBrowser.tabs.filter(candidate =>
+      candidate.linkedBrowser?.currentURI?.spec?.startsWith("mint://note/")
+    );
+  try {
+    action.command(window);
+    await TestUtils.waitForCondition(
+      () => noteTabs().length === 1,
+      "The first run opens a note"
+    );
+    await noteReady(noteTabs()[0]);
+    const first = noteTabs()[0].linkedBrowser.currentURI.spec;
+    BrowserTestUtils.removeTab(noteTabs()[0]);
+
+    if (gBrowser.selectedTab !== tab) {
+      await BrowserTestUtils.switchTab(gBrowser, tab);
+    }
+    action.command(window);
+    await TestUtils.waitForCondition(
+      () => noteTabs().length === 1,
+      "The second run opens a note"
+    );
+    Assert.equal(
+      noteTabs()[0].linkedBrowser.currentURI.spec,
+      first,
+      "It is the same note, not a new one"
+    );
+    await noteReady(noteTabs()[0]);
+    BrowserTestUtils.removeTab(noteTabs()[0]);
+  } finally {
+    BrowserTestUtils.removeTab(tab);
+  }
+  const blank = await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:blank");
+  ok(!action.isAvailable(window), "It is hidden on a page that is not a web page");
+  BrowserTestUtils.removeTab(blank);
 });

@@ -5,6 +5,7 @@
 [DEFAULT]
 prefs = [
   "zen.adblock.enabled=false",
+  "zen.notepad.auto-lock-minutes=0",
 ]
 
 ["browser_actions.js"]

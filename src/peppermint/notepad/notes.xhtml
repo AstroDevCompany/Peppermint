@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title data-l10n-id="peppermint-notes-title"></title>
+    <link rel="localization" href="browser/peppermint-notes.ftl" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="chrome://browser/skin/zen-icons/tab.svg"
+    />
+    <link
+      rel="stylesheet"
+      href="chrome://browser/content/zen-styles/peppermint-notes.css"
+    />
+    <script src="chrome://browser/content/zenThemeModifier.js"></script>
+  </head>
+  <body>
+    <main class="notes">
+      <header class="notes-header">
+        <h1 class="notes-title" data-l10n-id="peppermint-notes-title"></h1>
+        <input
+          type="search"
+          id="notes-search"
+          class="notes-search"
+          data-l10n-id="peppermint-notes-search"
+          hidden="hidden"
+        />
+        <button
+          type="button"
+          id="notes-new"
+          class="notes-button notes-primary"
+          data-l10n-id="peppermint-notes-new"
+        ></button>
+      </header>
+      <ul id="notes-list" class="notes-list"></ul>
+      <section id="notes-empty" class="notes-empty" hidden="hidden">
+        <h2 data-l10n-id="peppermint-notes-empty-title"></h2>
+        <p data-l10n-id="peppermint-notes-empty-description"></p>
+      </section>
+      <p
+        id="notes-no-results"
+        class="notes-note"
+        data-l10n-id="peppermint-notes-no-results"
+        hidden="hidden"
+      ></p>
+      <p
+        id="notes-error"
+        class="notes-note notes-error"
+        data-l10n-id="peppermint-notes-load-error"
+        hidden="hidden"
+        role="alert"
+      ></p>
+    </main>
+    <script
+      type="module"
+      src="chrome://browser/content/zen-notepad/notes.mjs"
+    ></script>
+  </body>
+</html>

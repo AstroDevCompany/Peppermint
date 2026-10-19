@@ -13,6 +13,8 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   PeppermintReader: "moz-src:///peppermint/reader/PeppermintReader.sys.mjs",
   noteURL: "resource:///modules/zen/notepad/ZenNotepadMarkdown.mjs",
+  findNoteIdForUrl: "resource:///modules/zen/notepad/ZenNotepadStore.sys.mjs",
+  saveNote: "resource:///modules/zen/notepad/ZenNotepadStore.sys.mjs",
   gZenCookieConsent:
     "resource:///modules/zen/cookieconsent/ZenCookieConsentManager.sys.mjs",
   openTabSearch:
@@ -90,6 +92,27 @@ function action(id, labelId, icon, command, isAvailable = () => true) {
   };
 }
 
+function isWebPage(uri) {
+  return !!uri && (uri.schemeIs("http") || uri.schemeIs("https"));
+}
+
+/**
+ * Opens the note about the page being shown, starting one (a heading and a
+ * link to the page) the first time.
+ *
+ * @param {Window} window
+ */
+async function openNoteAboutPage(window) {
+  const url = window.gBrowser.currentURI.spec;
+  let id = await lazy.findNoteIdForUrl(url);
+  if (!id) {
+    id = crypto.randomUUID();
+    const title = (window.gBrowser.selectedTab.label || url).replace(/\s+/g, " ").trim();
+    await lazy.saveNote(id, `# ${title}\n\n[${title}](${url})\n\n`, null, { url });
+  }
+  window.openTrustedLinkIn(lazy.noteURL(id), "tab");
+}
+
 const ACTIONS = [
   action(
     "search-tabs",
@@ -110,6 +133,22 @@ const ACTIONS = [
     window => {
       window.openTrustedLinkIn(lazy.noteURL(crypto.randomUUID()), "tab");
     }
+  ),
+  action(
+    "note-about-page",
+    "zen-action-note-about-page",
+    "chrome://browser/skin/zen-icons/tab.svg",
+    window =>
+      openNoteAboutPage(window).catch(error =>
+        console.error("Note about this page failed", error)
+      ),
+    window => isWebPage(window.gBrowser.currentURI)
+  ),
+  action(
+    "open-notes",
+    "zen-action-open-notes",
+    "chrome://browser/skin/zen-icons/tab.svg",
+    window => window.openTrustedLinkIn("about:notes", "tab")
   ),
   action(
     "toggle-reader-mode",

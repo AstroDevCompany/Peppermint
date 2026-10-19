@@ -12,3 +12,5 @@ prefs = [
 ]
 
 ["browser_notepad.js"]
+
+["browser_notepad_list.js"]

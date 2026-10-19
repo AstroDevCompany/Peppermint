@@ -299,6 +299,40 @@ export function noteTitle(lines) {
   return "";
 }
 
+/**
+ * What a list of notes shows about one: its title and the first few words of
+ * its body.
+ *
+ * @param {string} markdown
+ * @param {string|null} [customTitle] - A title the user typed
+ * @returns {{title: string, excerpt: string}}
+ */
+export function noteSummary(markdown, customTitle = null) {
+  const lines = parseMarkdown(markdown);
+  const automatic = noteTitle(lines);
+  let skipped = false;
+  const body = [];
+  for (const line of lines) {
+    const text = String(line.text ?? "").replace(/[*_`~[\]]/g, "").trim();
+    if (!text || line.type === "hr") {
+      continue;
+    }
+    // The automatic title is the first line of text; it is not repeated.
+    if (!customTitle && !skipped && text === automatic) {
+      skipped = true;
+      continue;
+    }
+    body.push(text);
+    if (body.join(" ").length > 200) {
+      break;
+    }
+  }
+  return {
+    title: customTitle || automatic,
+    excerpt: body.join(" ").slice(0, 200),
+  };
+}
+
 export function inlineRanges(text) {
   const ranges = [];
   const occupied = [];

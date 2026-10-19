@@ -5,3 +5,6 @@
         content/browser/zen-notepad/notepad.xhtml                            (../../peppermint/notepad/notepad.xhtml)
         content/browser/zen-components/ZenNotepadPage.mjs                     (../../peppermint/notepad/ZenNotepadPage.mjs)
         content/browser/zen-styles/zen-notepad.css                            (../../peppermint/notepad/zen-notepad.css)
+        content/browser/zen-notepad/notes.xhtml                              (../../peppermint/notepad/notes.xhtml)
+        content/browser/zen-notepad/notes.mjs                                (../../peppermint/notepad/notes.mjs)
+        content/browser/zen-styles/peppermint-notes.css                      (../../peppermint/notepad/notes.css)
