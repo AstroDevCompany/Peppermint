@@ -15,6 +15,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   noteURL: "resource:///modules/zen/notepad/ZenNotepadMarkdown.mjs",
   gZenCookieConsent:
     "resource:///modules/zen/cookieconsent/ZenCookieConsentManager.sys.mjs",
+  openTabSearch:
+    "moz-src:///peppermint/urlbar/PeppermintUrlbarProviderTabSearch.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "l10n", () => {
@@ -89,6 +91,12 @@ function action(id, labelId, icon, command, isAvailable = () => true) {
 }
 
 const ACTIONS = [
+  action(
+    "search-tabs",
+    "zen-action-search-tabs",
+    "chrome://browser/skin/zen-icons/search-glass.svg",
+    window => lazy.openTabSearch(window)
+  ),
   action(
     "toggle-underpowered",
     "zen-action-toggle-underpowered",

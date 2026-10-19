@@ -9,4 +9,5 @@ EXTRA_JS_MODULES += [
 
 MOZ_SRC_FILES += [
     "PeppermintUrlbarProviderPopularSites.sys.mjs",
+    "PeppermintUrlbarProviderTabSearch.sys.mjs",
 ]

@@ -15,6 +15,7 @@ BROWSER_CHROME_MANIFESTS += [
     "reader/browser.toml",
     "shortcut_tooltips/browser.toml",
     "tab_numbers/browser.toml",
+    "tab_search/browser.toml",
     "tab_unloader/browser.toml",
     "underpowered/browser.toml",
     "url_snippets/browser.toml",

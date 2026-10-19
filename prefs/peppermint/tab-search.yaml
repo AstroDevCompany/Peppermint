@@ -1,0 +1,9 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Tab search (the % restriction in the address bar and the "Search Tabs"
+# command): look through the tabs of every space, match loosely, and list the
+# most recently used first.
+- name: peppermint.urlbar.tab-search.enabled
+  value: true

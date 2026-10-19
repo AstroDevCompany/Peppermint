@@ -37,6 +37,11 @@ export const PeppermintStartup = {
         "moz-src:///peppermint/urlbar/PeppermintUrlbarProviderPopularSites.sys.mjs"
       ).registerPopularSitesProvider()
     );
+    start("Tab search", () =>
+      ChromeUtils.importESModule(
+        "moz-src:///peppermint/urlbar/PeppermintUrlbarProviderTabSearch.sys.mjs"
+      ).registerTabSearchProvider()
+    );
     start("Notepad watcher", () =>
       ChromeUtils.importESModule(
         "resource:///actors/ZenNotepadParent.sys.mjs"

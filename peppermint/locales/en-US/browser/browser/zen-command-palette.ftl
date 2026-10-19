@@ -4,6 +4,7 @@
 
 zen-action-toggle-underpowered = Toggle Underpowered Mode
 zen-action-open-notepad = Open Notepad
+zen-action-search-tabs = Search Tabs
 zen-action-manage-url-snippets = Manage URL Snippets
 zen-action-toggle-adblock = Toggle Ad Blocker
 zen-action-clear-cookie-exceptions = Clear Cookie Banner Exceptions
