@@ -87,6 +87,10 @@ add_task(async function test_page_reject_is_clicked() {
       const state = await bannerState(tab.linkedBrowser);
       return state.reject === 1 && state.accept === 0;
     }, "the reject control is clicked and accept is not");
+    await TestUtils.waitForCondition(
+      () => gZenCookieConsent.getHandledCount(tab.linkedBrowser) >= 1,
+      "the handled banner is counted for the tab"
+    );
   } finally {
     BrowserTestUtils.removeTab(tab);
   }

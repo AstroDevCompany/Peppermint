@@ -99,6 +99,9 @@ zen-site-data-adblock-level =
 
 zen-site-data-adblock-count = { $count } blocked
 
+# $count (Number) - cookie popups refused or hidden on this page.
+zen-site-data-cookie-consent-count = { $count } handled
+
 zen-site-data-adblock-ubo = uBlock Origin is active
 
 zen-site-data-cookie-consent = Cookie popups

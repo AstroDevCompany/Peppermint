@@ -54,3 +54,26 @@ add_task(async function test_site_panel_pauses_cookie_popups() {
     BrowserTestUtils.removeTab(tab);
   }
 });
+
+add_task(async function test_paused_sites_can_be_listed_and_removed() {
+  await gZenCookieConsent.ready;
+  gZenCookieConsent.setPaused(HTTPS_PAGE, true);
+  try {
+    const site = Services.eTLD.getBaseDomain(Services.io.newURI(HTTPS_PAGE));
+    Assert.ok(
+      gZenCookieConsent.listPaused().includes(site),
+      "a paused site is listed by its registrable domain"
+    );
+    gZenCookieConsent.unpauseSite(site);
+    Assert.ok(
+      !gZenCookieConsent.isPaused(HTTPS_PAGE),
+      "removing the site from the list unpauses it"
+    );
+    Assert.ok(
+      !gZenCookieConsent.listPaused().includes(site),
+      "and it leaves the list"
+    );
+  } finally {
+    gZenCookieConsent.setPaused(HTTPS_PAGE, false);
+  }
+});

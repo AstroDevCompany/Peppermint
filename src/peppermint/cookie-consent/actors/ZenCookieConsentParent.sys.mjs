@@ -11,6 +11,16 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 export class ZenCookieConsentParent extends JSWindowActorParent {
   async receiveMessage(message) {
+    if (message.name === "ZenCookieConsent:Handled") {
+      try {
+        lazy.gZenCookieConsent.noteHandled(
+          this.browsingContext?.top?.embedderElement
+        );
+      } catch {
+        // The tab can close while the message is in flight.
+      }
+      return null;
+    }
     if (message.name !== "ZenCookieConsent:ShouldRun") {
       return null;
     }

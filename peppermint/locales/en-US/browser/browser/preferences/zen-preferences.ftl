@@ -192,6 +192,30 @@ zen-cookie-consent-description = Refuse cookie popups on every site and hide any
 zen-cookie-consent-enabled =
     .label = Automatically refuse cookie popups
 
+zen-site-exceptions-header = Site exceptions
+
+zen-site-exceptions-description = Sites where ad blocking or cookie popup refusal differs from your global settings. Removing a site returns it to your defaults.
+
+zen-site-exceptions-empty = No sites have exceptions yet. Use the site panel next to the address bar to add one.
+
+zen-site-exceptions-clear =
+    .label = Remove all
+
+# $site (String) - the site the exceptions apply to, for example "example.com".
+zen-site-exceptions-remove =
+    .label = Remove
+    .aria-label = Remove exceptions for { $site }
+
+zen-site-exceptions-adblock-off = Ad blocking paused
+
+zen-site-exceptions-adblock-light = Ad blocking set to Light
+
+zen-site-exceptions-adblock-medium = Ad blocking set to Medium
+
+zen-site-exceptions-adblock-heavy = Ad blocking set to Heavy
+
+zen-site-exceptions-cookies = Cookie popups left alone
+
 pane-zen-CKS-title = Shortcuts
 
 category-zen-CKS =

@@ -40,6 +40,7 @@ function isHttpUrl(url) {
 class ZenCookieConsentManager {
   #initialized = false;
   #paused = new Set();
+  #counts = new WeakMap();
   #epoch = 0;
   #ready = Promise.resolve();
 
@@ -49,6 +50,12 @@ class ZenCookieConsentManager {
     }
     this.#initialized = true;
     this.#ready = this.#load();
+  }
+
+  /** Resolves once the stored pauses are loaded (for UI that lists them). */
+  get ready() {
+    this.init();
+    return this.#ready;
   }
 
   isEnabled() {
@@ -71,6 +78,56 @@ class ZenCookieConsentManager {
 
   hasPaused() {
     return this.#paused.size > 0;
+  }
+
+  /**
+   * @returns {string[]} Sites (registrable domains) where banners are left alone
+   */
+  listPaused() {
+    return [...this.#paused].sort();
+  }
+
+  /**
+   * @param {string} site - A registrable domain as listed by listPaused
+   */
+  unpauseSite(site) {
+    if (!this.#paused.delete(site)) {
+      return;
+    }
+    this.#epoch++;
+    IOUtils.writeJSON(this.#path(), [...this.#paused]).catch(error => {
+      console.error("ZenCookieConsent failed to store pauses", error);
+    });
+  }
+
+  /**
+   * Counts a banner that was refused or hidden on the page shown in `browser`.
+   *
+   * @param {Element} browser
+   */
+  noteHandled(browser) {
+    if (!browser) {
+      return;
+    }
+    const url = browser.currentURI?.spec || "";
+    const entry = this.#counts.get(browser);
+    if (!entry || entry.url !== url) {
+      this.#counts.set(browser, { url, count: 1 });
+      return;
+    }
+    entry.count++;
+  }
+
+  /**
+   * @param {Element} browser
+   * @returns {number} Banners handled on the page currently shown in `browser`
+   */
+  getHandledCount(browser) {
+    const entry = browser && this.#counts.get(browser);
+    if (!entry || entry.url !== browser.currentURI?.spec) {
+      return 0;
+    }
+    return entry.count;
   }
 
   clearPaused() {

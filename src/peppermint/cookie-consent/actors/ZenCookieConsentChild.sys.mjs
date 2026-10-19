@@ -27,6 +27,7 @@ export class ZenCookieConsentChild extends JSWindowActorChild {
   #timers = [];
   #scanning = false;
   #queued = false;
+  #reported = false;
   #doc = null;
   #sawCandidate = false;
   #extended = false;
@@ -80,6 +81,7 @@ export class ZenCookieConsentChild extends JSWindowActorChild {
     this.#sawCandidate = false;
     this.#extended = false;
     this.#queued = false;
+    this.#reported = false;
     if (!this.#frameShouldRun(doc)) {
       this.#finish();
       return;
@@ -280,6 +282,7 @@ export class ZenCookieConsentChild extends JSWindowActorChild {
       this.#activate(decision.control);
       if (decision.final) {
         markClicked(decision.root);
+        this.#reportHandled();
       }
       this.#schedule(decision.final ? 250 : 450);
       return;
@@ -297,8 +300,21 @@ export class ZenCookieConsentChild extends JSWindowActorChild {
     }
     if (decision.rejected || decision.root?.getAttribute("data-zen-cookie-handled") === "clicked") {
       hideConsent(doc, decision.root);
+      this.#reportHandled();
     }
     this.#finish();
+  }
+
+  #reportHandled() {
+    if (this.#reported) {
+      return;
+    }
+    this.#reported = true;
+    try {
+      this.sendAsyncMessage("ZenCookieConsent:Handled");
+    } catch {
+      // The actor can be destroyed while the page unloads.
+    }
   }
 
   #activate(control) {

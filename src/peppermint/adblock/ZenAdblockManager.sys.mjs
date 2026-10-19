@@ -232,8 +232,29 @@ class ZenAdblockManager {
     return this.#overrides[key];
   }
 
+  /**
+   * @returns {{site: string, level: string}[]} Sites with their own blocking
+   *   level ("off" means paused), sorted by site
+   */
+  listOverrides() {
+    return Object.entries(this.#overrides)
+      .map(([site, level]) => ({ site, level }))
+      .sort((a, b) => a.site.localeCompare(b.site));
+  }
+
+  /**
+   * @param {string} site - A registrable domain as listed by listOverrides
+   */
+  removeOverrideForSite(site) {
+    this.#writeOverride(site, null);
+  }
+
   setOverride(url, level) {
     const key = siteKeyFromUrl(typeof url === "string" ? url : url?.spec);
+    this.#writeOverride(key, level);
+  }
+
+  #writeOverride(key, level) {
     if (!key) {
       return;
     }

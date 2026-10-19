@@ -1,6 +1,6 @@
 --- a/browser/base/content/zen-panels/site-data.inc
 +++ b/browser/base/content/zen-panels/site-data.inc
-@@ -87,6 +87,66 @@
+@@ -87,6 +87,69 @@
            <!-- settings will be inserted here -->
          </vbox>
        </vbox>
@@ -45,7 +45,10 @@
 +      </vbox>
 +      <vbox id="zen-site-data-cookie-consent-section" class="zen-site-data-section">
 +        <hbox class="zen-site-data-section-header">
-+          <label data-l10n-id="zen-site-data-cookie-consent" flex="1" />
++          <label flex="1">
++            <html:span data-l10n-id="zen-site-data-cookie-consent"></html:span>
++            <html:span id="zen-site-data-cookie-consent-count"></html:span>
++          </label>
 +        </hbox>
 +        <hbox id="zen-site-data-cookie-consent-pause"
 +              class="permission-popup-permission-item"
