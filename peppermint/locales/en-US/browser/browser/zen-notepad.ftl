@@ -13,6 +13,7 @@ zen-notepad-status-unsaved = Unsaved
 zen-notepad-status-saving = Saving…
 zen-notepad-status-saved = Saved
 zen-notepad-status-error = Could not save
+zen-notepad-status-private = Not saved in a Ghost window
 zen-notepad-command-h1 = Heading 1
 zen-notepad-command-h2 = Heading 2
 zen-notepad-command-h3 = Heading 3

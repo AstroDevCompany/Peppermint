@@ -56,6 +56,7 @@ const STATUS_TEXT = {
   saving: "Saving…",
   saved: "Saved",
   error: "Could not save",
+  private: "Not saved in a Ghost window",
 };
 
 
@@ -114,6 +115,7 @@ export async function attachNotepad(document_, bridge_) {
       saving: "zen-notepad-status-saving",
       saved: "zen-notepad-status-saved",
       error: "zen-notepad-status-error",
+      private: "zen-notepad-status-private",
     }[name];
     if (l10nId && doc.l10n) {
       doc.l10n.setAttributes(statusNode, l10nId);
@@ -685,7 +687,14 @@ export async function attachNotepad(document_, bridge_) {
     try {
       setStatus("saving");
       const savedId = id.toLowerCase();
-      await bridge.save(savedId, markdown, state.customTitle);
+      const result = await bridge.save(savedId, markdown, state.customTitle);
+      if (result === "private") {
+        // Ghost windows never write notes to disk; the text stays on screen.
+        state.armed = wasArmed;
+        state.dirty = true;
+        setStatus("private");
+        return false;
+      }
       state.id = savedId;
       state.armed = true;
       state.dirty = false;

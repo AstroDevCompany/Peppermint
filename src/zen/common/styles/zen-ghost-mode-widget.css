@@ -14,4 +14,10 @@
   &:active > .toolbarbutton-icon {
     scale: 1.06;
   }
+
+  /* A ghost window is open somewhere. */
+  &[ghost-open] > .toolbarbutton-icon {
+    background-color: var(--toolbarbutton-background-color-active);
+    border-radius: var(--border-radius-medium, 6px);
+  }
 }

@@ -15,9 +15,6 @@
 - name: browser.search.suggest.enabled
   value: true
 
-- name: browser.search.suggest.enabled.private
-  value: true
-
 
 # --- zen/mods.yaml
 

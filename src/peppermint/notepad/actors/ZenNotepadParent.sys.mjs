@@ -8,6 +8,7 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   TAB_ICON_CHROME: "resource:///modules/zen/notepad/ZenNotepadAssets.mjs",
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   loadNote: "resource:///modules/zen/notepad/ZenNotepadStore.sys.mjs",
   saveNote: "resource:///modules/zen/notepad/ZenNotepadStore.sys.mjs",
   writePlainMarkdown: "resource:///modules/zen/notepad/ZenNotepadStore.sys.mjs",
@@ -31,6 +32,7 @@ const STRING_IDS = [
   "zen-notepad-status-saving",
   "zen-notepad-status-saved",
   "zen-notepad-status-error",
+  "zen-notepad-status-private",
   ...[
     "h1",
     "h2",
@@ -233,6 +235,11 @@ export class ZenNotepadParent extends JSWindowActorParent {
     }
   }
 
+  #isGhostWindow() {
+    const browser = this.browsingContext?.top?.embedderElement;
+    return !!browser && lazy.PrivateBrowsingUtils.isBrowserPrivate(browser);
+  }
+
   async receiveMessage(message) {
     if (!isNotepadDocument(this)) {
       return null;
@@ -246,6 +253,10 @@ export class ZenNotepadParent extends JSWindowActorParent {
       case "ZenNotepad:Load":
         return lazy.loadNote(message.data.id);
       case "ZenNotepad:Save":
+        // Notes are written to the profile, which a Ghost window must not do.
+        if (this.#isGhostWindow()) {
+          return "private";
+        }
         await lazy.saveNote(
           message.data.id,
           message.data.markdown,

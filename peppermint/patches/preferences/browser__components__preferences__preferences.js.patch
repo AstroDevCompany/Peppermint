@@ -1,7 +1,7 @@
 --- a/browser/components/preferences/preferences.js
 +++ b/browser/components/preferences/preferences.js
-@@ -571,10 +571,15 @@
-   register_module("paneHome", gHomePane);
+@@ -568,10 +568,16 @@
+   }
    register_module("paneSearch", gSearchPane);
    register_module("panePrivacy", gPrivacyPane);
 -  register_module("paneZenLooks", gZenLooksAndFeel);
@@ -16,6 +16,7 @@
 +  register_module("paneZenUrlSnippets", gZenUrlSnippetsSettings);
 +  register_module("paneZenPerformance", gZenPerformanceSettings);
 +  register_module("paneZenJanitor", gZenJanitorSettings);
++  register_module("paneZenGhostMode", gZenGhostModeSettings);
  
    // Restore the cached Firefox Labs nav button visibility so it shows
    // immediately when recipes are expected to be available, before

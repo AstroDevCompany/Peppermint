@@ -67,6 +67,11 @@ export const PeppermintStartup = {
         "moz-src:///peppermint/underpowered/ZenUnderpowered.sys.mjs"
       ).ZenUnderpowered.init()
     );
+    start("PeppermintGhostMode", () =>
+      ChromeUtils.importESModule(
+        "moz-src:///peppermint/ghost-mode/PeppermintGhostMode.sys.mjs"
+      ).PeppermintGhostMode.init()
+    );
     start("PeppermintJanitor", () =>
       ChromeUtils.importESModule(
         "moz-src:///peppermint/janitor/PeppermintJanitor.sys.mjs"

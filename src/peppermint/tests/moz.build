@@ -7,6 +7,7 @@ BROWSER_CHROME_MANIFESTS += [
     "actions/browser.toml",
     "adblock/browser.toml",
     "cookie_consent/browser.toml",
+    "ghost_mode/browser.toml",
     "homepage/browser.toml",
     "janitor/browser.toml",
     "new_tab/browser.toml",

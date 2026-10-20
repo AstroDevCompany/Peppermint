@@ -1,0 +1,44 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+<html:template id="template-paneZenGhostMode">
+
+<hbox id="zenGhostModeCategory"
+      class="subcategory"
+      hidden="true"
+      data-category="paneZenGhostMode">
+<html:h1 data-l10n-id="zen-ghost-mode-section-title"/>
+</hbox>
+
+<groupbox id="zenGhostModeGroup" data-category="paneZenGhostMode" hidden="true" class="highlighting-group">
+      <label><html:h2 data-l10n-id="zen-ghost-mode-header"/></label>
+      <description class="description-deemphasized" data-l10n-id="zen-ghost-mode-description"/>
+
+      <checkbox id="zenGhostModeDeleteDownloads"
+                data-l10n-id="zen-ghost-mode-delete-downloads"
+                preference="zen.ghost-mode.delete-downloads"/>
+      <description class="description-deemphasized" data-l10n-id="zen-ghost-mode-delete-downloads-description"/>
+
+      <checkbox id="zenGhostModeSearchSuggestions"
+                data-l10n-id="zen-ghost-mode-search-suggestions"/>
+      <description class="description-deemphasized" data-l10n-id="zen-ghost-mode-search-suggestions-description"/>
+
+      <checkbox id="zenGhostModeResistFingerprinting"
+                data-l10n-id="zen-ghost-mode-resist-fingerprinting"/>
+      <description class="description-deemphasized" data-l10n-id="zen-ghost-mode-resist-fingerprinting-description"/>
+</groupbox>
+
+<groupbox id="zenGhostModeProtectionGroup" data-category="paneZenGhostMode" hidden="true" class="highlighting-group">
+      <label><html:h2 data-l10n-id="zen-ghost-mode-protects-header"/></label>
+      <description class="description-deemphasized" data-l10n-id="zen-ghost-mode-protects-history"/>
+      <description class="description-deemphasized" data-l10n-id="zen-ghost-mode-protects-tracking"/>
+      <description class="description-deemphasized" data-l10n-id="zen-ghost-mode-protects-notepad"/>
+
+      <label><html:h2 data-l10n-id="zen-ghost-mode-limits-header"/></label>
+      <description class="description-deemphasized" data-l10n-id="zen-ghost-mode-limits-network"/>
+      <description class="description-deemphasized" data-l10n-id="zen-ghost-mode-limits-downloads"/>
+      <description class="description-deemphasized" data-l10n-id="zen-ghost-mode-limits-extensions"/>
+</groupbox>
+
+</html:template>

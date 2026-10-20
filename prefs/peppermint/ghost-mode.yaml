@@ -1,0 +1,22 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Set once the Ghost Mode button was placed for a profile that already existed.
+- name: zen.ghost-mode.migrated-button
+  value: false
+
+# Delete the files downloaded in Ghost windows once the last one closes (or
+# when the browser quits). Downloads are kept on disk unless this is on.
+- name: zen.ghost-mode.delete-downloads
+  value: false
+
+# Set after the one-time notice about what a Ghost window does and does not
+# protect has been shown.
+- name: zen.ghost-mode.notice-shown
+  value: false
+
+# Strip known tracking parameters from URLs in Ghost windows. Firefox leaves
+# this off for private windows unless the site is on its strict list.
+- name: privacy.query_stripping.enabled.pbmode
+  value: true

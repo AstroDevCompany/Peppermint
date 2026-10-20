@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  PeppermintGhostMode:
+    "moz-src:///peppermint/ghost-mode/PeppermintGhostMode.sys.mjs",
+});
+
 const GHOST_ICON = "chrome://browser/skin/zen-icons/ghost/ghost.png";
 
 export const ZenGhostModeWidget = {
@@ -12,6 +18,7 @@ export const ZenGhostModeWidget = {
   onCreated(node) {
     node.classList.add("zen-sidebar-action-button");
     node.setAttribute("image", GHOST_ICON);
+    lazy.PeppermintGhostMode.syncButton(node);
   },
 
   onCommand(event) {

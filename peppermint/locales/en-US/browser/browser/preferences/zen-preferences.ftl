@@ -425,3 +425,45 @@ sync-engine-notes =
     .label = Notes
     .tooltiptext = Sync your notes across devices
     .accesskey = N
+
+pane-zen-ghost-mode-title = Ghost Mode
+
+category-zen-ghost-mode =
+    .tooltiptext = { pane-zen-ghost-mode-title }
+
+zen-ghost-mode-section-title = Ghost Mode
+
+zen-ghost-mode-header = Ghost windows
+
+zen-ghost-mode-description = A Ghost window does not keep your history, cookies or site data once the last Ghost window is closed.
+
+zen-ghost-mode-delete-downloads =
+    .label = Delete files downloaded in Ghost windows when they close
+
+zen-ghost-mode-delete-downloads-description = Only files that finished downloading in a Ghost window are removed, and only if you have not changed them. Off by default, so downloads stay on disk.
+
+zen-ghost-mode-search-suggestions =
+    .label = Show search suggestions in Ghost windows
+
+zen-ghost-mode-search-suggestions-description = Suggestions send what you type to your search engine while you type. Off by default in Ghost windows.
+
+zen-ghost-mode-resist-fingerprinting =
+    .label = Resist fingerprinting in Ghost windows
+
+zen-ghost-mode-resist-fingerprinting-description = Makes your browser look the same as other browsers to websites. Some sites may show the wrong time zone or window size, or break.
+
+zen-ghost-mode-protects-header = What Ghost windows protect
+
+zen-ghost-mode-protects-history = Browsing history, cookies, cache, form data and site storage are erased when the last Ghost window closes, and Ghost tabs are never restored after a restart.
+
+zen-ghost-mode-protects-tracking = Trackers, cross-site cookies and known tracking parameters in links are blocked, and { -brand-short-name } sends a Global Privacy Control signal.
+
+zen-ghost-mode-protects-notepad = Notepad does not save notes written in a Ghost window, and Reader does not save articles for offline reading from one.
+
+zen-ghost-mode-limits-header = What they do not protect
+
+zen-ghost-mode-limits-network = Your network provider, your employer and the sites you visit can still see your connection. A Ghost window does not hide your IP address.
+
+zen-ghost-mode-limits-downloads = Downloaded files and bookmarks you save stay on disk unless you remove them.
+
+zen-ghost-mode-limits-extensions = Extensions only run in Ghost windows if you allow them to.

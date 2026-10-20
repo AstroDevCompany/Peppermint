@@ -1,6 +1,6 @@
 --- a/browser/components/preferences/zen-settings.js
 +++ b/browser/components/preferences/zen-settings.js
-@@ -3,11 +3,6 @@
+@@ -3,655 +3,13 @@
  // License, v. 2.0. If a copy of the MPL was not distributed with this
  // file, You can obtain one at http://mozilla.org/MPL/2.0/.
  
@@ -12,10 +12,10 @@
  const { nsKeyShortcutModifiers } = ChromeUtils.importESModule(
    "chrome://browser/content/zen-components/ZenKeyboardShortcuts.mjs",
    {
-@@ -15,643 +10,6 @@
+     global: "current",
    }
  );
- 
+-
 -var gZenMarketplaceManager = {
 -  async init() {
 -    const checkForUpdates = document.getElementById("zenThemeMarketplaceCheckForUpdates");
@@ -647,7 +647,7 @@
 -      }
 -      modList.appendChild(fragment);
 -    }
--
+ 
 -    this.modsList.replaceChildren(...modList.children);
 -    modList.remove();
 -  },
@@ -726,7 +726,7 @@
      var tabsUnloaderPrefListener = {
        async observe() {
          let buttonIndex = await confirmRestartPrompt(true, 1, true, true);
-@@ -854,9 +264,50 @@
+@@ -854,10 +264,51 @@
      this.__hasInitialized = true;
      this._currentActionID = null;
      this._initializeEvents();
@@ -766,7 +766,7 @@
 +      Services.prefs.setStringPref(pref, spec);
 +      input.value = spec;
 +      input.blur();
-+    });
+     });
 +    reset.addEventListener("command", () => {
 +      Services.prefs.setStringPref(pref, "Tab");
 +      show();
@@ -774,10 +774,11 @@
 +    reset.addEventListener("click", () => {
 +      Services.prefs.setStringPref(pref, "Tab");
 +      show();
-     });
++    });
    },
  
-@@ -1143,9 +594,352 @@
+   _initializeEvents() {
+@@ -1143,9 +594,384 @@
      input.classList.remove(`${ZEN_CKS_INPUT_FIELD_CLASS}-not-set`);
      input.value = modifiers.toDisplayString() + gZenKeyboardShortcutsManager.getKeyDisplay(shortcut);
      this._latestValidKey = shortcut;
@@ -1127,22 +1128,50 @@
 +  },
 +};
 +
++var gZenGhostModeSettings = {
++  // Firefox registers these two with its Search and Privacy sections, which
++  // load on their own. Registering them again would throw, so these checkboxes
++  // read and write the prefs directly.
++  _checkboxes: {
++    zenGhostModeSearchSuggestions: "browser.search.suggest.enabled.private",
++    zenGhostModeResistFingerprinting: "privacy.resistFingerprinting.pbmode",
++  },
++
++  init() {
++    if (this.__hasInitialized) {
++      return;
++    }
++    this.__hasInitialized = true;
++    for (const [id, pref] of Object.entries(this._checkboxes)) {
++      const checkbox = document.getElementById(id);
++      const sync = () => {
++        checkbox.checked = Services.prefs.getBoolPref(pref, false);
++      };
++      const observer = { observe: sync };
++      Services.prefs.addObserver(pref, observer);
++      window.addEventListener("unload", () => {
++        Services.prefs.removeObserver(pref, observer);
++      });
++      checkbox.addEventListener("command", () => {
++        Services.prefs.setBoolPref(pref, checkbox.checked);
++      });
++      sync();
++    }
++  },
++};
++
  Preferences.addAll([
    {
      id: "zen.view.compact.toolbar-flash-popup",
-@@ -1154,15 +948,55 @@
+@@ -1158,11 +984,51 @@
+     default: true,
    },
    {
-     id: "zen.workspaces.hide-default-container-indicator",
++    id: "zen.workspaces.switch-animation",
 +    type: "bool",
 +    default: true,
 +  },
 +  {
-+    id: "zen.workspaces.switch-animation",
-     type: "bool",
-     default: true,
-   },
-   {
 +    id: "zen.downloads.download-animation",
 +    type: "bool",
 +    default: true,
@@ -1186,7 +1215,7 @@
      id: "zen.pinned-tab-manager.restore-pinned-tabs-to-pinned-url",
      type: "bool",
      default: true,
-@@ -1203,6 +1037,11 @@
+@@ -1203,6 +1069,11 @@
      default: "float",
    },
    {
@@ -1198,7 +1227,7 @@
      id: "zen.workspaces.separate-essentials",
      type: "bool",
      default: false,
-@@ -1225,11 +1064,6 @@
+@@ -1225,11 +1096,6 @@
    {
      id: "zen.workspaces.continue-where-left-off",
      type: "bool",
@@ -1210,7 +1239,7 @@
      default: true,
    },
    {
-@@ -1257,6 +1091,111 @@
+@@ -1257,6 +1123,116 @@
      type: "bool",
      default: false,
    },
@@ -1318,6 +1347,11 @@
 +    id: "peppermint.janitor.notifications",
 +    type: "bool",
 +    default: true,
++  },
++  {
++    id: "zen.ghost-mode.delete-downloads",
++    type: "bool",
++    default: false,
 +  },
  ]);
  

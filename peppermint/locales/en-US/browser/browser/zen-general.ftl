@@ -4,6 +4,10 @@ zen-ghost-mode-button =
     .label = Ghost Mode
     .tooltiptext = Open a new Ghost Window
 
+zen-ghost-mode-notice-toast = This is a Ghost window
+
+zen-ghost-mode-notice-toast-description = Browsing history, cookies and site data are erased when the last Ghost window closes. Downloaded files stay on disk, and your network and the sites you visit can still see you.
+
 zen-underpowered-button =
     .label = Underpowered Mode
     .tooltiptext = Freeze background tabs and limit resource use

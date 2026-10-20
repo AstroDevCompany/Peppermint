@@ -60,14 +60,14 @@
  #zenTabsUnloadDelayContainer {
    display: flex;
    align-items: center;
-@@ -150,9 +152,27 @@
+@@ -150,9 +152,31 @@
  /* CKS */
  
  #category-zen-CKS > .category-icon {
 -  list-style-image: url("chrome://browser/skin/quickactions.svg");
 +  list-style-image: url("chrome://browser/skin/zen-icons/brackets-curly.svg");
-+}
-+
+ }
+ 
 +#category-zen-adblock > .category-icon {
 +  list-style-image: url("chrome://browser/skin/zen-icons/tracking-protection-fill.svg");
 +}
@@ -78,8 +78,12 @@
 +
 +#category-zen-janitor > .category-icon {
 +  list-style-image: url("chrome://browser/skin/zen-icons/sparkles.svg");
- }
- 
++}
++
++#category-zen-ghost-mode > .category-icon {
++  list-style-image: url("chrome://browser/skin/zen-icons/ghost/ghost.png");
++}
++
 +/* Marketplace was removed; hide a leftover nav entry if chrome is stale. */
 +#category-zen-marketplace,
 +moz-page-nav-button[view="paneZenMarketplace"] {
@@ -89,7 +93,7 @@
  .zenCKSOption-input {
    padding: 5px;
    border-radius: 5px;
-@@ -237,7 +257,7 @@
+@@ -237,7 +261,7 @@
    flex-direction: column;
    justify-content: center;
    padding: 15px;
@@ -98,7 +102,7 @@
    border-radius: 10px;
    margin-bottom: 10px;
  }
-@@ -265,7 +285,12 @@
+@@ -265,7 +289,12 @@
    border-radius: 10px;
    margin: 10px;
    background: light-dark(rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.3));
@@ -112,7 +116,7 @@
    border: 2px solid light-dark(rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.1));
  }
  
-@@ -279,167 +304,8 @@
+@@ -279,167 +308,8 @@
    border-radius: 50px;
    background: var(--zen-primary-color);
    transform: translate(-50%, -50%);
@@ -204,16 +208,16 @@
 -  overflow: hidden;
 -  text-overflow: ellipsis;
 -  width: 100%;
--}
--
+ }
+ 
 -.zenThemeMarketplaceItemActions {
 -  width: 100%;
 -  display: flex;
 -  align-items: center;
 -  margin-top: var(--space-small);
 -  justify-content: space-between;
- }
- 
+-}
+-
 -#zenThemeMarketplaceList {
 -  display: grid;
 -  gap: var(--space-medium);
@@ -280,7 +284,7 @@
  #zenLayoutList {
    display: flex;
    gap: 20px;
-@@ -478,8 +344,8 @@
+@@ -478,8 +348,8 @@
  /* Disable mozilla's settings */
  
  #dataCollectionCategory,
@@ -290,7 +294,7 @@
  #websiteAdvertisingGroup,
  #helpButton,
  #support-firefox,
-@@ -496,12 +362,78 @@
+@@ -496,12 +366,78 @@
    list-style-image: url("chrome://devtools/skin/images/tool-storage.svg");
  }
  
