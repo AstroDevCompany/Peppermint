@@ -21,3 +21,21 @@
 # Set while auto-enable owns the mode, so recovering only turns off its own session.
 - name: zen.underpowered.auto-enabled
   value: false
+
+# Also turn Underpowered on whenever the battery is not charging, whatever its level.
+- name: zen.underpowered.auto-when-unplugged
+  value: false
+
+# Percent. CPU or RAM at or above this for about 30 seconds counts as heavy load.
+- name: zen.underpowered.resource-threshold
+  value: 90
+
+# A background tab is frozen only after it was left alone this long, so a tab
+# you just switched away from is still there when you come back.
+- name: zen.underpowered.freeze-grace-seconds
+  value: 20
+
+# Sites whose tabs are never frozen: host names separated by spaces, commas or
+# new lines. A host also covers its subdomains.
+- name: zen.underpowered.never-freeze
+  value: ""

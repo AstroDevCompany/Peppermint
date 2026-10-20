@@ -455,3 +455,195 @@ add_task(async function test_worker_reads_system_load() {
   ok(inRange(second.cpu), `CPU use is a percentage (${second.cpu})`);
   worker.terminate();
 });
+
+const PREF_WHEN_UNPLUGGED = "zen.underpowered.auto-when-unplugged";
+const PREF_RESOURCE_THRESHOLD = "zen.underpowered.resource-threshold";
+const PREF_GRACE = "zen.underpowered.freeze-grace-seconds";
+const PREF_NEVER_FREEZE = "zen.underpowered.never-freeze";
+
+add_task(async function test_resource_threshold_follows_its_pref() {
+  ZenUnderpowered.init();
+  const monitor = ZenUnderpowered.resourceMonitorForTests;
+  registerCleanupFunction(() => {
+    Services.prefs.clearUserPref(PREF_RESOURCE_THRESHOLD);
+  });
+  is(monitor.threshold, 90, "Heavy load starts at 90% by default");
+  Services.prefs.setIntPref(PREF_RESOURCE_THRESHOLD, 70);
+  is(monitor.threshold, 70, "The threshold follows the pref");
+  Services.prefs.setIntPref(PREF_RESOURCE_THRESHOLD, 5);
+  is(monitor.threshold, 50, "A silly value is raised to the lowest allowed");
+  Services.prefs.setIntPref(PREF_RESOURCE_THRESHOLD, 100);
+  is(monitor.threshold, 99, "A silly value is lowered to the highest allowed");
+  Services.prefs.clearUserPref(PREF_RESOURCE_THRESHOLD);
+  is(monitor.threshold, 90, "Clearing the pref restores the default");
+});
+
+add_task(async function test_unplugged_option_turns_the_mode_on() {
+  ZenUnderpowered.init();
+  const battery = new FakeBattery();
+  battery.setState({ level: 0.9, charging: true });
+  ZenUnderpowered._batterySource = () => battery;
+  Services.prefs.setBoolPref(PREF_AUTO, true);
+  await ZenUnderpowered.syncBatteryForTests();
+  registerCleanupFunction(() => {
+    ZenUnderpowered._batterySource = null;
+    Services.prefs.setBoolPref(PREF_AUTO, false);
+    Services.prefs.clearUserPref(PREF_WHEN_UNPLUGGED);
+    Services.prefs.clearUserPref(PREF_AUTO_ENABLED);
+    Services.prefs.clearUserPref(PREF_ENABLED);
+  });
+
+  battery.setState({ charging: false });
+  ok(
+    !Services.prefs.getBoolPref(PREF_ENABLED),
+    "A healthy battery that is unplugged does not turn the mode on by default"
+  );
+
+  Services.prefs.setBoolPref(PREF_WHEN_UNPLUGGED, true);
+  await ZenUnderpowered.syncBatteryForTests();
+  ok(
+    Services.prefs.getBoolPref(PREF_ENABLED),
+    "With the option on, unplugging is enough"
+  );
+
+  battery.setState({ charging: true });
+  ok(
+    !Services.prefs.getBoolPref(PREF_ENABLED),
+    "Plugging in turns the automatic session off"
+  );
+
+  Services.prefs.setBoolPref(PREF_AUTO, false);
+  await ZenUnderpowered.syncBatteryForTests();
+});
+
+add_task(async function test_os_memory_pressure_counts_as_heavy_load() {
+  ZenUnderpowered.init();
+  const monitor = ZenUnderpowered.resourceMonitorForTests;
+  monitor._sampleSource = () => new Promise(() => {});
+  Services.prefs.setBoolPref(PREF_AUTO_RESOURCES, true);
+  ZenUnderpowered.syncResourcesForTests();
+  registerCleanupFunction(() => {
+    monitor._sampleSource = null;
+    Services.prefs.setBoolPref(PREF_AUTO_RESOURCES, false);
+    ZenUnderpowered.syncResourcesForTests();
+    Services.prefs.clearUserPref(PREF_AUTO_ENABLED);
+    Services.prefs.clearUserPref(PREF_ENABLED);
+  });
+
+  Services.obs.notifyObservers(null, "memory-pressure", "heap-minimize");
+  ok(
+    !Services.prefs.getBoolPref(PREF_ENABLED),
+    "The request to free memory is not memory pressure"
+  );
+
+  Services.obs.notifyObservers(null, "memory-pressure", "low-memory");
+  ok(
+    Services.prefs.getBoolPref(PREF_ENABLED),
+    "The operating system running low on memory turns the mode on"
+  );
+  ok(Services.prefs.getBoolPref(PREF_AUTO_ENABLED), "The session is automatic");
+
+  monitor.feed({ cpu: 10, ram: 10 }, 0);
+  monitor.feed({ cpu: 10, ram: 10 }, 31000);
+  ok(
+    !Services.prefs.getBoolPref(PREF_ENABLED),
+    "It turns off after the load has been calm for 30 seconds"
+  );
+});
+
+add_task(async function test_prefs_changed_meanwhile_are_kept() {
+  registerCleanupFunction(() => {
+    Services.prefs.clearUserPref(PREF_ENABLED);
+    Services.prefs.clearUserPref(TUNED_PREF);
+  });
+  Services.prefs.setBoolPref(PREF_ENABLED, true);
+  is(Services.prefs.getStringPref(TUNED_PREF), "none", "The pref is tuned");
+
+  Services.prefs.setStringPref(TUNED_PREF, "once");
+  Services.prefs.setBoolPref(PREF_ENABLED, false);
+  is(
+    Services.prefs.getStringPref(TUNED_PREF),
+    "once",
+    "A value set on purpose during the mode is not overwritten"
+  );
+  ok(!Services.prefs.prefHasUserValue(PREF_SAVED), "The saved prefs are gone");
+  Services.prefs.clearUserPref(TUNED_PREF);
+});
+
+add_task(async function test_grace_period_and_never_freeze_list() {
+  registerCleanupFunction(() => {
+    Services.prefs.clearUserPref(PREF_ENABLED);
+    Services.prefs.setIntPref(PREF_GRACE, 0);
+    Services.prefs.clearUserPref(PREF_NEVER_FREEZE);
+  });
+  Services.prefs.setIntPref(PREF_GRACE, 4);
+  Services.prefs.setStringPref(PREF_NEVER_FREEZE, "example.org");
+
+  const freezable = await openLoadedTab("https://example.com/?grace", {
+    selected: false,
+  });
+  const protectedTab = await openLoadedTab("https://example.org/?kept", {
+    selected: false,
+  });
+  const selected = await openLoadedTab("https://example.net/", {
+    selected: true,
+  });
+
+  Services.prefs.setBoolPref(PREF_ENABLED, true);
+  await new Promise(resolve => setTimeout(resolve, 1000)); // eslint-disable-line mozilla/no-arbitrary-setTimeout
+  ok(!isFrozen(freezable), "A tab is not frozen before its grace period ends");
+
+  await TestUtils.waitForCondition(
+    () => isFrozen(freezable),
+    "The tab freezes once it was left alone long enough",
+    200,
+    100
+  );
+  ok(!isFrozen(protectedTab), "A site on the never-freeze list keeps running");
+  ok(!isFrozen(selected), "The tab on screen keeps running");
+  Assert.greaterOrEqual(
+    ZenUnderpowered.frozenCount,
+    1,
+    "The frozen tab is counted (tabs from earlier tests may be too)"
+  );
+
+  Services.prefs.setBoolPref(PREF_ENABLED, false);
+  await TestUtils.waitForCondition(
+    () => !isFrozen(freezable),
+    "The frozen tab loads again"
+  );
+  is(ZenUnderpowered.frozenCount, 0, "Nothing is held frozen afterwards");
+  for (const tab of [freezable, protectedTab, selected]) {
+    BrowserTestUtils.removeTab(tab);
+  }
+});
+
+add_task(async function test_many_frozen_tabs_all_come_back() {
+  registerCleanupFunction(() => {
+    Services.prefs.clearUserPref(PREF_ENABLED);
+  });
+  const tabs = [];
+  for (let i = 0; i < 7; i++) {
+    tabs.push(
+      await openLoadedTab(`https://example.com/?many${i}`, { selected: false })
+    );
+  }
+  const selected = await openLoadedTab("https://example.net/?top", {
+    selected: true,
+  });
+  Services.prefs.setBoolPref(PREF_ENABLED, true);
+  await TestUtils.waitForCondition(
+    () => tabs.every(isFrozen),
+    "Every background tab freezes"
+  );
+  Services.prefs.setBoolPref(PREF_ENABLED, false);
+  await TestUtils.waitForCondition(
+    () => tabs.every(tab => !isFrozen(tab)),
+    "Every frozen tab loads again, a few at a time",
+    200,
+    100
+  );
+  for (const tab of [...tabs, selected]) {
+    BrowserTestUtils.removeTab(tab);
+  }
+});

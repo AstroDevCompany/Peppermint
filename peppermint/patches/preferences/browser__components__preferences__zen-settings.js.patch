@@ -1,6 +1,6 @@
 --- a/browser/components/preferences/zen-settings.js
 +++ b/browser/components/preferences/zen-settings.js
-@@ -3,11 +3,6 @@
+@@ -3,655 +3,13 @@
  // License, v. 2.0. If a copy of the MPL was not distributed with this
  // file, You can obtain one at http://mozilla.org/MPL/2.0/.
  
@@ -12,10 +12,10 @@
  const { nsKeyShortcutModifiers } = ChromeUtils.importESModule(
    "chrome://browser/content/zen-components/ZenKeyboardShortcuts.mjs",
    {
-@@ -15,643 +10,6 @@
+     global: "current",
    }
  );
- 
+-
 -var gZenMarketplaceManager = {
 -  async init() {
 -    const checkForUpdates = document.getElementById("zenThemeMarketplaceCheckForUpdates");
@@ -351,7 +351,7 @@
 -
 -      headerDiv.appendChild(headerTitle);
 -      headerDiv.appendChild(closeButton);
--
+ 
 -      mainDialogDiv.appendChild(headerDiv);
 -      mainDialogDiv.appendChild(contentDiv);
 -      dialog.appendChild(mainDialogDiv);
@@ -664,15 +664,63 @@
      for (const pref of [kZenExtendedSidebar, kZenSingleToolbar]) {
        Services.prefs.addObserver(pref, this);
      }
-@@ -720,8 +77,61 @@
-   },
- };
- 
+@@ -715,13 +72,110 @@
+           layout.getAttribute("layout") != "collapsed"
+         );
+         Services.prefs.setBoolPref(kZenSingleToolbar, layout.getAttribute("layout") == "single");
++      });
++    }
++  },
++};
++
 +var gZenToolbarUrlbarSettings = {
 +  init() {},
 +};
 +
 +var gZenPerformanceSettings = {
++  // Number fields: element id, pref, default, lowest and highest value.
++  _underpoweredNumbers: [
++    ["zenUnderpoweredBatteryThreshold", "zen.underpowered.battery-threshold", 30, 5, 95],
++    ["zenUnderpoweredResourceThreshold", "zen.underpowered.resource-threshold", 90, 50, 99],
++    ["zenUnderpoweredGrace", "zen.underpowered.freeze-grace-seconds", 20, 0, 3600],
++  ],
++
++  _initUnderpoweredOptions() {
++    for (const [id, pref, fallback, min, max] of this._underpoweredNumbers) {
++      const field = document.getElementById(id);
++      if (!field) {
++        continue;
++      }
++      field.value = Services.prefs.getIntPref(pref, fallback);
++      field.addEventListener("change", () => {
++        const value = Math.max(min, Math.min(max, Math.round(Number(field.value)) || fallback));
++        field.value = value;
++        Services.prefs.setIntPref(pref, value);
++      });
++    }
++    const never = document.getElementById("zenUnderpoweredNeverFreeze");
++    if (never) {
++      const pref = "zen.underpowered.never-freeze";
++      never.value = Services.prefs.getStringPref(pref, "");
++      never.addEventListener("change", () => {
++        Services.prefs.setStringPref(pref, never.value.trim());
+       });
+     }
++    const status = document.getElementById("zenUnderpoweredStatus");
++    if (status) {
++      const { ZenUnderpowered } = ChromeUtils.importESModule(
++        "moz-src:///peppermint/underpowered/ZenUnderpowered.sys.mjs"
++      );
++      if (Services.prefs.getBoolPref("zen.underpowered.enabled", false)) {
++        document.l10n.setAttributes(status, "zen-underpowered-status-on", {
++          count: ZenUnderpowered.frozenCount,
++        });
++      } else {
++        document.l10n.setAttributes(status, "zen-underpowered-status-off");
++      }
++    }
+   },
++
 +  init() {
 +    const batteryDescription = document.getElementById(
 +      "zenUnderpoweredBatteryDescription"
@@ -689,6 +737,7 @@
 +        }
 +      );
 +    }
++    this._initUnderpoweredOptions();
 +    const input = document.getElementById("zenTabUnloaderMinutes");
 +    if (!input) {
 +      return;
@@ -701,8 +750,8 @@
 +      Services.prefs.setIntPref(pref, minutes);
 +    });
 +  },
-+};
-+
+ };
+ 
  var gZenWorkspacesSettings = {
    init() {
 +    const syncLink = document.getElementById("zenSpacesOpenSyncSettings");
@@ -726,7 +775,7 @@
      var tabsUnloaderPrefListener = {
        async observe() {
          let buttonIndex = await confirmRestartPrompt(true, 1, true, true);
-@@ -854,12 +264,53 @@
+@@ -854,12 +308,53 @@
      this.__hasInitialized = true;
      this._currentActionID = null;
      this._initializeEvents();
@@ -780,7 +829,7 @@
    _initializeEvents() {
      const resetAllListener = this.resetAllShortcuts.bind(this);
      const handleKeyDown = this._handleKeyDown.bind(this);
-@@ -1143,9 +594,419 @@
+@@ -1143,9 +638,419 @@
      input.classList.remove(`${ZEN_CKS_INPUT_FIELD_CLASS}-not-set`);
      input.value = modifiers.toDisplayString() + gZenKeyboardShortcutsManager.getKeyDisplay(shortcut);
      this._latestValidKey = shortcut;
@@ -854,7 +903,7 @@
 +      .getElementById("zenUrlSnippetsAdd")
 +      .addEventListener("command", () => this._addRow());
 +    this._manager.ready().then(() => this._render());
-+  },
+   },
 +
 +  _enqueue(task) {
 +    this._queue = this._queue.then(task, task);
@@ -867,7 +916,7 @@
 +    for (const snippet of this._manager.getAll()) {
 +      list.appendChild(this._createRow(snippet));
 +    }
-   },
++  },
 +
 +  _addRow() {
 +    const list = document.getElementById("zenUrlSnippetsList");
@@ -1200,7 +1249,7 @@
  Preferences.addAll([
    {
      id: "zen.view.compact.toolbar-flash-popup",
-@@ -1158,11 +1019,51 @@
+@@ -1158,11 +1063,56 @@
      default: true,
    },
    {
@@ -1249,10 +1298,15 @@
 +    default: true,
 +  },
 +  {
++    id: "zen.underpowered.auto-when-unplugged",
++    type: "bool",
++    default: false,
++  },
++  {
      id: "zen.pinned-tab-manager.restore-pinned-tabs-to-pinned-url",
      type: "bool",
      default: true,
-@@ -1203,6 +1104,11 @@
+@@ -1203,6 +1153,11 @@
      default: "float",
    },
    {
@@ -1264,7 +1318,7 @@
      id: "zen.workspaces.separate-essentials",
      type: "bool",
      default: false,
-@@ -1225,11 +1131,6 @@
+@@ -1225,11 +1180,6 @@
    {
      id: "zen.workspaces.continue-where-left-off",
      type: "bool",
@@ -1276,7 +1330,7 @@
      default: true,
    },
    {
-@@ -1257,6 +1158,116 @@
+@@ -1257,6 +1207,116 @@
      type: "bool",
      default: false,
    },

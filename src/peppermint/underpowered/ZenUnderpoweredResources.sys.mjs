@@ -14,6 +14,8 @@ const WORKER_URL =
 /** CPU or RAM at or above this percent counts as very high. */
 export const HIGH_PERCENT = 90;
 export const SAMPLE_INTERVAL_MS = 10000;
+/** While the readings cannot change anything, they are taken this rarely. */
+export const SLOW_SAMPLE_INTERVAL_MS = 60000;
 // A page load can pin the CPU for a moment. Only a sustained peak (about 30
 // seconds) counts. Sampling less often means fewer wake-ups on battery.
 export const HIGH_SAMPLES = 3;
@@ -33,6 +35,10 @@ export class ResourceMonitor {
   #worker = null;
   #polling = false;
   #generation = 0;
+  #slow = false;
+  #running = false;
+  /** CPU or RAM at or above this percent counts as very high. */
+  threshold = HIGH_PERCENT;
   /**
    * Tests replace this with a function that returns { cpu, ram } in percent.
    *
@@ -59,11 +65,52 @@ export class ResourceMonitor {
   start({ high = false } = {}) {
     this.stop();
     this.#high = high;
-    this.#timer = setInterval(() => this.#poll(), SAMPLE_INTERVAL_MS);
+    this.#running = true;
+    this.#timer = setInterval(() => this.#poll(), this.#interval());
     this.#poll();
   }
 
+  #interval() {
+    return this.#slow ? SLOW_SAMPLE_INTERVAL_MS : SAMPLE_INTERVAL_MS;
+  }
+
+  /**
+   * Read less often while nothing depends on fast readings, for example when
+   * the user turned the mode on themselves. Counting continues, so switching
+   * back loses nothing.
+   *
+   * @param {boolean} slow
+   */
+  setSlow(slow) {
+    if (this.#slow === slow) {
+      return;
+    }
+    this.#slow = slow;
+    if (this.#running && this.#timer) {
+      clearInterval(this.#timer);
+      this.#timer = setInterval(() => this.#poll(), this.#interval());
+    }
+  }
+
+  /**
+   * The operating system said memory is running out. That counts as very
+   * high load at once; the normal readings decide when it has settled.
+   *
+   */
+  noteExternalPressure() {
+    if (!this.#running) {
+      return;
+    }
+    this.#stableSince = null;
+    this.#overSamples = HIGH_SAMPLES;
+    if (!this.#high) {
+      this.#high = true;
+      this.#onChange(true);
+    }
+  }
+
   stop() {
+    this.#running = false;
     this.#generation++;
     this.#polling = false;
     this.#overSamples = 0;
@@ -83,7 +130,7 @@ export class ResourceMonitor {
    * @param {number} now - Milliseconds, on any clock that only moves forward
    */
   feed({ cpu, ram }, now) {
-    const over = cpu >= HIGH_PERCENT || ram >= HIGH_PERCENT;
+    const over = cpu >= this.threshold || ram >= this.threshold;
     if (over) {
       this.#stableSince = null;
       this.#overSamples++;

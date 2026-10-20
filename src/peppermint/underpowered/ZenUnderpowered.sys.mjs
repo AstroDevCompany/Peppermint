@@ -11,6 +11,10 @@ const PREF_AUTO = "zen.underpowered.auto-on-battery";
 const PREF_AUTO_RESOURCES = "zen.underpowered.auto-on-resources";
 const PREF_THRESHOLD = "zen.underpowered.battery-threshold";
 const PREF_AUTO_ENABLED = "zen.underpowered.auto-enabled";
+const PREF_WHEN_UNPLUGGED = "zen.underpowered.auto-when-unplugged";
+const PREF_RESOURCE_THRESHOLD = "zen.underpowered.resource-threshold";
+const PREF_GRACE = "zen.underpowered.freeze-grace-seconds";
+const PREF_NEVER_FREEZE = "zen.underpowered.never-freeze";
 const ROOT_ATTRIBUTE = "zen-underpowered";
 const BUTTON_ID = "zen-underpowered-button";
 const TOAST_ID = "zen-underpowered-enabled-toast";
@@ -18,20 +22,26 @@ const TOAST_OFF_ID = "zen-underpowered-disabled-toast";
 const TOAST_TIMEOUT_MS = 1800;
 // Lets tab switches and Glance settle before the tab left behind is frozen.
 const FREEZE_DELAY_MS = 250;
+// A tab nobody can freeze yet is looked at again at least this often.
+const SWEEP_MS = 60 * 1000;
+// Loading frozen tabs again in small groups keeps the machine responsive
+// right after the mode ends, when it was struggling a moment ago.
+const THAW_BATCH = 3;
+const THAW_BATCH_MS = 400;
+const MEMORY_PRESSURE_TOPIC = "memory-pressure";
 
 // Every one of these is read live, so none of them waits for a restart.
 const LIMITS = {
   "dom.ipc.processCount": 1,
   "dom.ipc.processCount.webIsolated": 1,
   "dom.ipc.processPrelaunch.enabled": false,
-  "dom.ipc.keepProcessesAlive.web": 0,
   "dom.min_background_timeout_value": 10000,
   "image.animation_mode": "none",
   "network.prefetch-next": false,
   "network.dns.disablePrefetch": true,
   "network.http.max-connections": 128,
   "browser.cache.memory.capacity": 16384,
-  "layout.throttled_frame_rate": 1,
+  "layout.frame_rate": 30,
   "ui.prefersReducedMotion": 1,
   "browser.sessionstore.interval": 120000,
 };
@@ -69,6 +79,8 @@ function writeValue(name, value) {
   }
 }
 
+const LIMITS_NAMES = new Set(Object.keys(LIMITS));
+
 /**
  * App-wide Underpowered mode. While it is on, every window keeps only what is
  * on screen loaded, and a set of resource prefs is tightened; turning it off
@@ -98,6 +110,11 @@ class ZenUnderpoweredImpl {
   });
   /** The user turned off an automatic session that is still warranted. */
   #dismissed = false;
+  /** Tuned prefs somebody else changed while the mode was on. */
+  #userChanged = new Set();
+  #writingLimits = false;
+  /** Sites (lower case host names) whose tabs are never frozen. */
+  #neverFreeze = [];
   /**
    * Tests replace this with a function that returns a battery manager.
    *
@@ -114,7 +131,14 @@ class ZenUnderpoweredImpl {
     Services.prefs.addObserver(PREF_AUTO, this);
     Services.prefs.addObserver(PREF_THRESHOLD, this);
     Services.prefs.addObserver(PREF_AUTO_RESOURCES, this);
+    Services.prefs.addObserver(PREF_WHEN_UNPLUGGED, this);
+    Services.prefs.addObserver(PREF_RESOURCE_THRESHOLD, this);
+    Services.prefs.addObserver(PREF_GRACE, this);
+    Services.prefs.addObserver(PREF_NEVER_FREEZE, this);
     Services.obs.addObserver(this, "browser-delayed-startup-finished");
+    Services.obs.addObserver(this, MEMORY_PRESSURE_TOPIC);
+    this.#readNeverFreeze();
+    this.#resources.threshold = this.#readThreshold();
     this.#update(true);
     // A session left on by the previous run is kept until every source has
     // looked at the machine again, so a restart does not drop it early.
@@ -134,8 +158,33 @@ class ZenUnderpoweredImpl {
       }
       return;
     }
-    if (data === PREF_AUTO) {
+    if (topic === MEMORY_PRESSURE_TOPIC) {
+      // Only the operating system running low counts. The heap-minimize
+      // request sent when the mode turns on shares this topic.
+      if (data === "low-memory" || data === "low-memory-ongoing") {
+        this.#resources.noteExternalPressure();
+      }
+      return;
+    }
+    if (topic === "nsPref:changed" && LIMITS_NAMES.has(data)) {
+      this.#noteLimitChange(data);
+      return;
+    }
+    if (data === PREF_AUTO || data === PREF_WHEN_UNPLUGGED) {
       this.#syncBattery();
+      return;
+    }
+    if (data === PREF_RESOURCE_THRESHOLD) {
+      this.#resources.threshold = this.#readThreshold();
+      return;
+    }
+    if (data === PREF_NEVER_FREEZE) {
+      this.#readNeverFreeze();
+      this.#refreezeAll();
+      return;
+    }
+    if (data === PREF_GRACE) {
+      this.#refreezeAll();
       return;
     }
     if (data === PREF_THRESHOLD) {
@@ -201,13 +250,16 @@ class ZenUnderpoweredImpl {
     this.#enabled = enabled;
     if (enabled) {
       this.#applyLimits();
+      this.#watchLimits(true);
       if (!startup) {
-        Services.obs.notifyObservers(null, "memory-pressure", "heap-minimize");
+        Services.obs.notifyObservers(null, MEMORY_PRESSURE_TOPIC, "heap-minimize");
       }
     } else {
+      this.#watchLimits(false);
       // Also covers a snapshot left over from a session that ended mid-mode.
       this.#restoreLimits();
     }
+    this.#syncPolling();
     for (const win of this.#browserWindows()) {
       if (enabled) {
         this.#attach(win);
@@ -329,6 +381,21 @@ class ZenUnderpoweredImpl {
 
   // Resources
 
+  #readThreshold() {
+    const value = Services.prefs.getIntPref(PREF_RESOURCE_THRESHOLD, 90);
+    return Math.min(99, Math.max(50, value));
+  }
+
+  /**
+   * An automatic session needs the fast readings to notice when the load has
+   * settled. A session the user started needs none, so it is read slowly.
+   */
+  #syncPolling() {
+    this.#resources.setSlow(
+      this.#enabled && !Services.prefs.getBoolPref(PREF_AUTO_ENABLED, false)
+    );
+  }
+
   #syncResources() {
     this.#resources.stop();
     if (!Services.prefs.getBoolPref(PREF_AUTO_RESOURCES, false)) {
@@ -427,7 +494,12 @@ class ZenUnderpoweredImpl {
 
   #applyBattery(battery) {
     const threshold = Services.prefs.getIntPref(PREF_THRESHOLD, 30) / 100;
-    this.#batteryLow = battery.level < threshold && !battery.charging;
+    const unpluggedIsEnough = Services.prefs.getBoolPref(
+      PREF_WHEN_UNPLUGGED,
+      false
+    );
+    this.#batteryLow =
+      !battery.charging && (unpluggedIsEnough || battery.level < threshold);
     this.#evaluateAuto();
   }
 
@@ -456,13 +528,42 @@ class ZenUnderpoweredImpl {
     if (added) {
       Services.prefs.setStringPref(PREF_SAVED, JSON.stringify(saved));
     }
-    for (const [name, value] of Object.entries(LIMITS)) {
-      try {
-        writeValue(name, value);
-      } catch (error) {
-        console.error(`ZenUnderpowered: could not set ${name}`, error);
+    this.#userChanged.clear();
+    this.#writingLimits = true;
+    try {
+      for (const [name, value] of Object.entries(LIMITS)) {
+        try {
+          writeValue(name, value);
+        } catch (error) {
+          console.error(`ZenUnderpowered: could not set ${name}`, error);
+        }
+      }
+    } finally {
+      this.#writingLimits = false;
+    }
+  }
+
+  #watchLimits(on) {
+    for (const name of LIMITS_NAMES) {
+      if (on) {
+        Services.prefs.addObserver(name, this);
+      } else {
+        Services.prefs.removeObserver(name, this);
       }
     }
+  }
+
+  /**
+   * One of the tuned prefs changed while the mode is on. If somebody else did
+   * it on purpose, that value is theirs and is kept when the mode ends.
+   *
+   * @param {string} name
+   */
+  #noteLimitChange(name) {
+    if (this.#writingLimits || !this.#enabled) {
+      return;
+    }
+    this.#userChanged.add(name);
   }
 
   #restoreLimits() {
@@ -470,6 +571,9 @@ class ZenUnderpoweredImpl {
       return;
     }
     for (const [name, value] of Object.entries(this.#readSnapshot())) {
+      if (this.#userChanged.has(name)) {
+        continue;
+      }
       try {
         if (value === null) {
           Services.prefs.clearUserPref(name);
@@ -480,6 +584,7 @@ class ZenUnderpoweredImpl {
         console.error(`ZenUnderpowered: could not restore ${name}`, error);
       }
     }
+    this.#userChanged.clear();
     Services.prefs.clearUserPref(PREF_SAVED);
   }
 
@@ -546,7 +651,35 @@ class ZenUnderpoweredImpl {
 
   // Freezing
 
-  #scheduleFreeze(win) {
+  #readNeverFreeze() {
+    const raw = Services.prefs.getStringPref(PREF_NEVER_FREEZE, "");
+    this.#neverFreeze = raw
+      .split(/[\s,;]+/)
+      .map(entry => entry.trim().toLowerCase().replace(/^\*?\./, ""))
+      .filter(Boolean);
+  }
+
+  /**
+   * @param {string} host
+   * @returns {boolean} Whether the host is on the never-freeze list
+   */
+  #isNeverFrozen(host) {
+    const name = host.toLowerCase();
+    return this.#neverFreeze.some(
+      entry => name === entry || name.endsWith("." + entry)
+    );
+  }
+
+  #refreezeAll() {
+    if (!this.#enabled) {
+      return;
+    }
+    for (const win of this.#windows.keys()) {
+      this.#scheduleFreeze(win);
+    }
+  }
+
+  #scheduleFreeze(win, delay = FREEZE_DELAY_MS) {
     const state = this.#windows.get(win);
     if (!state) {
       return;
@@ -555,7 +688,7 @@ class ZenUnderpoweredImpl {
     state.timer = win.setTimeout(() => {
       state.timer = 0;
       this.#freezeWindow(win);
-    }, FREEZE_DELAY_MS);
+    }, delay);
   }
 
   #freezeWindow(win) {
@@ -563,11 +696,40 @@ class ZenUnderpoweredImpl {
       return;
     }
     const selected = win.gBrowser.selectedTab;
+    // The next time this window needs a look: when the first tab that is
+    // still inside its grace period runs out, or after a sweep interval while
+    // other live tabs could change state (stop playing sound, finish loading).
+    let next = Infinity;
+    let live = 0;
     for (const tab of win.gBrowser.tabs) {
-      if (this.#canFreeze(tab, selected)) {
-        this.#freezeTab(win, tab);
+      if (tab !== selected && tab.linkedPanel && !tab.hasAttribute("pending")) {
+        live++;
       }
+      if (!this.#canFreeze(tab, selected)) {
+        continue;
+      }
+      const wait = this.#graceRemaining(tab);
+      if (wait > 0) {
+        next = Math.min(next, wait);
+        continue;
+      }
+      this.#freezeTab(win, tab);
     }
+    if (live) {
+      this.#scheduleFreeze(win, Math.min(next + 50, SWEEP_MS));
+    }
+  }
+
+  /**
+   * @param {MozTabbrowserTab} tab
+   * @returns {number} Milliseconds until the tab has been in the background
+   *   long enough to freeze; 0 when it already has
+   */
+  #graceRemaining(tab) {
+    const grace = Math.max(0, Services.prefs.getIntPref(PREF_GRACE, 20)) * 1000;
+    const age = Date.now() - tab.lastAccessed;
+    // A tab that is being shown has no age yet.
+    return Number.isFinite(age) ? Math.max(0, grace - age) : grace;
   }
 
   /**
@@ -582,13 +744,25 @@ class ZenUnderpoweredImpl {
     // Pinned tabs may freeze (they reload on click), but a tab that is making
     // sound, sharing a camera, microphone or screen, or backing a glance
     // overlay must keep running.
-    return !(
+    if (
       tab.soundPlaying ||
       tab.hasAttribute("soundplaying") ||
       tab.hasAttribute("sharing") ||
       tab.hasAttribute("zen-glance-tab") ||
       tab.hasAttribute("glance-id")
-    );
+    ) {
+      return false;
+    }
+    if (this.#neverFreeze.length) {
+      try {
+        if (this.#isNeverFrozen(tab.linkedBrowser.currentURI.host)) {
+          return false;
+        }
+      } catch {
+        // Pages without a host (about:, file:) have no entry to match.
+      }
+    }
+    return true;
   }
 
   async #freezeTab(win, tab) {
@@ -602,6 +776,7 @@ class ZenUnderpoweredImpl {
       if (
         this.#windows.has(win) &&
         this.#canFreeze(tab, win.gBrowser.selectedTab) &&
+        this.#graceRemaining(tab) === 0 &&
         // Not forced: a beforeunload handler or open dialog keeps the tab.
         win.gBrowser.discardBrowser(tab)
       ) {
@@ -614,15 +789,38 @@ class ZenUnderpoweredImpl {
     }
   }
 
+  /**
+   * Loads the tabs this mode froze again, a few at a time.
+   *
+   * @param {Window} win
+   */
   #thaw(win) {
-    const { gBrowser } = win;
-    const tabs = gBrowser.tabs.filter(
+    const tabs = win.gBrowser.tabs.filter(
       tab =>
         this.#frozen.has(tab) && tab.hasAttribute("pending") && !tab.closing
     );
-    if (!tabs.length) {
-      return;
+    const next = () => {
+      if (win.closed || !win.gBrowser) {
+        return;
+      }
+      // A tab can be restored by the user or closed while the rest wait.
+      const batch = tabs
+        .splice(0, THAW_BATCH)
+        .filter(tab => tab.hasAttribute("pending") && !tab.closing);
+      if (batch.length) {
+        this.#restoreTabs(win, batch);
+      }
+      if (tabs.length) {
+        win.setTimeout(next, THAW_BATCH_MS);
+      }
+    };
+    if (tabs.length) {
+      next();
     }
+  }
+
+  #restoreTabs(win, tabs) {
+    const { gBrowser } = win;
     for (const tab of tabs) {
       gBrowser.insertBrowser(tab);
     }
@@ -632,6 +830,21 @@ class ZenUnderpoweredImpl {
     gBrowser.tabContainer.dispatchEvent(
       new win.CustomEvent("TabSplitViewActivate", { detail: { tabs } })
     );
+  }
+
+  /**
+   * @returns {number} Background tabs this mode is holding unloaded right now
+   */
+  get frozenCount() {
+    let count = 0;
+    for (const win of this.#browserWindows()) {
+      for (const tab of win.gBrowser.tabs) {
+        if (this.#frozen.has(tab) && tab.hasAttribute("pending")) {
+          count++;
+        }
+      }
+    }
+    return count;
   }
 }
 

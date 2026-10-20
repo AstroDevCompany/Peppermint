@@ -360,6 +360,27 @@ zen-underpowered-auto-battery =
 
 zen-underpowered-auto-battery-description = Starts when the battery is below { $percent }% and not charging. Turns itself off when you plug in. A session you started yourself is never turned off.
 
+zen-underpowered-when-unplugged =
+    .label = Also turn on whenever the battery is not charging
+
+zen-underpowered-battery-threshold-label = Battery counts as low below (%)
+
+zen-underpowered-resource-threshold-label = CPU or memory load counts as heavy at (%)
+
+zen-underpowered-grace-label = Freeze a background tab after (seconds)
+
+zen-underpowered-never-freeze-label = Never freeze these sites
+
+zen-underpowered-never-freeze-description = One site per line, for example mail.example.com. Tabs on these sites, and their subdomains, keep running in Underpowered Mode.
+
+zen-underpowered-status-off = Underpowered Mode is off.
+
+# $count (Number) - how many background tabs are frozen right now.
+zen-underpowered-status-on = Underpowered Mode is on. { $count ->
+        [one] 1 background tab is frozen.
+       *[other] { $count } background tabs are frozen.
+    }
+
 zen-janitor-section-title = Peppermint Janitor
 
 zen-janitor-header = Free up disk space on launch

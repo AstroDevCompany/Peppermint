@@ -1,6 +1,6 @@
 --- a/browser/components/preferences/zenPerformance.inc.xhtml
 +++ b/browser/components/preferences/zenPerformance.inc.xhtml
-@@ -33,6 +33,14 @@
+@@ -33,6 +33,33 @@
              <html:input id="zenTabUnloaderMinutes" type="number" min="0" max="1440" style="width: 5em"/>
        </hbox>
        <description class="description-deemphasized" data-l10n-id="zen-tab-unloader-minutes-description"/>
@@ -12,6 +12,25 @@
 +      <checkbox data-l10n-id="zen-underpowered-auto-battery"
 +                preference="zen.underpowered.auto-on-battery"/>
 +      <description id="zenUnderpoweredBatteryDescription" class="description-deemphasized indent"/>
++      <checkbox data-l10n-id="zen-underpowered-when-unplugged"
++                preference="zen.underpowered.auto-when-unplugged"/>
++
++      <hbox align="center">
++            <label data-l10n-id="zen-underpowered-battery-threshold-label" control="zenUnderpoweredBatteryThreshold"/>
++            <html:input id="zenUnderpoweredBatteryThreshold" type="number" min="5" max="95" style="width: 5em"/>
++      </hbox>
++      <hbox align="center">
++            <label data-l10n-id="zen-underpowered-resource-threshold-label" control="zenUnderpoweredResourceThreshold"/>
++            <html:input id="zenUnderpoweredResourceThreshold" type="number" min="50" max="99" style="width: 5em"/>
++      </hbox>
++      <hbox align="center">
++            <label data-l10n-id="zen-underpowered-grace-label" control="zenUnderpoweredGrace"/>
++            <html:input id="zenUnderpoweredGrace" type="number" min="0" max="3600" style="width: 5em"/>
++      </hbox>
++      <label data-l10n-id="zen-underpowered-never-freeze-label" control="zenUnderpoweredNeverFreeze"/>
++      <html:textarea id="zenUnderpoweredNeverFreeze" rows="3" style="width: 100%;"></html:textarea>
++      <description class="description-deemphasized" data-l10n-id="zen-underpowered-never-freeze-description"/>
++      <description id="zenUnderpoweredStatus" class="description-deemphasized"/>
  </groupbox>
  
  </html:template>

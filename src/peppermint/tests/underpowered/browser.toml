@@ -8,6 +8,8 @@ prefs = [
   # The machine running the tests must not decide whether the mode is on.
   "zen.underpowered.auto-on-battery=false",
   "zen.underpowered.auto-on-resources=false",
+  # Tests freeze tabs right after switching; the grace period has its own test.
+  "zen.underpowered.freeze-grace-seconds=0",
 ]
 
 ["browser_underpowered.js"]
