@@ -27,6 +27,10 @@ export MOZ_INCLUDE_SOURCE_INFO=1
 
 ac_add_options --enable-application=browser
 
+# Peppermint updates itself from a JSON file (src/peppermint/updater), not
+# through Mozilla's MAR updater.
+ac_add_options --disable-updater
+
 if test "$SCCACHE_GHA_ENABLED" = "true"; then
   if test -x "$(command -v sccache)"; then
     ac_add_options --with-ccache=sccache

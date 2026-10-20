@@ -10,3 +10,4 @@
 #include fonts/jar.inc.mn
 #include tab-numbers/jar.inc.mn
 #include common/jar.inc.mn
+#include updater/jar.inc.mn

@@ -87,6 +87,11 @@ export const PeppermintStartup = {
         "moz-src:///peppermint/shortcut-tooltips/PeppermintShortcutTooltips.sys.mjs"
       ).PeppermintShortcutTooltips.init(window)
     );
+    start("PeppermintUpdater", () =>
+      ChromeUtils.importESModule(
+        "moz-src:///peppermint/updater/PeppermintUpdaterUI.sys.mjs"
+      ).PeppermintUpdaterUI.init()
+    );
     start("PeppermintVault", () =>
       ChromeUtils.importESModule(
         "moz-src:///peppermint/vault/PeppermintVault.sys.mjs"

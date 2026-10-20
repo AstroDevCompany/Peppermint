@@ -1,6 +1,26 @@
 --- a/browser/base/content/aboutDialog.xhtml
 +++ b/browser/base/content/aboutDialog.xhtml
-@@ -116,12 +116,12 @@
+@@ -35,6 +35,7 @@
+ 
+     <html:link rel="localization" href="branding/brand.ftl"/>
+     <html:link rel="localization" href="browser/aboutDialog.ftl"/>
++    <html:link rel="localization" href="browser/peppermint-updater.ftl"/>
+   </linkset>
+ 
+   <html:div id="aboutDialogContainer">
+@@ -51,6 +52,11 @@
+           <label id="version"/>
+           <label id="releasenotes" is="text-link" hidden="true" data-l10n-id="releaseNotes-link"/>
+         </hbox>
++        <!-- Peppermint's own updater, see src/peppermint/updater -->
++        <vbox id="peppermintUpdate" align="start">
++          <description id="peppermintUpdateStatus" hidden="true"/>
++          <button id="peppermintUpdateButton" hidden="true"/>
++        </vbox>
+ #endif
+ 
+         <label id="distribution" class="text-blurb"/>
+@@ -116,12 +122,12 @@
            <vbox id="experimental" hidden="true">
              <description class="text-blurb" id="warningDesc" data-l10n-id="warningDesc-version"></description>
              <description class="text-blurb" id="communityExperimentalDesc" data-l10n-id="community-exp">
@@ -15,7 +35,7 @@
              <label is="text-link" useoriginprincipal="true" href="about:credits" data-l10n-name="community-creditsLink"/>
            </description>
            <description class="text-blurb" id="contributeDesc" data-l10n-id="helpus">
-@@ -141,7 +141,7 @@
+@@ -141,7 +147,7 @@
        <hbox pack="center">
          <label is="text-link" class="bottom-link" useoriginprincipal="true" href="about:license" data-l10n-id="bottomLinks-license"/>
          <label is="text-link" class="bottom-link" href="about:rights" data-l10n-id="bottom-links-terms"/>

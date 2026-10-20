@@ -19,6 +19,7 @@ BROWSER_CHROME_MANIFESTS += [
     "tab_search/browser.toml",
     "tab_unloader/browser.toml",
     "underpowered/browser.toml",
+    "updater/browser.toml",
     "url_snippets/browser.toml",
     "vault/browser.toml",
 ]

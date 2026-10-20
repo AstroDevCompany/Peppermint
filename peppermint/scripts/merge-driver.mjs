@@ -39,6 +39,9 @@ export function applySurferIdentity(data) {
       continue;
     }
     Object.assign(data.brands[brand], fields);
+    if (data.brands[brand].release && identity.displayVersion) {
+      data.brands[brand].release.displayVersion = identity.displayVersion;
+    }
     if (data.brands[brand].release?.github) {
       data.brands[brand].release.github.repo = identity.repository;
     }

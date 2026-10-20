@@ -1,0 +1,35 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Check for new versions and download them in the background.
+- name: peppermint.update.enabled
+  value: true
+
+# JSON with "latest" (the newest version) and "downloads" (one file per OS).
+- name: peppermint.update.url
+  value: "https://raw.githubusercontent.com/AstroDevCompany/MintFlow-Releases/refs/heads/main/peppermint.json"
+
+# Seconds between checks while the browser stays open (minimum 600).
+- name: peppermint.update.interval-seconds
+  value: 21600
+
+# Download a new version as soon as it is found. When off, the notice
+# links to the download page instead.
+- name: peppermint.update.auto-download
+  value: true
+
+# Let a build that is not an official release replace itself. Off by
+# default so a development build never overwrites its own folder.
+- name: peppermint.update.allow-dev-install
+  value: false
+
+# Bookkeeping for a downloaded update.
+- name: peppermint.update.staged-version
+  value: ""
+
+- name: peppermint.update.staged-path
+  value: ""
+
+- name: peppermint.update.last-check
+  value: 0

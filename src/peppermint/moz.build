@@ -20,6 +20,7 @@ DIRS += [
     "tab-unloader",
     "tests",
     "underpowered",
+    "updater",
     "url-snippets",
     "urlbar",
     "vault",

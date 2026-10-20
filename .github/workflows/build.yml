@@ -146,13 +146,9 @@ jobs:
         run: |
           npm i -g @zen-browser/surfer
 
-      - name: Bump version
-        if: ${{ inputs.update_version && inputs.update_branch == 'release' }}
-        run: |
-          npm run surfer -- ci --brand ${{ inputs.update_branch }} --bump prerelease
-
-      - name: Bump version without new version
-        if: ${{ !inputs.update_version || inputs.update_branch == 'twilight' }}
+      # The version is owned by peppermint/identity.json (displayVersion) and
+      # reapplied to surfer.json on every upstream merge, so CI never bumps it.
+      - name: Load version
         run: |
           npm run surfer -- ci --brand ${{ inputs.update_branch }}
 

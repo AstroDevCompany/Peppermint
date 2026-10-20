@@ -1,0 +1,15 @@
+--- a/browser/base/content/aboutDialog.js
++++ b/browser/base/content/aboutDialog.js
+@@ -163,6 +163,12 @@
+     );
+   }
+ 
++  if (!AppConstants.MOZ_UPDATER) {
++    ChromeUtils.importESModule(
++      "moz-src:///peppermint/updater/PeppermintAboutUpdater.sys.mjs"
++    ).PeppermintAboutUpdater.init(window);
++  }
++
+   if (AppConstants.IS_ESR) {
+     document.getElementById("release").hidden = false;
+   }
