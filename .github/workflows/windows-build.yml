@@ -113,9 +113,7 @@ jobs:
             --fix-missing
 
       - name: Load Surfer CI setup
-        run: |
-          VERSION="$(npm run --silent surfer -- get version | tr -d '\r\n')"
-          npm run surfer -- ci --brand "$BRAND" --display-version "$VERSION"
+        run: npm run surfer -- ci --brand "$BRAND"
 
       - name: Download Firefox and dependencies
         run: npm run download
