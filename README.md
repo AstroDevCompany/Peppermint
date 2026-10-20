@@ -13,7 +13,7 @@
 
 _Peppermint is an independent fork._
 
-> Note: No auto-update feature exists yet. So, to update the app, you still have to check this repo from time to time. We are working on the update system and we’ll do our best to get it shipped soon.
+> Note: ~~No auto-update feature exists yet~~. The auto-update system was developed, it will be released in v2026.0.2 (the next one). **The windows build was also fixed**.
 
 [![License: MPL-2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 [![Firefox Version](https://img.shields.io/badge/Firefox-158.0-orange.svg)](https://www.mozilla.org/firefox/)
