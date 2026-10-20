@@ -16,6 +16,9 @@
  *    from peppermint/branding/macos/AppIcon.icon with actool (needs Xcode).
  *  - logo-mac.png: the pre-Tahoe squircle icon with padding and a soft shadow.
  *    The import turns it into firefox.icns.
+ *  - document.icns: the icon Finder shows for files Peppermint opens (PDF,
+ *    HTML, JSON...), a page with a folded corner carrying the logo. Without
+ *    it the build falls back to Firefox's stock document icon.
  */
 
 import { execFileSync } from "node:child_process";
@@ -78,6 +81,63 @@ async function legacySquircle(fullBleedFile, output) {
     .toFile(output);
 }
 
+const PAGE_W = 720;
+const PAGE_H = 944;
+const FOLD = 230;
+const FOLD_COLOR = "#2fa89a";
+const ICNS_SIZES = [16, 32, 128, 256, 512];
+
+async function documentIcon(logo, output) {
+  const left = (CANVAS - PAGE_W) / 2;
+  const top = (CANVAS - PAGE_H) / 2;
+  const edge = left + PAGE_W;
+  const page = `M${left} ${top} H${edge - FOLD} L${edge} ${top + FOLD} V${top + PAGE_H} H${left} Z`;
+  const fold = `M${edge - FOLD} ${top} L${edge} ${top + FOLD} H${edge - FOLD + 40} Q${edge - FOLD} ${top + FOLD} ${edge - FOLD} ${top + FOLD - 40} Z`;
+  const svg = (body) =>
+    Buffer.from(`<svg width="${CANVAS}" height="${CANVAS}" xmlns="http://www.w3.org/2000/svg">${body}</svg>`);
+  const shadow = await sharp(
+    svg(`<path d="${page}" transform="translate(0 12)" fill="rgba(0,0,0,0.28)"/>`)
+  )
+    .blur(14)
+    .png()
+    .toBuffer();
+  const size = 600;
+  const art = await sharp(logo)
+    .resize(size, size)
+    .composite([
+      {
+        input: Buffer.from(
+          `<svg width="${size}" height="${size}"><rect width="${size}" height="${size}" rx="${size * 0.22}" fill="#fff"/></svg>`
+        ),
+        blend: "dest-in",
+      },
+    ])
+    .png()
+    .toBuffer();
+  await sharp(shadow)
+    .composite([
+      { input: svg(`<path d="${page}" fill="rgb(254,253,249)" stroke="rgba(0,0,0,0.12)" stroke-width="2"/>`) },
+      { input: art, left: Math.round((CANVAS - size) / 2), top: top + 270 },
+      { input: svg(`<path d="${fold}" fill="${FOLD_COLOR}"/>`) },
+    ])
+    .png()
+    .toFile(output);
+}
+
+async function writeIcns(source, output, work) {
+  const iconset = path.join(work, "document.iconset");
+  fs.mkdirSync(iconset, { recursive: true });
+  for (const size of ICNS_SIZES) {
+    await sharp(source).resize(size, size).toFile(path.join(iconset, `icon_${size}x${size}.png`));
+    if (size * 2 <= CANVAS) {
+      await sharp(source)
+        .resize(size * 2, size * 2)
+        .toFile(path.join(iconset, `icon_${size}x${size}@2x.png`));
+    }
+  }
+  execFileSync("iconutil", ["-c", "icns", iconset, "-o", output]);
+}
+
 function compile(outDir) {
   execFileSync(
     "xcrun",
@@ -114,7 +174,10 @@ try {
     fs.mkdirSync(out);
     compile(out);
     fs.copyFileSync(path.join(out, "Assets.car"), path.join(dir, "Assets.car"));
-    console.log(`${brand}: wrote Assets.car and logo-mac.png`);
+    const doc = path.join(out, "document.png");
+    await documentIcon(layer, doc);
+    await writeIcns(doc, path.join(dir, "document.icns"), out);
+    console.log(`${brand}: wrote Assets.car, logo-mac.png and document.icns`);
   }
 } finally {
   fs.rmSync(work, { recursive: true, force: true });
