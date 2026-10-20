@@ -4,6 +4,7 @@
 
 EXTRA_JS_MODULES.zen.adblock += [
     "ZenAdblockCompiler.worker.mjs",
+    "ZenAdblockListCache.sys.mjs",
     "ZenAdblockLists.sys.mjs",
     "ZenAdblockManager.sys.mjs",
     "ZenAdblockPolicy.sys.mjs",

@@ -8,8 +8,14 @@
 - name: zen.adblock.level
   value: medium
 
+# Heavy level only: look up the real host behind third-party names, so ads
+# served through a CNAME alias are still caught.
 - name: zen.adblock.cname-uncloak
   value: true
 
 - name: zen.adblock.customRules
   value: ""
+
+# Requests blocked so far, over all pages. Kept on this device only.
+- name: zen.adblock.stats.blocked-total
+  value: 0

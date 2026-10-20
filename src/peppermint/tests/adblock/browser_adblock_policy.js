@@ -306,3 +306,186 @@ add_task(async function test_filter_lists_download_together() {
   Assert.equal(result.complete, false, "a failed list marks the cache incomplete");
   Assert.deepEqual(result.texts, ["list a", "list c"], "successful lists keep their order");
 });
+
+const { CHECK_INTERVAL_MS, listsFingerprint, nextCheckDelay, refreshLists } =
+  ChromeUtils.importESModule(
+    "resource:///modules/zen/adblock/ZenAdblockListCache.sys.mjs"
+  );
+
+const HOUR = 60 * 60 * 1000;
+
+add_task(function test_update_check_delay_backs_off() {
+  Assert.equal(nextCheckDelay(0), CHECK_INTERVAL_MS, "normal interval");
+  Assert.equal(nextCheckDelay(1), HOUR, "first failure retries in an hour");
+  Assert.equal(nextCheckDelay(2), 2 * HOUR, "then twice as long");
+  Assert.equal(nextCheckDelay(3), 4 * HOUR);
+  Assert.equal(nextCheckDelay(20), 24 * HOUR, "never longer than a day");
+});
+
+function listHarness(responses) {
+  const stored = new Map();
+  const requests = [];
+  return {
+    stored,
+    requests,
+    options: {
+      fetchList: async (url, known) => {
+        requests.push({ url, known });
+        const response = responses[url];
+        if (response instanceof Error) {
+          throw response;
+        }
+        return typeof response === "function" ? response(known) : response;
+      },
+      storeText: async (url, text) => {
+        stored.set(url, text);
+      },
+    },
+  };
+}
+
+add_task(async function test_lists_use_conditional_requests() {
+  const A = "https://lists.example/a.txt";
+  const B = "https://lists.example/b.txt";
+  const RES = "https://lists.example/resources.json";
+  const harness = listHarness({
+    [A]: { text: "||a.example^", etag: '"a1"' },
+    [B]: { text: "||b.example^", lastModified: "Mon, 01 Jan 2026 00:00:00 GMT" },
+    [RES]: { text: "[]" },
+  });
+
+  let first = await refreshLists([A, B, RES], {
+    ...harness.options,
+    meta: {},
+    optional: [RES],
+    now: 1000,
+  });
+  Assert.ok(first.changed, "new lists count as changed");
+  Assert.ok(first.complete, "every list was loaded");
+  Assert.equal(harness.stored.size, 3, "all three texts were stored");
+  Assert.equal(first.meta[A].etag, '"a1"', "the validator is remembered");
+
+  // Recently checked lists are not asked about again.
+  harness.requests.length = 0;
+  const soon = await refreshLists([A, B, RES], {
+    ...harness.options,
+    meta: first.meta,
+    now: 2000,
+  });
+  Assert.equal(harness.requests.length, 0, "no request inside the recheck window");
+  Assert.ok(!soon.changed);
+
+  // A later check sends the validators and a 304 changes nothing.
+  harness.requests.length = 0;
+  harness.stored.clear();
+  const notModified = {
+    [A]: { notModified: true },
+    [B]: { notModified: true },
+    [RES]: { notModified: true },
+  };
+  const later = listHarness(notModified);
+  const second = await refreshLists([A, B, RES], {
+    ...later.options,
+    meta: first.meta,
+    now: 1000 + 10 * HOUR,
+  });
+  Assert.ok(!second.changed, "nothing changed on a 304");
+  Assert.ok(second.complete);
+  Assert.equal(later.stored.size, 0, "nothing was written");
+  Assert.equal(
+    later.requests.find(r => r.url === A).known.etag,
+    '"a1"',
+    "the stored ETag is sent back"
+  );
+  Assert.equal(
+    second.meta[A].checkedAt,
+    1000 + 10 * HOUR,
+    "the check time moves forward"
+  );
+  Assert.equal(
+    listsFingerprint([A, B, RES], second.meta),
+    listsFingerprint([A, B, RES], first.meta),
+    "the fingerprint is unchanged, so no engine is rebuilt"
+  );
+
+  // A server without validators sends the same text again: still unchanged.
+  const same = listHarness({
+    [A]: { text: "||a.example^" },
+    [B]: { text: "||b.example^" },
+    [RES]: { text: "[]" },
+  });
+  const third = await refreshLists([A, B, RES], {
+    ...same.options,
+    meta: first.meta,
+    now: 1000 + 20 * HOUR,
+  });
+  Assert.ok(!third.changed, "identical text is not a change");
+  Assert.equal(same.stored.size, 0, "identical text is not written again");
+
+  // One list really changes.
+  const changed = listHarness({
+    [A]: { text: "||a.example^\n||more.example^" },
+    [B]: { notModified: true },
+    [RES]: { notModified: true },
+  });
+  const fourth = await refreshLists([A, B, RES], {
+    ...changed.options,
+    meta: first.meta,
+    now: 1000 + 30 * HOUR,
+  });
+  Assert.ok(fourth.changed, "a changed list is reported");
+  Assert.deepEqual([...changed.stored.keys()], [A], "only that list is stored");
+  Assert.notEqual(
+    listsFingerprint([A, B, RES], fourth.meta),
+    listsFingerprint([A, B, RES], first.meta),
+    "the fingerprint changes, so the engine is rebuilt"
+  );
+});
+
+add_task(async function test_list_failures_keep_what_is_stored() {
+  const A = "https://lists.example/a.txt";
+  const RES = "https://lists.example/resources.json";
+  const known = {
+    [A]: { hash: "abc", size: 3, etag: '"a1"', checkedAt: 0 },
+  };
+
+  const required = listHarness({
+    [A]: new Error("HTTP 500"),
+    [RES]: { text: "[]" },
+  });
+  const failed = await refreshLists([A, RES], {
+    ...required.options,
+    meta: known,
+    optional: [RES],
+    now: 10 * HOUR,
+  });
+  Assert.ok(!failed.complete, "a failed required list is reported");
+  Assert.deepEqual(failed.meta[A], known[A], "the stored copy stays in use");
+
+  const optionalOnly = listHarness({
+    [A]: { notModified: true },
+    [RES]: new Error("offline"),
+  });
+  const partial = await refreshLists([A, RES], {
+    ...optionalOnly.options,
+    meta: known,
+    optional: [RES],
+    now: 10 * HOUR,
+  });
+  Assert.ok(partial.complete, "optional resources do not make the lists incomplete");
+});
+
+add_task(function test_cname_lookup_is_for_heavy_only() {
+  const engine = parseFilterList(FIXTURE, "medium");
+  const request = level =>
+    decideNetworkRequest({
+      engine,
+      level,
+      url: "https://cdn.example/app.js",
+      sourceUrl: "https://news.example/",
+      type: "image",
+    });
+  Assert.ok(!request("light").uncloak, "light does no lookup");
+  Assert.ok(!request("medium").uncloak, "medium does no extra DNS lookups");
+  Assert.ok(request("heavy").uncloak, "heavy checks the real host");
+});

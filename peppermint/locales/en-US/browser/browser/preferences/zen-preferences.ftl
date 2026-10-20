@@ -182,6 +182,15 @@ zen-adblock-custom-description = Extra filter rules, one per line, applied on to
 zen-adblock-save-custom =
     .label = Save filters
 
+# $date (String) - when the filter lists were last checked for changes, for example "Oct 18, 2026, 3:04 PM".
+# $count (Number) - how many requests were blocked so far.
+zen-adblock-status = Filter lists last checked { $date }. { $count ->
+        [one] 1 request blocked so far.
+       *[other] { $count } requests blocked so far.
+    }
+
+zen-adblock-status-never = Filter lists have not been downloaded yet.
+
 zen-adblock-update-lists =
     .label = Update lists now
 

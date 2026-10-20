@@ -34,7 +34,9 @@ export const LIST_URLS = {
 export const RESOURCES_URL =
   "https://raw.githubusercontent.com/ghostery/adblocker/master/packages/adblocker/assets/ublock-origin/resources.json";
 
-export const UPDATE_INTERVAL_MS = 4 * 24 * 60 * 60 * 1000;
+// A list is only downloaded again when its server says it changed, so asking
+// once a day costs one small request per list.
+export const UPDATE_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 export const UBLOCK_ORIGIN_ID = "uBlock0@raymondhill.net";
 

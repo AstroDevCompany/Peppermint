@@ -203,7 +203,7 @@ export function decideNetworkRequest({ engine, level, url, sourceUrl, type }) {
 
   return {
     action: "allow",
-    uncloak: level !== "light" && request.isThirdParty && !result.exception,
+    uncloak: level === "heavy" && request.isThirdParty && !result.exception,
     hostname: request.hostname,
   };
 }

@@ -21,6 +21,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
   LIST_URLS: "resource:///modules/zen/adblock/ZenAdblockLists.sys.mjs",
   RESOURCES_URL: "resource:///modules/zen/adblock/ZenAdblockLists.sys.mjs",
   UPDATE_INTERVAL_MS: "resource:///modules/zen/adblock/ZenAdblockLists.sys.mjs",
+  listsFingerprint:
+    "resource:///modules/zen/adblock/ZenAdblockListCache.sys.mjs",
+  nextCheckDelay: "resource:///modules/zen/adblock/ZenAdblockListCache.sys.mjs",
+  refreshLists: "resource:///modules/zen/adblock/ZenAdblockListCache.sys.mjs",
+  CHECK_INTERVAL_MS:
+    "resource:///modules/zen/adblock/ZenAdblockListCache.sys.mjs",
   UBLOCK_ORIGIN_ID: "resource:///modules/zen/adblock/ZenAdblockLists.sys.mjs",
   hashString: "resource:///modules/zen/adblock/ZenAdblockLists.sys.mjs",
   needsVideoPageHook: "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs",
@@ -41,6 +47,12 @@ const FETCH_TIMEOUT_MS = 20000;
 const INVALIDATE_DEBOUNCE_MS = 800;
 const CNAME_TIMEOUT_MS = 250;
 const INCOMPLETE_RETRY_MS = 60 * 60 * 1000;
+const PREF_STATS_TOTAL = "zen.adblock.stats.blocked-total";
+const PREF_UNDERPOWERED = "zen.underpowered.enabled";
+const STATS_FLUSH_MS = 30 * 1000;
+const DECISION_CACHE_SIZE = 2048;
+// A busy browser or a low battery postpones the background update check.
+const BUSY_RETRY_MS = 60 * 60 * 1000;
 
 /**
  * A cached engine is refreshed in the background once it is older than the
@@ -139,6 +151,16 @@ class ZenAdblockManager {
   #uboKnown = false;
   #addonListener = null;
   #invalidateTimer = null;
+  // Mirrors of the two prefs read for every request.
+  #enabled = true;
+  #level = "medium";
+  // Lists are refreshed one level at a time; they share the stored files.
+  #listQueue = Promise.resolve();
+  #listMeta = null;
+  #updateTimer = null;
+  #updateFailures = 0;
+  #blockedTotal = 0;
+  #statsTimer = null;
   // Serialized form of freshly compiled engines, kept only until cached.
   #engineBytes = new WeakMap();
 
@@ -147,6 +169,9 @@ class ZenAdblockManager {
       return;
     }
     this.#initialized = true;
+    this.#enabled = Services.prefs.getBoolPref(PREF_ENABLED, true);
+    this.#level = this.#readLevelPref();
+    this.#blockedTotal = Services.prefs.getIntPref(PREF_STATS_TOTAL, 0);
     this.#addonListener = {
       onEnabled: addon => this.#onAddonEvent(addon),
       onDisabled: addon => this.#onAddonEvent(addon),
@@ -159,6 +184,7 @@ class ZenAdblockManager {
     Services.prefs.addObserver(PREF_ENABLED, this);
     Services.prefs.addObserver(PREF_LEVEL, this);
     Services.prefs.addObserver(PREF_CUSTOM, this);
+    Services.obs.addObserver(this, "quit-application");
     lazy.AddonManager.addAddonListener(this.#addonListener);
     this.#loadOverrides();
     this.#refreshUblock().finally(() => {
@@ -168,9 +194,14 @@ class ZenAdblockManager {
       }
       this.#notifyUpdated();
     });
+    this.#scheduleUpdateCheck(lazy.CHECK_INTERVAL_MS);
   }
 
   observe(subject, topic, data) {
+    if (topic === "quit-application") {
+      this.#flushStats();
+      return;
+    }
     if (topic === "http-on-modify-request") {
       try {
         this.#onModifyRequest(subject.QueryInterface(Ci.nsIHttpChannel));
@@ -194,21 +225,23 @@ class ZenAdblockManager {
       this.#invalidateEngines();
     }
     if (topic === "nsPref:changed" && data === PREF_LEVEL) {
+      this.#level = this.#readLevelPref();
       // Each level has its own cached engine; only the new one may be needed.
       this.#notifyUpdated();
-      if (Services.prefs.getBoolPref(PREF_ENABLED, true) && !this.#uboActive) {
+      if (this.#enabled && !this.#uboActive) {
         this.ensureEngine(this.getGlobalLevel());
       }
     }
     if (topic === "nsPref:changed" && data === PREF_ENABLED) {
+      this.#enabled = Services.prefs.getBoolPref(PREF_ENABLED, true);
       this.#notifyUpdated();
-      if (Services.prefs.getBoolPref(PREF_ENABLED, true) && !this.#uboActive) {
+      if (this.#enabled && !this.#uboActive) {
         this.ensureEngine(this.getGlobalLevel());
       }
     }
   }
 
-  getGlobalLevel() {
+  #readLevelPref() {
     const level = Services.prefs.getStringPref(PREF_LEVEL, "medium");
     if (level === "light" || level === "medium" || level === "heavy") {
       return level;
@@ -216,8 +249,20 @@ class ZenAdblockManager {
     return "medium";
   }
 
+  // The enabled and level prefs are read for every request, so they are
+  // mirrored in fields once the observers exist.
+  #isOn() {
+    return this.#initialized
+      ? this.#enabled
+      : Services.prefs.getBoolPref(PREF_ENABLED, true);
+  }
+
+  getGlobalLevel() {
+    return this.#initialized ? this.#level : this.#readLevelPref();
+  }
+
   isEnabled() {
-    return Services.prefs.getBoolPref(PREF_ENABLED, true) && !this.#uboActive;
+    return this.#isOn() && !this.#uboActive;
   }
 
   isUblockActive() {
@@ -280,7 +325,7 @@ class ZenAdblockManager {
 
   getEffectiveLevel(url) {
     const spec = typeof url === "string" ? url : url?.spec;
-    if (!Services.prefs.getBoolPref(PREF_ENABLED, true) || this.#uboActive) {
+    if (!this.#isOn() || this.#uboActive) {
       return "off";
     }
     const override = this.getOverride(spec);
@@ -295,11 +340,20 @@ class ZenAdblockManager {
       return 0;
     }
     const entry = this.#counts.get(browser);
-    const url = browser.currentURI?.spec;
-    if (!entry || entry.url !== url) {
+    if (!entry || entry.windowId !== this.#currentWindowId(browser)) {
       return 0;
     }
     return entry.count;
+  }
+
+  // The count belongs to one loaded page, so a route change inside a single
+  // page application keeps it and a real navigation starts a new one.
+  #currentWindowId(browser) {
+    try {
+      return browser.browsingContext?.currentWindowGlobal?.innerWindowId || 0;
+    } catch {
+      return 0;
+    }
   }
 
   getCustomRules() {
@@ -310,7 +364,11 @@ class ZenAdblockManager {
     Services.prefs.setStringPref(PREF_CUSTOM, text || "");
   }
 
-  updateListsNow() {
+  async updateListsNow() {
+    // An explicit request asks the servers even if they were asked a moment ago.
+    for (const entry of Object.values(await this.#loadListMeta())) {
+      entry.checkedAt = 0;
+    }
     const levels = new Set([this.getGlobalLevel()]);
     for (const value of Object.values(this.#overrides)) {
       if (value === "light" || value === "medium" || value === "heavy") {
@@ -336,7 +394,11 @@ class ZenAdblockManager {
     const loading = this.#buildEngine(level, force)
       .then(engine => {
         // A failed rebuild (null) keeps the engine that is already blocking.
-        if (this.#generation[level] === generation && engine) {
+        if (
+          this.#generation[level] === generation &&
+          engine &&
+          engine !== this.#engines[level]
+        ) {
           this.#engines[level] = engine;
           this.#notifyUpdated();
         }
@@ -566,48 +628,74 @@ class ZenAdblockManager {
     this.#overrides = data;
   }
 
+  async #readEngineMeta(level) {
+    try {
+      const meta = await IOUtils.readJSON(
+        PathUtils.join(this.#cacheDir(), `${level}.meta.json`)
+      );
+      return meta?.version === CACHE_VERSION ? meta : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Loads the engine for a level. A cached engine is used at once, and is
+   * refreshed in the background when it is stale. `force` asks the list
+   * servers again, but an engine is only compiled when a list changed.
+   */
   async #buildEngine(level, force) {
     const custom = Services.prefs.getStringPref(PREF_CUSTOM, "");
     const hash = lazy.hashString(custom + "\n" + lazy.LIST_URLS[level].join("\n"));
-    const dir = this.#cacheDir();
-    const binPath = PathUtils.join(dir, `${level}.bin`);
-    const metaPath = PathUtils.join(dir, `${level}.meta.json`);
-    if (!force) {
-      try {
-        const meta = await IOUtils.readJSON(metaPath);
-        if (meta?.hash === hash && meta.version === CACHE_VERSION) {
-          const bytes = await IOUtils.read(binPath);
-          const engine = lazy.deserializeEngine(bytes);
-          if (cacheNeedsRefresh(meta, Date.now(), lazy.UPDATE_INTERVAL_MS)) {
-            const generation = this.#generation[level];
-            this.#fetchAndStore(level, hash, binPath, metaPath).then(fresh => {
-              if (fresh && this.#generation[level] === generation) {
-                this.#engines[level] = fresh;
-                this.#notifyUpdated();
-              }
-            }).catch(error => {
-              console.error("ZenAdblock list refresh failed", error);
-            });
-          }
-          return engine;
+    const binPath = PathUtils.join(this.#cacheDir(), `${level}.bin`);
+    const meta = await this.#readEngineMeta(level);
+
+    let cached = null;
+    if (meta?.hash === hash) {
+      if (force && this.#engines[level]) {
+        cached = this.#engines[level];
+      } else {
+        try {
+          cached = lazy.deserializeEngine(await IOUtils.read(binPath));
+        } catch {
+          // Missing or unreadable. Rebuild from the stored lists.
         }
-      } catch {
-        // Cache miss. Build from the network.
       }
     }
-    let fresh = null;
+    if (cached && !force) {
+      if (cacheNeedsRefresh(meta, Date.now(), lazy.UPDATE_INTERVAL_MS)) {
+        ChromeUtils.idleDispatch(() => {
+          if (!Services.startup.shuttingDown && this.#enabled) {
+            this.ensureEngine(level, { force: true });
+          }
+        });
+      }
+      return cached;
+    }
+
+    let outcome = null;
     try {
-      fresh = await this.#fetchAndStore(level, hash, binPath, metaPath);
+      outcome = await this.#refreshEngine(level, hash, {
+        meta: cached ? meta : null,
+        haveEngine: !!cached,
+      });
     } catch (error) {
       console.error("ZenAdblock list download failed", error);
     }
-    if (fresh) {
-      return fresh;
+    if (outcome?.engine) {
+      return outcome.engine;
+    }
+    if (outcome?.unchanged) {
+      // Nothing changed upstream: keep serving the engine that is loaded.
+      return this.#engines[level] || cached;
     }
     // Offline or every list failed: a stale cache beats no blocking at all.
+    if (cached) {
+      return cached;
+    }
     try {
-      const meta = await IOUtils.readJSON(metaPath);
-      if (meta?.version === CACHE_VERSION) {
+      const stale = await this.#readEngineMeta(level);
+      if (stale) {
         return lazy.deserializeEngine(await IOUtils.read(binPath));
       }
     } catch {
@@ -616,53 +704,214 @@ class ZenAdblockManager {
     return null;
   }
 
-  async #fetchAndStore(level, hash, binPath, metaPath) {
-    const [lists, resourcesText] = await Promise.all([
-      fetchFilterLists(lazy.LIST_URLS[level], url => this.#fetchText(url)),
-      this.#fetchText(lazy.RESOURCES_URL).catch(error => {
-        console.error("ZenAdblock resources failed", error);
-        return "";
-      }),
-    ]);
-    const texts = lists.texts;
+  #listsPath() {
+    return PathUtils.join(this.#cacheDir(), "lists.json");
+  }
+
+  #listTextPath(url) {
+    return PathUtils.join(this.#cacheDir(), "lists", `${lazy.hashString(url)}.txt`);
+  }
+
+  async #loadListMeta() {
+    if (!this.#listMeta) {
+      try {
+        const data = await IOUtils.readJSON(this.#listsPath());
+        this.#listMeta = data && typeof data === "object" ? data : {};
+      } catch {
+        this.#listMeta = {};
+      }
+    }
+    return this.#listMeta;
+  }
+
+  async #fetchList(url, known) {
+    const headers = new Headers();
+    // The server decides whether the stored copy is still current.
+    if (known?.etag) {
+      headers.set("If-None-Match", known.etag);
+    } else if (known?.lastModified) {
+      headers.set("If-Modified-Since", known.lastModified);
+    }
+    const controller = new AbortController();
+    const timer = lazy.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+      const response = await fetch(url, { signal: controller.signal, headers });
+      if (response.status === 304) {
+        return { notModified: true };
+      }
+      if (!response.ok) {
+        throw new Error("HTTP " + response.status);
+      }
+      return {
+        text: await response.text(),
+        etag: response.headers.get("ETag") || "",
+        lastModified: response.headers.get("Last-Modified") || "",
+      };
+    } finally {
+      lazy.clearTimeout(timer);
+    }
+  }
+
+  /**
+   * Checks the lists of one level and compiles a new engine only when the
+   * lists differ from the ones the cached engine was built from.
+   *
+   * @returns {Promise<{engine: object|null, unchanged: boolean, complete: boolean}|null>}
+   *   null when no list could be loaded at all.
+   */
+  #refreshEngine(level, hash, { meta, haveEngine }) {
+    const run = this.#listQueue.then(() =>
+      this.#refreshEngineNow(level, hash, { meta, haveEngine })
+    );
+    this.#listQueue = run.catch(() => {});
+    return run;
+  }
+
+  async #refreshEngineNow(level, hash, { meta, haveEngine }) {
+    const urls = lazy.LIST_URLS[level];
+    const binPath = PathUtils.join(this.#cacheDir(), `${level}.bin`);
+    const metaPath = PathUtils.join(this.#cacheDir(), `${level}.meta.json`);
+    const known = await this.#loadListMeta();
+
+    await IOUtils.makeDirectory(PathUtils.join(this.#cacheDir(), "lists"), {
+      ignoreExisting: true,
+    });
+    const refreshed = await lazy.refreshLists([...urls, lazy.RESOURCES_URL], {
+      meta: known,
+      optional: [lazy.RESOURCES_URL],
+      fetchList: (url, entry) => this.#fetchList(url, entry),
+      storeText: (url, text) => IOUtils.writeUTF8(this.#listTextPath(url), text),
+    });
+    this.#listMeta = refreshed.meta;
+    try {
+      await IOUtils.writeJSON(this.#listsPath(), refreshed.meta);
+    } catch (error) {
+      console.error("ZenAdblock failed to store list state", error);
+    }
+
+    if (!urls.some(url => refreshed.meta[url])) {
+      return null;
+    }
+    const listsHash = lazy.listsFingerprint(
+      [...urls, lazy.RESOURCES_URL],
+      refreshed.meta
+    );
+    const custom = Services.prefs.getStringPref(PREF_CUSTOM, "").trim();
+    if (haveEngine && meta?.hash === hash && meta.listsHash === listsHash) {
+      await IOUtils.writeJSON(metaPath, {
+        ...meta,
+        updatedAt: Date.now(),
+        complete: refreshed.complete,
+      });
+      return { engine: null, unchanged: true, complete: refreshed.complete };
+    }
+
+    const texts = [];
+    for (const url of urls) {
+      try {
+        texts.push(await IOUtils.readUTF8(this.#listTextPath(url)));
+      } catch {
+        // A list that was never stored is skipped.
+      }
+    }
     if (!texts.length) {
       return null;
     }
-    const custom = Services.prefs.getStringPref(PREF_CUSTOM, "").trim();
     if (custom) {
       texts.push(custom);
     }
-    const resources = resourcesText || "";
+    let resources = "";
+    try {
+      resources = await IOUtils.readUTF8(this.#listTextPath(lazy.RESOURCES_URL));
+    } catch {
+      // Scriptlet resources are optional.
+    }
     const engine = await this.#compileEngine(texts.join("\n"), level, resources);
     try {
-      await IOUtils.makeDirectory(this.#cacheDir(), { ignoreExisting: true });
-      // The worker already serialized this engine; reuse its bytes instead of
-      // serializing again on the main thread.
       await IOUtils.write(binPath, this.#engineBytes.get(engine) || engine.serialize());
       await IOUtils.writeJSON(metaPath, {
         hash,
+        listsHash,
         updatedAt: Date.now(),
         version: CACHE_VERSION,
-        complete: lists.complete,
+        complete: refreshed.complete,
       });
     } catch (error) {
       console.error("ZenAdblock failed to cache lists", error);
     }
     this.#engineBytes.delete(engine);
-    return engine;
+    return { engine, unchanged: false, complete: refreshed.complete };
   }
 
-  #fetchText(url) {
-    const controller = new AbortController();
-    const timer = lazy.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-    return fetch(url, { signal: controller.signal })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error("HTTP " + response.status);
-        }
-        return response.text();
-      })
-      .finally(() => lazy.clearTimeout(timer));
+  // Background updates
+
+  #scheduleUpdateCheck(delay) {
+    if (this.#updateTimer) {
+      lazy.clearTimeout(this.#updateTimer);
+    }
+    this.#updateTimer = lazy.setTimeout(() => {
+      this.#updateTimer = null;
+      ChromeUtils.idleDispatch(() => this.#runScheduledCheck());
+    }, delay);
+  }
+
+  async #runScheduledCheck() {
+    if (Services.startup.shuttingDown) {
+      return;
+    }
+    let delay = lazy.CHECK_INTERVAL_MS;
+    if (!this.isEnabled()) {
+      this.#scheduleUpdateCheck(delay);
+      return;
+    }
+    if (Services.prefs.getBoolPref(PREF_UNDERPOWERED, false)) {
+      // Downloading and compiling lists is real work. Wait for better times.
+      this.#scheduleUpdateCheck(BUSY_RETRY_MS);
+      return;
+    }
+    const ok = await this.checkForUpdates();
+    this.#updateFailures = ok ? 0 : this.#updateFailures + 1;
+    this.#scheduleUpdateCheck(lazy.nextCheckDelay(this.#updateFailures));
+  }
+
+  /**
+   * Refreshes the engine of every level in use whose lists are older than the
+   * update interval. Unchanged lists cost one conditional request each.
+   *
+   * @returns {Promise<boolean>} Whether every list could be checked.
+   */
+  async checkForUpdates() {
+    const levels = new Set([this.getGlobalLevel()]);
+    for (const value of Object.values(this.#overrides)) {
+      if (value === "light" || value === "medium" || value === "heavy") {
+        levels.add(value);
+      }
+    }
+    let ok = true;
+    for (const level of levels) {
+      const meta = await this.#readEngineMeta(level);
+      if (meta && !cacheNeedsRefresh(meta, Date.now(), lazy.UPDATE_INTERVAL_MS)) {
+        continue;
+      }
+      await this.ensureEngine(level, { force: true });
+      const after = await this.#readEngineMeta(level);
+      ok = ok && after?.complete !== false;
+    }
+    return ok;
+  }
+
+  /**
+   * What the settings page shows about the lists.
+   *
+   * @returns {Promise<{updatedAt: number, blockedTotal: number}>}
+   *   updatedAt is 0 when the lists were never downloaded.
+   */
+  async getStatus() {
+    const meta = await this.#readEngineMeta(this.getGlobalLevel());
+    return {
+      updatedAt: meta?.updatedAt || 0,
+      blockedTotal: this.#blockedTotal,
+    };
   }
 
   #maybeRewriteVideoResponse(subject) {
@@ -771,7 +1020,7 @@ class ZenAdblockManager {
   }
 
   #rememberDecision(key, decision) {
-    if (this.#decisionCache.size >= 512) {
+    if (this.#decisionCache.size >= DECISION_CACHE_SIZE) {
       const oldest = this.#decisionCache.keys().next().value;
       this.#decisionCache.delete(oldest);
     }
@@ -781,7 +1030,7 @@ class ZenAdblockManager {
   }
 
   #onModifyRequest(channel) {
-    if (!Services.prefs.getBoolPref(PREF_ENABLED, true) || this.#uboActive) {
+    if (!this.#isOn() || this.#uboActive) {
       return;
     }
     let uri;
@@ -894,22 +1143,49 @@ class ZenAdblockManager {
   }
 
   #noteBlock(channel) {
+    this.#countBlock();
     let browser;
+    let windowId = 0;
     try {
-      browser = channel.loadInfo.browsingContext?.top?.embedderElement;
+      const context = channel.loadInfo.browsingContext;
+      browser = context?.top?.embedderElement;
+      // A top-level page's own requests carry the id of the page that is
+      // loading them, which is already the new page during a navigation.
+      windowId = context?.parent
+        ? 0
+        : channel.loadInfo.innerWindowID || 0;
     } catch {
       return;
     }
     if (!browser) {
       return;
     }
-    const url = browser.currentURI?.spec || "";
+    windowId ||= this.#currentWindowId(browser);
     const entry = this.#counts.get(browser);
-    if (!entry || entry.url !== url) {
-      this.#counts.set(browser, { url, count: 1 });
+    if (!entry || entry.windowId !== windowId) {
+      this.#counts.set(browser, { windowId, count: 1 });
       return;
     }
     entry.count++;
+  }
+
+  #countBlock() {
+    this.#blockedTotal++;
+    if (!this.#statsTimer) {
+      this.#statsTimer = lazy.setTimeout(() => this.#flushStats(), STATS_FLUSH_MS);
+    }
+  }
+
+  #flushStats() {
+    if (this.#statsTimer) {
+      lazy.clearTimeout(this.#statsTimer);
+      this.#statsTimer = null;
+    }
+    // The pref is a 32 bit integer; stop counting rather than wrap around.
+    const total = Math.min(this.#blockedTotal, 2147483647);
+    if (total !== Services.prefs.getIntPref(PREF_STATS_TOTAL, 0)) {
+      Services.prefs.setIntPref(PREF_STATS_TOTAL, total);
+    }
   }
 
   #pageUrl(channel) {
