@@ -85,8 +85,8 @@ Modern browsers focus too much on adding useless features that you'll maybe end 
 ### Known issues
 
 - No QR code passkey sign-in on MacOS
-- Windows build keeps failing
 - Cookie refusal & ad-blocker can interfere with some websites
+- Awful performance on websites where the adblocker works hard (currently working on it)
 
 [Temporary Fixes](KITF.md)
 
