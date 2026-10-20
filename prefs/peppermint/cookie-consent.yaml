@@ -4,3 +4,7 @@
 
 - name: zen.cookie-consent.enabled
   value: true
+
+# Banners refused or hidden so far, over all pages. Kept on this device only.
+- name: zen.cookie-consent.stats.handled-total
+  value: 0

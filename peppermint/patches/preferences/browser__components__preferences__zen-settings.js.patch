@@ -664,14 +664,10 @@
      for (const pref of [kZenExtendedSidebar, kZenSingleToolbar]) {
        Services.prefs.addObserver(pref, this);
      }
-@@ -716,12 +73,65 @@
-         );
-         Services.prefs.setBoolPref(kZenSingleToolbar, layout.getAttribute("layout") == "single");
-       });
-+    }
-+  },
-+};
-+
+@@ -720,8 +77,61 @@
+   },
+ };
+ 
 +var gZenToolbarUrlbarSettings = {
 +  init() {},
 +};
@@ -692,7 +688,7 @@
 +          ),
 +        }
 +      );
-     }
++    }
 +    const input = document.getElementById("zenTabUnloaderMinutes");
 +    if (!input) {
 +      return;
@@ -704,9 +700,9 @@
 +      input.value = minutes;
 +      Services.prefs.setIntPref(pref, minutes);
 +    });
-   },
- };
- 
++  },
++};
++
  var gZenWorkspacesSettings = {
    init() {
 +    const syncLink = document.getElementById("zenSpacesOpenSyncSettings");
@@ -784,7 +780,7 @@
    _initializeEvents() {
      const resetAllListener = this.resetAllShortcuts.bind(this);
      const handleKeyDown = this._handleKeyDown.bind(this);
-@@ -1143,6 +594,403 @@
+@@ -1143,9 +594,419 @@
      input.classList.remove(`${ZEN_CKS_INPUT_FIELD_CLASS}-not-set`);
      input.value = modifiers.toDisplayString() + gZenKeyboardShortcutsManager.getKeyDisplay(shortcut);
      this._latestValidKey = shortcut;
@@ -871,7 +867,7 @@
 +    for (const snippet of this._manager.getAll()) {
 +      list.appendChild(this._createRow(snippet));
 +    }
-+  },
+   },
 +
 +  _addRow() {
 +    const list = document.getElementById("zenUrlSnippetsList");
@@ -955,8 +951,8 @@
 +      row.remove();
 +    });
 +  },
-+};
-+
+ };
+ 
 +var gZenAdblockSettings = {
 +  init() {
 +    const { gZenAdblock } = ChromeUtils.importESModule(
@@ -978,7 +974,20 @@
 +      this._showStatus(gZenAdblock);
 +    });
 +    this._showStatus(gZenAdblock);
++    this._showCookieStatus();
 +    this._initExceptions(gZenAdblock);
++  },
++
++  _showCookieStatus() {
++    const { gZenCookieConsent } = ChromeUtils.importESModule(
++      "resource:///modules/zen/cookieconsent/ZenCookieConsentManager.sys.mjs"
++    );
++    const status = document.getElementById("zenCookieConsentStatus");
++    if (status) {
++      document.l10n.setAttributes(status, "zen-cookie-consent-status", {
++        count: gZenCookieConsent.handledTotal,
++      });
++    }
 +  },
 +
 +  async _showStatus(gZenAdblock) {
@@ -1185,10 +1194,13 @@
 +      });
 +      sync();
 +    }
-   },
- };
- 
-@@ -1158,11 +1006,51 @@
++  },
++};
++
+ Preferences.addAll([
+   {
+     id: "zen.view.compact.toolbar-flash-popup",
+@@ -1158,11 +1019,51 @@
      default: true,
    },
    {
@@ -1240,7 +1252,7 @@
      id: "zen.pinned-tab-manager.restore-pinned-tabs-to-pinned-url",
      type: "bool",
      default: true,
-@@ -1203,6 +1091,11 @@
+@@ -1203,6 +1104,11 @@
      default: "float",
    },
    {
@@ -1252,7 +1264,7 @@
      id: "zen.workspaces.separate-essentials",
      type: "bool",
      default: false,
-@@ -1225,11 +1118,6 @@
+@@ -1225,11 +1131,6 @@
    {
      id: "zen.workspaces.continue-where-left-off",
      type: "bool",
@@ -1264,7 +1276,7 @@
      default: true,
    },
    {
-@@ -1257,6 +1145,116 @@
+@@ -1257,6 +1158,116 @@
      type: "bool",
      default: false,
    },

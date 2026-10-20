@@ -4,6 +4,7 @@
 
 EXTRA_JS_MODULES.zen.cookieconsent += [
     "ZenCookieConsentEngine.sys.mjs",
+    "ZenCookieConsentLanguages.sys.mjs",
     "ZenCookieConsentManager.sys.mjs",
     "ZenCookieConsentVendors.sys.mjs",
 ]

@@ -194,6 +194,12 @@ zen-adblock-status-never = Filter lists have not been downloaded yet.
 zen-adblock-update-lists =
     .label = Update lists now
 
+# $count (Number) - how many cookie popups were handled so far.
+zen-cookie-consent-status = { $count ->
+        [one] 1 cookie popup handled so far.
+       *[other] { $count } cookie popups handled so far.
+    }
+
 zen-cookie-consent-header = Cookie popups
 
 zen-cookie-consent-description = Refuse cookie popups on every site and hide any that stay on screen. This stays on even if ad blocking is off, and you can pause it for one site from the site panel.

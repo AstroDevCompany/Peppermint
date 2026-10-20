@@ -2,8 +2,16 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  clearTimeout: "resource://gre/modules/Timer.sys.mjs",
+  setTimeout: "resource://gre/modules/Timer.sys.mjs",
+});
+
 const PREF_ENABLED = "zen.cookie-consent.enabled";
+const PREF_STATS_TOTAL = "zen.cookie-consent.stats.handled-total";
 const PAUSED_FILE = "zen-cookie-consent-paused.json";
+const STATS_FLUSH_MS = 30 * 1000;
 
 function hostnameOf(url) {
   try {
@@ -43,13 +51,39 @@ class ZenCookieConsentManager {
   #counts = new WeakMap();
   #epoch = 0;
   #ready = Promise.resolve();
+  #handledTotal = 0;
+  #statsTimer = null;
 
   init() {
     if (this.#initialized || Services.appinfo.inSafeMode) {
       return;
     }
     this.#initialized = true;
+    this.#handledTotal = Services.prefs.getIntPref(PREF_STATS_TOTAL, 0);
+    Services.obs.addObserver(this, "quit-application");
     this.#ready = this.#load();
+  }
+
+  observe() {
+    this.#flushStats();
+  }
+
+  /** @returns {number} Banners handled so far, over all pages. */
+  get handledTotal() {
+    this.init();
+    return this.#handledTotal;
+  }
+
+  #flushStats() {
+    if (this.#statsTimer) {
+      lazy.clearTimeout(this.#statsTimer);
+      this.#statsTimer = null;
+    }
+    // The pref is a 32 bit integer; stop counting rather than wrap around.
+    const total = Math.min(this.#handledTotal, 2147483647);
+    if (total !== Services.prefs.getIntPref(PREF_STATS_TOTAL, 0)) {
+      Services.prefs.setIntPref(PREF_STATS_TOTAL, total);
+    }
   }
 
   /** Resolves once the stored pauses are loaded (for UI that lists them). */
@@ -109,13 +143,31 @@ class ZenCookieConsentManager {
     if (!browser) {
       return;
     }
-    const url = browser.currentURI?.spec || "";
+    this.init();
+    this.#handledTotal++;
+    if (!this.#statsTimer) {
+      this.#statsTimer = lazy.setTimeout(
+        () => this.#flushStats(),
+        STATS_FLUSH_MS
+      );
+    }
+    const windowId = this.#currentWindowId(browser);
     const entry = this.#counts.get(browser);
-    if (!entry || entry.url !== url) {
-      this.#counts.set(browser, { url, count: 1 });
+    if (!entry || entry.windowId !== windowId) {
+      this.#counts.set(browser, { windowId, count: 1 });
       return;
     }
     entry.count++;
+  }
+
+  // The count belongs to one loaded page, so a route change inside a single
+  // page application keeps it and a real navigation starts a new one.
+  #currentWindowId(browser) {
+    try {
+      return browser.browsingContext?.currentWindowGlobal?.innerWindowId || 0;
+    } catch {
+      return 0;
+    }
   }
 
   /**
@@ -124,7 +176,7 @@ class ZenCookieConsentManager {
    */
   getHandledCount(browser) {
     const entry = browser && this.#counts.get(browser);
-    if (!entry || entry.url !== browser.currentURI?.spec) {
+    if (!entry || entry.windowId !== this.#currentWindowId(browser)) {
       return 0;
     }
     return entry.count;

@@ -3,6 +3,12 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import {
+  EXTRA_ACCEPT_PHRASES,
+  EXTRA_CONSENT_WORDS,
+  EXTRA_MANAGE_PHRASES,
+  EXTRA_REJECT_PHRASES,
+} from "resource:///modules/zen/cookieconsent/ZenCookieConsentLanguages.sys.mjs";
+import {
   CMP_RULES,
   CONSENT_FRAME_HOSTS,
   VENDORS,
@@ -253,11 +259,34 @@ function normalize(text) {
     .trim();
 }
 
+// Scripts written without spaces between words, where a phrase can sit
+// inside a longer run of letters.
+const UNSPACED_SCRIPT =
+  /[\u1100-\u11ff\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\u0e00-\u0e7f]/u;
+
+// Every phrase goes through the same normalization as the page text.
+const REJECT_NORMALIZED = [...REJECT_PHRASES, ...EXTRA_REJECT_PHRASES].map(
+  normalize
+);
+const ACCEPT_NORMALIZED = [...ACCEPT_PHRASES, ...EXTRA_ACCEPT_PHRASES].map(
+  normalize
+);
+const MANAGE_NORMALIZED = [...MANAGE_PHRASES, ...EXTRA_MANAGE_PHRASES].map(
+  normalize
+);
+const CONSENT_WORDS_NORMALIZED = [
+  ...CONSENT_WORDS,
+  ...EXTRA_CONSENT_WORDS,
+].map(normalize);
+
 function isWordChar(char) {
   return !!char && /[\p{L}\p{N}]/u.test(char);
 }
 
 function includesPhrase(text, phrase) {
+  if (UNSPACED_SCRIPT.test(phrase)) {
+    return text.includes(phrase);
+  }
   let from = 0;
   while (from <= text.length) {
     const index = text.indexOf(phrase, from);
@@ -287,9 +316,9 @@ function bestPhrase(text, phrases) {
 export function scoreLabel(text) {
   const name = normalize(text).slice(0, 180);
   return {
-    reject: bestPhrase(name, REJECT_PHRASES),
-    accept: bestPhrase(name, ACCEPT_PHRASES),
-    manage: bestPhrase(name, MANAGE_PHRASES),
+    reject: bestPhrase(name, REJECT_NORMALIZED),
+    accept: bestPhrase(name, ACCEPT_NORMALIZED),
+    manage: bestPhrase(name, MANAGE_NORMALIZED),
   };
 }
 
@@ -461,7 +490,7 @@ function textOf(root) {
 }
 
 function hasConsentLanguage(text) {
-  return CONSENT_WORDS.some(word => includesPhrase(text, word));
+  return CONSENT_WORDS_NORMALIZED.some(word => includesPhrase(text, word));
 }
 
 function buttonsIn(root) {

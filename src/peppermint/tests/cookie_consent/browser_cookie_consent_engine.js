@@ -142,3 +142,67 @@ add_task(function test_subframe_decline_is_clicked() {
   Assert.equal(decision.action, "click", "a consent iframe is refused");
   Assert.equal(decision.control.id, "reject", "the subframe reject control is used");
 });
+
+add_task(function test_labels_in_more_languages() {
+  for (const label of [
+    "Отклонить все",
+    "Tümünü reddet",
+    "全部拒绝",
+    "全部拒絕",
+    "不同意",
+    "すべて拒否",
+    "同意しない",
+    "모두 거부",
+    "Απόρριψη όλων",
+    "رفض الكل",
+    "Összes elutasítása",
+    "Tolak semua",
+    "Từ chối tất cả",
+    "Respinge tot",
+  ]) {
+    const scores = scoreLabel(label);
+    Assert.greater(scores.reject, scores.accept, `${label} is a reject control`);
+  }
+  for (const label of [
+    "Принять все",
+    "Tümünü kabul et",
+    "全部接受",
+    "すべて同意",
+    "모두 동의",
+    "Αποδοχή όλων",
+    "قبول الكل",
+    "Terima semua",
+    "Chấp nhận tất cả",
+    "Összes elfogadása",
+  ]) {
+    const scores = scoreLabel(label);
+    Assert.greater(scores.accept, scores.reject, `${label} is an accept control`);
+  }
+  Assert.greater(scoreLabel("设置").manage, 0, "a settings label is recognised");
+});
+
+add_task(function test_banner_in_chinese_is_refused() {
+  const doc = page(`
+    <div role="dialog" aria-modal="true">
+      <p>我们使用 cookie 来改善您的体验。</p>
+      <button id="accept">全部接受</button>
+      <button id="reject">全部拒绝</button>
+    </div>
+  `);
+  const decision = inspectConsent(doc);
+  Assert.equal(decision.action, "click", "a reject control is clicked");
+  Assert.equal(decision.control.id, "reject", "the accept button is left alone");
+});
+
+add_task(function test_banner_in_russian_is_refused() {
+  const doc = page(`
+    <div role="dialog" aria-modal="true">
+      <p>Мы используем файлы cookie, чтобы сайт работал лучше.</p>
+      <button id="accept">Принять все</button>
+      <button id="reject">Отклонить все</button>
+    </div>
+  `);
+  const decision = inspectConsent(doc);
+  Assert.equal(decision.action, "click");
+  Assert.equal(decision.control.id, "reject");
+});

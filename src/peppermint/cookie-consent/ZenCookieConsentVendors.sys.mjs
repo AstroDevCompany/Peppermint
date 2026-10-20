@@ -98,6 +98,36 @@ export const VENDORS = [
     reject: ".cc-deny, .cc-btn.cc-deny",
   },
   {
+    id: "axeptio",
+    root: "#axeptio_overlay",
+    reject: "#axeptio_btn_dismiss",
+  },
+  {
+    id: "cookiehub",
+    root: "#ch2-dialog",
+    reject: ".ch2-deny-all-btn",
+  },
+  {
+    id: "piwikpro",
+    root: "#ppms_cm_popup_overlay",
+    reject: "#ppms_cm_reject-all",
+  },
+  {
+    id: "consentmanager",
+    root: "#cmpbox, #cmpwrapper",
+    reject: ".cmpboxbtnno",
+  },
+  {
+    id: "cookiefirst",
+    root: ".cookiefirst-root",
+    reject: "[data-cookiefirst-action='reject']",
+  },
+  {
+    id: "cookieconsentv3",
+    root: "#cc-main, #cc_div",
+    reject: "button[data-role='necessary']",
+  },
+  {
     id: "cookielawinfo",
     root: "#cookie-law-info-bar, .cli-bar-container, #cookie-notice",
     reject:

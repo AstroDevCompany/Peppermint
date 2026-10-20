@@ -17,6 +17,12 @@ const QUIET_MS = 7000;
 const HARD_STOP_MS = 8000;
 const EXTENDED_STOP_MS = 20000;
 const IDLE_TIMEOUT_MS = 300;
+// After the first scans find nothing, the page keeps being watched cheaply:
+// banners that appear late, or after a route change in a single page app,
+// still get handled. Nodes are batched so busy pages cost one check per batch.
+const LATE_BATCH_MS = 400;
+const LATE_BATCH_NODES = 100;
+const MAX_LATE_ACTIVATIONS = 6;
 
 export class ZenCookieConsentChild extends JSWindowActorChild {
   #destroyed = false;
@@ -31,6 +37,10 @@ export class ZenCookieConsentChild extends JSWindowActorChild {
   #doc = null;
   #sawCandidate = false;
   #extended = false;
+  #late = false;
+  #lateNodes = [];
+  #lateTimer = null;
+  #lateActivations = 0;
 
   handleEvent(event) {
     if (event.type !== "DOMContentLoaded" && event.type !== "pageshow") {
@@ -72,8 +82,10 @@ export class ZenCookieConsentChild extends JSWindowActorChild {
       return;
     }
     this.#clearTimers();
+    this.#stopLate();
     this.#observer?.disconnect();
     this.#observer = null;
+    this.#lateActivations = 0;
     this.#doc = doc;
     this.#done = false;
     this.#allowed = null;
@@ -104,7 +116,7 @@ export class ZenCookieConsentChild extends JSWindowActorChild {
       if (this.#sawCandidate) {
         return;
       }
-      this.#finish();
+      this.#finish({ keepWatching: true });
     }, HARD_STOP_MS);
     this.#timers.push(() => win.clearTimeout(timer));
   }
@@ -140,7 +152,7 @@ export class ZenCookieConsentChild extends JSWindowActorChild {
     }
     const timer = win.setTimeout(() => {
       if (!this.#sawCandidate) {
-        this.#finish();
+        this.#finish({ keepWatching: true });
       }
     }, QUIET_MS);
     this.#timers.push(() => win.clearTimeout(timer));
@@ -176,6 +188,10 @@ export class ZenCookieConsentChild extends JSWindowActorChild {
       return;
     }
     this.#observer = new win.MutationObserver(records => {
+      if (this.#late) {
+        this.#bufferLate(records);
+        return;
+      }
       if (this.#done || this.#scans >= EXTENDED_SCANS) {
         return;
       }
@@ -335,10 +351,92 @@ export class ZenCookieConsentChild extends JSWindowActorChild {
     }
   }
 
-  #finish() {
+  /**
+   * @param {object} [options]
+   * @param {boolean} [options.keepWatching] The page showed no banner. Keep a
+   *   cheap observer so one that appears later is still handled.
+   */
+  #finish({ keepWatching = false } = {}) {
     this.#done = true;
+    this.#clearTimers();
+    if (
+      keepWatching &&
+      this.#observer &&
+      !this.#destroyed &&
+      this.#lateActivations < MAX_LATE_ACTIVATIONS
+    ) {
+      this.#late = true;
+      return;
+    }
+    this.#stopLate();
     this.#observer?.disconnect();
     this.#observer = null;
-    this.#clearTimers();
+  }
+
+  #stopLate() {
+    this.#late = false;
+    this.#lateNodes = [];
+    if (this.#lateTimer) {
+      try {
+        this.contentWindow?.clearTimeout(this.#lateTimer);
+      } catch {
+        // The window may already be gone.
+      }
+      this.#lateTimer = null;
+    }
+  }
+
+  #bufferLate(records) {
+    for (const record of records) {
+      for (const node of record.addedNodes) {
+        if (node.nodeType === 1 && this.#lateNodes.length < LATE_BATCH_NODES) {
+          this.#lateNodes.push(node);
+        }
+      }
+    }
+    if (this.#lateTimer || !this.#lateNodes.length) {
+      return;
+    }
+    const win = this.contentWindow;
+    if (win) {
+      this.#lateTimer = win.setTimeout(() => this.#processLate(), LATE_BATCH_MS);
+    }
+  }
+
+  #processLate() {
+    this.#lateTimer = null;
+    const nodes = this.#lateNodes;
+    this.#lateNodes = [];
+    if (!this.#late || this.#destroyed) {
+      return;
+    }
+    for (const node of nodes) {
+      let matched = false;
+      try {
+        matched = node.isConnected && nodeMayContainConsent(node);
+      } catch {
+        matched = false;
+      }
+      if (matched) {
+        this.#reactivate();
+        return;
+      }
+    }
+  }
+
+  #reactivate() {
+    const win = this.contentWindow;
+    if (!win || this.#lateActivations >= MAX_LATE_ACTIVATIONS) {
+      this.#finish();
+      return;
+    }
+    this.#lateActivations++;
+    this.#late = false;
+    this.#done = false;
+    this.#scans = 0;
+    this.#sawCandidate = false;
+    this.#extended = false;
+    this.#armHardStop(win);
+    this.#schedule(150);
   }
 }

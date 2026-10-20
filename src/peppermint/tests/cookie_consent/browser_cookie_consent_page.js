@@ -38,6 +38,31 @@ const ACCEPT_PAGE = `<!DOCTYPE html><html><body>
   </script>
 </body></html>`;
 
+// A single page app that shows its banner long after the first scans gave up.
+const LATE_PAGE = `<!DOCTYPE html><html><body>
+  <main id="app">Welcome</main>
+  <script>
+    setTimeout(() => {
+      history.pushState({}, "", "/late/next");
+      const banner = document.createElement("div");
+      banner.id = "banner";
+      banner.setAttribute("role", "dialog");
+      banner.setAttribute("aria-modal", "true");
+      banner.innerHTML =
+        '<p>We use cookies on this site.</p>' +
+        '<button id="accept" type="button">Accept all</button>' +
+        '<button id="reject" type="button">Reject all</button>';
+      banner.querySelector("#reject").addEventListener("click", () => {
+        window.__zenReject = 1;
+      });
+      banner.querySelector("#accept").addEventListener("click", () => {
+        window.__zenAccept = 1;
+      });
+      document.body.appendChild(banner);
+    }, 9500);
+  </script>
+</body></html>`;
+
 let server;
 let base;
 
@@ -66,6 +91,9 @@ add_setup(async function () {
   });
   server.registerPathHandler("/accept", (request, response) => {
     writeHtml(response, request, ACCEPT_PAGE);
+  });
+  server.registerPathHandler("/late", (request, response) => {
+    writeHtml(response, request, LATE_PAGE);
   });
   server.start(-1);
   base = `http://localhost:${server.identity.primaryPort}`;
@@ -125,6 +153,37 @@ add_task(async function test_paused_site_keeps_the_banner() {
     Assert.ok(!state.hidden, "the banner stays visible while paused");
   } finally {
     gZenCookieConsent.setPaused(base, false);
+    BrowserTestUtils.removeTab(tab);
+  }
+});
+
+add_task(async function test_banner_that_appears_late_is_still_refused() {
+  const before = gZenCookieConsent.handledTotal;
+  const tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    `${base}/late`
+  );
+  try {
+    await TestUtils.waitForCondition(
+      async () => {
+        const state = await bannerState(tab.linkedBrowser);
+        return state.reject === 1 && state.accept === 0;
+      },
+      "the late banner is refused",
+      250,
+      120
+    );
+    Assert.equal(
+      gZenCookieConsent.getHandledCount(tab.linkedBrowser),
+      1,
+      "the count survives the route change inside the page"
+    );
+    Assert.equal(
+      gZenCookieConsent.handledTotal,
+      before + 1,
+      "the lifetime total grows"
+    );
+  } finally {
     BrowserTestUtils.removeTab(tab);
   }
 });
