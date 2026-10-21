@@ -3,6 +3,9 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import {
+  EARLY_SCRIPTS_INDEX,
+  earlyBundleKey,
+  isEarlyScriptsKey,
   isYouTubeHost,
   VIDEO_PAGE_HOOK,
 } from "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs";
@@ -26,6 +29,10 @@ const MAX_EMPTY_SCANS = 8;
 const IDLE_TIMEOUT_MS = 1000;
 const MAX_EXTENDED_RULES = 500;
 const compiledScripts = new Map();
+// The same scripts once compilation has finished, for injecting without
+// waiting.
+const readyScripts = new Map();
+const MAX_COMPILED_SCRIPTS = 400;
 
 // Shows up in the Firefox Profiler under "ZenAdblock"; costs next to nothing
 // while no profiler is running.
@@ -48,14 +55,126 @@ function isHttpUrl(url) {
 function compilePageScript(code) {
   let pending = compiledScripts.get(code);
   if (!pending) {
+    if (compiledScripts.size >= MAX_COMPILED_SCRIPTS) {
+      compiledScripts.clear();
+      readyScripts.clear();
+    }
     const wrapped = `(function () {\n${code}\n})();`.toWellFormed();
     pending = ChromeUtils.compileScript(
       "data:text/javascript," + encodeURIComponent(wrapped),
       { filename: "zen-adblock-scriptlet.js" }
+    ).then(
+      script => {
+        readyScripts.set(code, script);
+        return script;
+      },
+      error => {
+        compiledScripts.delete(code);
+        throw error;
+      }
     );
     compiledScripts.set(code, pending);
   }
   return pending;
+}
+
+// Scripts the main process published for a few hosts (see
+// EARLY_SCRIPTS_INDEX). They are read once per change, not per document.
+let earlyIndex;
+const earlyBundles = new Map();
+const seenEarlyHosts = new Set();
+let earlyListening = false;
+// Set once the main process has asked this process to keep the scripts of
+// every published host compiled, not only of the ones it has shown.
+let warmAll = false;
+
+function listenForEarlyChanges() {
+  if (earlyListening) {
+    return;
+  }
+  earlyListening = true;
+  Services.cpmm.sharedData.addEventListener("change", event => {
+    if (!event.changedKeys.some(isEarlyScriptsKey)) {
+      return;
+    }
+    earlyIndex = undefined;
+    earlyBundles.clear();
+    ChromeUtils.idleDispatch(warmEarlyScripts);
+  });
+}
+
+function readEarlyScripts(hostname) {
+  listenForEarlyChanges();
+  const shared = Services.cpmm.sharedData;
+  if (earlyIndex === undefined) {
+    earlyIndex = shared.get(EARLY_SCRIPTS_INDEX) || null;
+  }
+  if (!earlyIndex || !Object.hasOwn(earlyIndex, hostname)) {
+    return null;
+  }
+  const bundle = earlyIndex[hostname];
+  let scripts = earlyBundles.get(bundle);
+  if (!scripts) {
+    scripts = shared.get(earlyBundleKey(bundle)) || null;
+    if (scripts) {
+      earlyBundles.set(bundle, scripts);
+    }
+  }
+  return scripts;
+}
+
+// A site-isolated process only ever shows one site, so only that site's
+// hosts are worth compiling for.
+function hostBelongsToThisProcess(host) {
+  const remoteType = Services.appinfo.remoteType || "";
+  if (!remoteType.startsWith("webIsolated=")) {
+    return true;
+  }
+  try {
+    const site = new URL(remoteType.slice("webIsolated=".length)).hostname;
+    return (
+      Services.eTLD.getBaseDomainFromHost(site) ===
+      Services.eTLD.getBaseDomainFromHost(host)
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Compiles the published scripts ahead of the first document that needs them.
+ * Compiling is asynchronous, and a document's first scripts run within a few
+ * event loop turns of it being created, so a script compiled only then
+ * arrives too late. A script compiled in advance can run on the spot.
+ */
+function warmEarlyScripts() {
+  try {
+    listenForEarlyChanges();
+    if (earlyIndex === undefined) {
+      earlyIndex = Services.cpmm.sharedData.get(EARLY_SCRIPTS_INDEX) || null;
+    }
+    const hosts = warmAll
+      ? Object.keys(earlyIndex || {}).filter(hostBelongsToThisProcess)
+      : [...seenEarlyHosts];
+    for (const host of hosts) {
+      for (const code of readEarlyScripts(host) || []) {
+        compilePageScript(code).catch(() => {});
+      }
+    }
+  } catch (error) {
+    console.error("ZenAdblock failed to prepare early scripts", error);
+  }
+}
+
+/**
+ * Reached in every web content process as soon as the main process starts it
+ * (see ZenAdblockManager), well before any document is loaded into it.
+ */
+export class ZenAdblockWarmChild extends JSProcessActorChild {
+  receiveMessage() {
+    warmAll = true;
+    ChromeUtils.idleDispatch(warmEarlyScripts);
+  }
 }
 
 // Long-lived pages (feeds, SPAs) keep adding nodes and new class names. Past
@@ -100,6 +219,7 @@ export class ZenAdblockChild extends JSWindowActorChild {
   handleEvent(event) {
     switch (event.type) {
       case "DOMDocElementInserted":
+        this.#injectEarlyScripts();
         this.#precompileVideoHook();
         this.#ensureHostname();
         break;
@@ -127,6 +247,78 @@ export class ZenAdblockChild extends JSWindowActorChild {
       }
     } catch {
       // It is compiled on demand when injected.
+    }
+  }
+
+  /**
+   * Runs the scripts published for this host before any script of the page
+   * does. Ones that are already compiled run right here; the rest are
+   * compiled together and run in order as soon as they are ready. Nothing in
+   * the main process is asked, so nothing waits for a reply.
+   */
+  #injectEarlyScripts() {
+    const doc = this.document;
+    const win = this.contentWindow;
+    if (!doc || !win || doc.nodePrincipal?.isSystemPrincipal) {
+      return;
+    }
+    const hostname = doc.location?.hostname?.toLowerCase();
+    if (!hostname || !isHttpUrl(doc.documentURI || "")) {
+      return;
+    }
+    let scripts;
+    try {
+      scripts = readEarlyScripts(hostname);
+    } catch (error) {
+      console.error("ZenAdblock early scripts unavailable", error);
+      return;
+    }
+    if (!scripts?.length) {
+      return;
+    }
+    seenEarlyHosts.add(hostname);
+    const pending = [];
+    for (const code of scripts) {
+      if (this.#injectedScripts.has(code)) {
+        continue;
+      }
+      // Marked now, so the reply to the page query skips it.
+      this.#injectedScripts.add(code);
+      const ready = pending.length ? null : readyScripts.get(code);
+      if (ready) {
+        this.#executeScript(ready, win);
+      } else {
+        pending.push(code);
+      }
+    }
+    if (pending.length) {
+      this.#injectInOrder(pending, win);
+    }
+  }
+
+  async #injectInOrder(codes, win) {
+    // Compiling starts for all of them at once; they still run in order.
+    const compiled = codes.map(code => compilePageScript(code));
+    for (const promise of compiled) {
+      let script;
+      try {
+        script = await promise;
+      } catch (error) {
+        console.error("ZenAdblock scriptlet failed", error);
+        continue;
+      }
+      if (this.#destroyed || this.contentWindow !== win) {
+        return;
+      }
+      this.#executeScript(script, win);
+    }
+  }
+
+  #executeScript(script, win) {
+    try {
+      script.executeInGlobal(win);
+    } catch (error) {
+      console.error("ZenAdblock scriptlet failed", error);
     }
   }
 
@@ -605,11 +797,7 @@ export class ZenAdblockChild extends JSWindowActorChild {
       if (this.#destroyed || this.contentWindow !== win) {
         return false;
       }
-      try {
-        script.executeInGlobal(win);
-      } catch (error) {
-        console.error("ZenAdblock scriptlet failed", error);
-      }
+      this.#executeScript(script, win);
       return true;
     } catch (error) {
       console.error("ZenAdblock scriptlet failed", error);

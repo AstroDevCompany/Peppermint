@@ -121,6 +121,57 @@ export const VIDEO_PAGE_HOOK = `
 })();
 `;
 
+// Scripts for a few hosts are handed to every content process ahead of time,
+// so they can run in the first moments of a document, before the page's own
+// scripts. Asking the main process takes a round trip, and by the time the
+// answer arrives the page has already run its first inline scripts: too late
+// to rewrite them or to hook APIs the page then freezes.
+export const EARLY_SCRIPTS_INDEX = "zen-adblock:early-index";
+const EARLY_SCRIPTS_BUNDLE = "zen-adblock:early:";
+
+export function earlyBundleKey(index) {
+  return EARLY_SCRIPTS_BUNDLE + index;
+}
+
+export function isEarlyScriptsKey(key) {
+  return key === EARLY_SCRIPTS_INDEX || key.startsWith(EARLY_SCRIPTS_BUNDLE);
+}
+
+export function parseEarlyHosts(text) {
+  return String(text || "")
+    .split(",")
+    .map(host => host.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+/**
+ * Hosts that end up with the same scripts share one bundle, so the scriptlet
+ * code is stored once however many hosts use it.
+ *
+ * @param {string[]} hosts
+ * @param {(host: string) => string[] | null} resolve Scripts for a host, or
+ *   nothing when the host should not get any.
+ * @returns {{hosts: {[host: string]: number}, bundles: string[][]}}
+ */
+export function buildEarlyScriptTable(hosts, resolve) {
+  const table = { hosts: {}, bundles: [] };
+  const byContent = new Map();
+  for (const host of hosts) {
+    const scripts = resolve(host);
+    if (!scripts?.length) {
+      continue;
+    }
+    const content = scripts.join("\n\u0000\n");
+    let index = byContent.get(content);
+    if (index === undefined) {
+      index = table.bundles.push(scripts) - 1;
+      byContent.set(content, index);
+    }
+    table.hosts[host] = index;
+  }
+  return table;
+}
+
 function hostnameOf(url) {
   try {
     return new URL(url).hostname.toLowerCase();

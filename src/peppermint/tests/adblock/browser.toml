@@ -10,5 +10,9 @@ prefs = [
 
 ["browser_adblock_policy.js"]
 
+["browser_adblock_early_scripts.js"]
+requesttimeout = 300
+prefs = ["zen.adblock.enabled=false"]
+
 ["browser_adblock_page.js"]
 requesttimeout = 300

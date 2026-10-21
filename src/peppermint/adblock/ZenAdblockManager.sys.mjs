@@ -36,6 +36,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
   shouldRewriteVideoAdResponse:
     "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs",
   VIDEO_PAGE_HOOK: "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs",
+  EARLY_SCRIPTS_INDEX: "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs",
+  earlyBundleKey: "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs",
+  parseEarlyHosts: "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs",
+  buildEarlyScriptTable: "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs",
   VideoAdStreamListener: "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs",
 });
 
@@ -43,6 +47,7 @@ const PREF_ENABLED = "zen.adblock.enabled";
 const PREF_LEVEL = "zen.adblock.level";
 const PREF_CNAME = "zen.adblock.cname-uncloak";
 const PREF_CUSTOM = "zen.adblock.customRules";
+const PREF_EARLY_HOSTS = "zen.adblock.early-script-hosts";
 const CACHE_VERSION = 1;
 const TOPIC = "zen-adblock-updated";
 const FETCH_TIMEOUT_MS = 20000;
@@ -195,6 +200,10 @@ class ZenAdblockManager {
   #statsTimer = null;
   // Serialized form of freshly compiled engines, kept only until cached.
   #engineBytes = new WeakMap();
+  // Hosts whose scriptlets are published to the content processes, and how
+  // many bundles were stored, so stale ones can be removed.
+  #earlyHosts = {};
+  #earlyBundleCount = 0;
 
   init() {
     if (this.#initialized || Services.appinfo.inSafeMode) {
@@ -214,7 +223,9 @@ class ZenAdblockManager {
     Services.prefs.addObserver(PREF_ENABLED, this);
     Services.prefs.addObserver(PREF_LEVEL, this);
     Services.prefs.addObserver(PREF_CUSTOM, this);
+    Services.prefs.addObserver(PREF_EARLY_HOSTS, this);
     Services.obs.addObserver(this, "quit-application");
+    this.#registerWarmActor();
     lazy.AddonManager.addAddonListener(this.#addonListener);
     this.#loadOverrides();
     this.#refreshUblock().finally(() => {
@@ -228,7 +239,13 @@ class ZenAdblockManager {
   }
 
   observe(subject, topic, data) {
+    if (topic === "ipc:content-created" || topic === "process-type-set") {
+      this.#warmProcess(subject.QueryInterface(Ci.nsIDOMProcessParent));
+      return;
+    }
     if (topic === "quit-application") {
+      Services.obs.removeObserver(this, "ipc:content-created");
+      Services.obs.removeObserver(this, "process-type-set");
       this.#flushStats();
       this.#removeResponseObservers();
       return;
@@ -256,6 +273,9 @@ class ZenAdblockManager {
     }
     if (topic === "nsPref:changed" && data === PREF_CUSTOM) {
       this.#invalidateEngines();
+    }
+    if (topic === "nsPref:changed" && data === PREF_EARLY_HOSTS) {
+      this.#publishEarlyScripts();
     }
     if (topic === "nsPref:changed" && data === PREF_LEVEL) {
       this.#level = this.#readLevelPref();
@@ -573,8 +593,119 @@ class ZenAdblockManager {
   #notifyUpdated(siteKey = null) {
     this.#decisionCache.clear();
     this.#levelCache.clear();
+    this.#publishEarlyScripts();
     Services.obs.notifyObservers(null, TOPIC, siteKey || "");
     this.#refreshContentActors(siteKey);
+  }
+
+  /**
+   * Every web content process is asked, as it starts, to compile the
+   * published scripts in advance (see ZenAdblockWarmChild). The scripts
+   * themselves travel through the shared map, not through this actor.
+   */
+  #registerWarmActor() {
+    try {
+      ChromeUtils.registerProcessActor("ZenAdblockWarm", {
+        parent: { esModuleURI: "resource:///actors/ZenAdblockParent.sys.mjs" },
+        child: { esModuleURI: "resource:///actors/ZenAdblockChild.sys.mjs" },
+        // Preallocated processes are the ones new tabs end up in.
+        remoteTypes: ["web", "prealloc"],
+        // It only reads scripts from the shared map and compiles them.
+        safeForUntrustedWebProcess: true,
+      });
+    } catch (error) {
+      console.error("ZenAdblock could not register the warm-up actor", error);
+      return;
+    }
+    Services.obs.addObserver(this, "ipc:content-created");
+    Services.obs.addObserver(this, "process-type-set");
+  }
+
+  #warmProcess(process) {
+    if (!Object.keys(this.#earlyHosts).length) {
+      return;
+    }
+    try {
+      // The child side only exists once something is sent to it.
+      process.getActor("ZenAdblockWarm").sendAsyncMessage("ZenAdblock:Warm");
+    } catch {
+      // Not a web process, or it is already shutting down.
+    }
+  }
+
+  /**
+   * Whether the scriptlets for a host are currently published to the content
+   * processes (see EARLY_SCRIPTS_INDEX).
+   *
+   * @param {string} host
+   * @returns {boolean}
+   */
+  hasEarlyScripts(host) {
+    return Object.hasOwn(this.#earlyHosts, String(host).toLowerCase());
+  }
+
+  /**
+   * Resolves the scripts the page query would return for each listed host and
+   * stores them in the shared map every content process reads. Called
+   * whenever anything they depend on changes: lists, level, per-site
+   * overrides, custom rules, the enabled pref or uBlock Origin.
+   */
+  #publishEarlyScripts() {
+    // Until uBlock Origin is known to be absent, the page query is inactive too.
+    if (!this.#initialized || !this.#uboKnown) {
+      return;
+    }
+    try {
+      const hosts =
+        this.#isOn() && !this.#uboActive
+          ? lazy.parseEarlyHosts(Services.prefs.getStringPref(PREF_EARLY_HOSTS, ""))
+          : [];
+      const table = lazy.buildEarlyScriptTable(hosts, host =>
+        this.#earlyScriptsFor(host)
+      );
+      const shared = Services.ppmm.sharedData;
+      for (let i = 0; i < table.bundles.length; i++) {
+        shared.set(lazy.earlyBundleKey(i), table.bundles[i]);
+      }
+      for (let i = table.bundles.length; i < this.#earlyBundleCount; i++) {
+        shared.delete(lazy.earlyBundleKey(i));
+      }
+      shared.set(lazy.EARLY_SCRIPTS_INDEX, table.hosts);
+      shared.flush();
+      this.#earlyBundleCount = table.bundles.length;
+      this.#earlyHosts = table.hosts;
+      for (const process of ChromeUtils.getAllDOMProcesses()) {
+        this.#warmProcess(process);
+      }
+    } catch (error) {
+      console.error("ZenAdblock failed to publish early scripts", error);
+    }
+  }
+
+  #earlyScriptsFor(host) {
+    const url = `https://${host}/`;
+    const level = this.getEffectiveLevel(url);
+    if (level === "off") {
+      return null;
+    }
+    const scripts = [];
+    if (lazy.needsVideoPageHook(url)) {
+      scripts.push(lazy.VIDEO_PAGE_HOOK);
+    }
+    const engine = this.#engines[level];
+    if (engine && level !== "light") {
+      const result = engine.getCosmeticsFilters({
+        url,
+        hostname: host,
+        domain: siteKeyFromUrl(url),
+        classes: [],
+        ids: [],
+        hrefs: [],
+        ...lazy.cosmeticQueryOptions(level, { hostnameOnly: true }),
+      });
+      scripts.push(...lazy.dedupeScriptlets(result.scripts || []));
+    }
+    return scripts;
   }
 
   #refreshContentActors(siteKey) {

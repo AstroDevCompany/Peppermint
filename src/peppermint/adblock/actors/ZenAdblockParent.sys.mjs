@@ -16,3 +16,5 @@ export class ZenAdblockParent extends JSWindowActorParent {
     return null;
   }
 }
+
+export class ZenAdblockWarmParent extends JSProcessActorParent {}

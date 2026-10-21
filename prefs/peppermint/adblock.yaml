@@ -16,6 +16,12 @@
 - name: zen.adblock.customRules
   value: ""
 
+# Hosts whose scriptlets are handed to every content process ahead of time, so
+# they run before the page's own scripts. Needed where a site's anti-adblock
+# code runs in its first inline scripts (YouTube).
+- name: zen.adblock.early-script-hosts
+  value: "www.youtube.com,m.youtube.com,music.youtube.com,tv.youtube.com,youtube.com,www.youtube-nocookie.com,youtube-nocookie.com,www.youtubekids.com,youtubekids.com"
+
 # Requests blocked so far, over all pages. Kept on this device only.
 - name: zen.adblock.stats.blocked-total
   value: 0

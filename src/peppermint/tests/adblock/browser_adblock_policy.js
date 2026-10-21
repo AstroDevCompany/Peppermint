@@ -14,8 +14,11 @@ const {
   "resource:///modules/zen/adblock/ZenAdblockPolicy.sys.mjs"
 );
 const {
+  buildEarlyScriptTable,
+  isEarlyScriptsKey,
   isVideoAdRequest,
   isYouTubeHost,
+  parseEarlyHosts,
   rewriteVideoAdBody,
   shouldRewriteVideoAdResponse,
 } = ChromeUtils.importESModule(
@@ -594,4 +597,36 @@ add_task(function test_youtube_host_check_is_exact_and_case_insensitive() {
   for (const host of ["", null, "example.com", "notyoutube.com", "youtube.com.evil.example"]) {
     Assert.ok(!isYouTubeHost(host), `${host} is not a video host`);
   }
+});
+
+add_task(function test_early_script_table_shares_bundles_and_skips_empty_hosts() {
+  Assert.deepEqual(
+    parseEarlyHosts(" WWW.YouTube.com, ,m.youtube.com,"),
+    ["www.youtube.com", "m.youtube.com"],
+    "the host list is trimmed, lower-cased and has no blanks"
+  );
+  const scripts = {
+    "www.youtube.com": ["hook", "a"],
+    "m.youtube.com": ["hook", "a"],
+    "music.youtube.com": ["hook", "b"],
+    "paused.example": null,
+    "empty.example": [],
+  };
+  const table = buildEarlyScriptTable(Object.keys(scripts), host => scripts[host]);
+  Assert.deepEqual(
+    table.hosts,
+    { "www.youtube.com": 0, "m.youtube.com": 0, "music.youtube.com": 1 },
+    "hosts with the same scripts share a bundle; hosts without scripts are left out"
+  );
+  Assert.deepEqual(
+    table.bundles,
+    [
+      ["hook", "a"],
+      ["hook", "b"],
+    ],
+    "each distinct set of scripts is stored once, in order"
+  );
+  Assert.ok(isEarlyScriptsKey("zen-adblock:early-index"));
+  Assert.ok(isEarlyScriptsKey("zen-adblock:early:3"));
+  Assert.ok(!isEarlyScriptsKey("something-else"));
 });
