@@ -9,6 +9,7 @@ EXTRA_JS_MODULES.zen.adblock += [
     "ZenAdblockManager.sys.mjs",
     "ZenAdblockPolicy.sys.mjs",
     "ZenAdblockVideo.sys.mjs",
+    "ZenAdblockYouTube.sys.mjs",
 ]
 
 EXTRA_JS_MODULES.zen.adblock.vendor += [

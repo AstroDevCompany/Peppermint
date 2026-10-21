@@ -1,6 +1,6 @@
 --- a/browser/components/preferences/zen-settings.js
 +++ b/browser/components/preferences/zen-settings.js
-@@ -3,655 +3,13 @@
+@@ -3,11 +3,6 @@
  // License, v. 2.0. If a copy of the MPL was not distributed with this
  // file, You can obtain one at http://mozilla.org/MPL/2.0/.
  
@@ -12,10 +12,10 @@
  const { nsKeyShortcutModifiers } = ChromeUtils.importESModule(
    "chrome://browser/content/zen-components/ZenKeyboardShortcuts.mjs",
    {
-     global: "current",
+@@ -15,643 +10,6 @@
    }
  );
--
+ 
 -var gZenMarketplaceManager = {
 -  async init() {
 -    const checkForUpdates = document.getElementById("zenThemeMarketplaceCheckForUpdates");
@@ -351,7 +351,7 @@
 -
 -      headerDiv.appendChild(headerTitle);
 -      headerDiv.appendChild(closeButton);
- 
+-
 -      mainDialogDiv.appendChild(headerDiv);
 -      mainDialogDiv.appendChild(contentDiv);
 -      dialog.appendChild(mainDialogDiv);
@@ -664,11 +664,10 @@
      for (const pref of [kZenExtendedSidebar, kZenSingleToolbar]) {
        Services.prefs.addObserver(pref, this);
      }
-@@ -715,13 +72,110 @@
-           layout.getAttribute("layout") != "collapsed"
+@@ -716,12 +73,109 @@
          );
          Services.prefs.setBoolPref(kZenSingleToolbar, layout.getAttribute("layout") == "single");
-+      });
+       });
 +    }
 +  },
 +};
@@ -704,8 +703,8 @@
 +      never.value = Services.prefs.getStringPref(pref, "");
 +      never.addEventListener("change", () => {
 +        Services.prefs.setStringPref(pref, never.value.trim());
-       });
-     }
++      });
++    }
 +    const status = document.getElementById("zenUnderpoweredStatus");
 +    if (status) {
 +      const { ZenUnderpowered } = ChromeUtils.importESModule(
@@ -719,7 +718,7 @@
 +        document.l10n.setAttributes(status, "zen-underpowered-status-off");
 +      }
 +    }
-   },
++  },
 +
 +  init() {
 +    const batteryDescription = document.getElementById(
@@ -736,7 +735,7 @@
 +          ),
 +        }
 +      );
-+    }
+     }
 +    this._initUnderpoweredOptions();
 +    const input = document.getElementById("zenTabUnloaderMinutes");
 +    if (!input) {
@@ -749,7 +748,7 @@
 +      input.value = minutes;
 +      Services.prefs.setIntPref(pref, minutes);
 +    });
-+  },
+   },
  };
  
  var gZenWorkspacesSettings = {
@@ -829,7 +828,7 @@
    _initializeEvents() {
      const resetAllListener = this.resetAllShortcuts.bind(this);
      const handleKeyDown = this._handleKeyDown.bind(this);
-@@ -1143,9 +638,419 @@
+@@ -1143,6 +638,453 @@
      input.classList.remove(`${ZEN_CKS_INPUT_FIELD_CLASS}-not-set`);
      input.value = modifiers.toDisplayString() + gZenKeyboardShortcutsManager.getKeyDisplay(shortcut);
      this._latestValidKey = shortcut;
@@ -903,7 +902,7 @@
 +      .getElementById("zenUrlSnippetsAdd")
 +      .addEventListener("command", () => this._addRow());
 +    this._manager.ready().then(() => this._render());
-   },
++  },
 +
 +  _enqueue(task) {
 +    this._queue = this._queue.then(task, task);
@@ -1000,8 +999,8 @@
 +      row.remove();
 +    });
 +  },
- };
- 
++};
++
 +var gZenAdblockSettings = {
 +  init() {
 +    const { gZenAdblock } = ChromeUtils.importESModule(
@@ -1025,6 +1024,43 @@
 +    this._showStatus(gZenAdblock);
 +    this._showCookieStatus();
 +    this._initExceptions(gZenAdblock);
++    this._initYouTube();
++  },
++
++  async _initYouTube() {
++    const pause = document.getElementById("zenAdblockYouTubePause");
++    const list = document.getElementById("zenAdblockYouTubeExtension");
++    if (!pause || !list) {
++      return;
++    }
++    const { AddonManager } = ChromeUtils.importESModule(
++      "resource://gre/modules/AddonManager.sys.mjs"
++    );
++    const PREF = "zen.adblock.youtube.extension";
++    const addons = (await AddonManager.getAddonsByTypes(["extension"])).filter(
++      addon => !addon.isBuiltin && !addon.isSystem && !addon.hidden
++    );
++    const saved = Services.prefs.getStringPref(PREF, "");
++    const none = await document.l10n.formatValue("zen-adblock-youtube-extension-none");
++    list.removeAllItems();
++    list.appendItem(none, "");
++    for (const addon of addons.sort((a, b) => a.name.localeCompare(b.name))) {
++      list.appendItem(addon.name, addon.id);
++    }
++    if (saved && !addons.some(addon => addon.id === saved)) {
++      // Chosen once and uninstalled since: still shown, so it can be cleared.
++      list.appendItem(saved, saved);
++    }
++    list.value = saved;
++    list.addEventListener("command", () => {
++      Services.prefs.setStringPref(PREF, list.value);
++    });
++    // The extension only takes over where the built-in blocker steps aside.
++    const sync = () => {
++      list.disabled = !pause.checked;
++    };
++    pause.addEventListener("command", sync);
++    sync();
 +  },
 +
 +  _showCookieStatus() {
@@ -1243,13 +1279,10 @@
 +      });
 +      sync();
 +    }
-+  },
-+};
-+
- Preferences.addAll([
-   {
-     id: "zen.view.compact.toolbar-flash-popup",
-@@ -1158,11 +1063,56 @@
+   },
+ };
+ 
+@@ -1158,11 +1100,56 @@
      default: true,
    },
    {
@@ -1306,7 +1339,7 @@
      id: "zen.pinned-tab-manager.restore-pinned-tabs-to-pinned-url",
      type: "bool",
      default: true,
-@@ -1203,6 +1153,11 @@
+@@ -1203,6 +1190,11 @@
      default: "float",
    },
    {
@@ -1318,7 +1351,7 @@
      id: "zen.workspaces.separate-essentials",
      type: "bool",
      default: false,
-@@ -1225,11 +1180,6 @@
+@@ -1225,11 +1217,6 @@
    {
      id: "zen.workspaces.continue-where-left-off",
      type: "bool",
@@ -1330,7 +1363,7 @@
      default: true,
    },
    {
-@@ -1257,6 +1207,116 @@
+@@ -1257,6 +1244,121 @@
      type: "bool",
      default: false,
    },
@@ -1343,6 +1376,11 @@
 +    id: "zen.adblock.level",
 +    type: "string",
 +    default: "medium",
++  },
++  {
++    id: "zen.adblock.youtube.pause",
++    type: "bool",
++    default: false,
 +  },
 +  {
 +    id: "zen.cookie-consent.enabled",

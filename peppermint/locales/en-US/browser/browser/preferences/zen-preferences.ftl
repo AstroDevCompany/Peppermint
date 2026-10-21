@@ -175,6 +175,19 @@ zen-adblock-level-heavy-description = Heavy also hides cookie notices and social
 
 zen-adblock-ubo-note = uBlock Origin is enabled, so the built-in blocker stays idle. Disable that extension to use these levels.
 
+zen-adblock-youtube-header = YouTube
+
+zen-adblock-youtube-description = YouTube refuses to play videos while it detects an ad blocker, and what gets past that changes often. You can leave YouTube alone, and optionally let another ad blocker extension take over there.
+
+zen-adblock-youtube-pause =
+    .label = Pause the built-in blocker on YouTube
+
+zen-adblock-youtube-extension-label = On YouTube, turn on this extension:
+
+zen-adblock-youtube-extension-none = None
+
+zen-adblock-youtube-extension-description = The extension is turned on while a YouTube tab is open and turned off again afterwards, if it was off before. A YouTube page that was already open is reloaded once. Install the extension first; it is listed here once it is installed.
+
 zen-adblock-custom-header = Custom filters
 
 zen-adblock-custom-description = Extra filter rules, one per line, applied on top of the selected level.

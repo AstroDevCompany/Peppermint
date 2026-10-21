@@ -18,6 +18,9 @@ const { gZenAdblock } = ChromeUtils.importESModule(
 const { VIDEO_PAGE_HOOK } = ChromeUtils.importESModule(
   "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs"
 );
+const { decideExtensionAction } = ChromeUtils.importESModule(
+  "resource:///modules/zen/adblock/ZenAdblockYouTube.sys.mjs"
+);
 const { LIST_URLS, RESOURCES_URL, hashString } = ChromeUtils.importESModule(
   "resource:///modules/zen/adblock/ZenAdblockLists.sys.mjs"
 );
@@ -324,4 +327,58 @@ add_task(async function test_the_fallback_can_be_turned_off() {
   Assert.equal(requests, 1, "the page is not reloaded");
   Assert.ok(!allowed, "blocking stays on");
   Services.prefs.clearUserPref("zen.adblock.youtube-wall-fallback");
+});
+
+// The YouTube settings share this file for its offline setup.
+add_task(async function test_pausing_on_youtube_leaves_other_pages_alone() {
+  await useRules();
+  const youtube = [
+    "https://www.youtube.com/watch?v=abc",
+    "https://m.youtube.com/",
+    "https://www.youtube-nocookie.com/embed/abc",
+  ];
+  const others = [
+    "https://example.com/",
+    "https://example.com/watch?youtube=1",
+    "https://notyoutube.com/",
+  ];
+  for (const url of [...youtube, ...others]) {
+    Assert.equal(gZenAdblock.getEffectiveLevel(url), "medium", `${url} is blocked`);
+  }
+
+  Services.prefs.setBoolPref("zen.adblock.youtube.pause", true);
+  registerCleanupFunction(() =>
+    Services.prefs.clearUserPref("zen.adblock.youtube.pause")
+  );
+  for (const url of youtube) {
+    Assert.equal(gZenAdblock.getEffectiveLevel(url), "off", `${url} is left alone`);
+  }
+  for (const url of others) {
+    Assert.equal(gZenAdblock.getEffectiveLevel(url), "medium", `${url} is still blocked`);
+  }
+  Assert.deepEqual(
+    gZenAdblock.getCosmetics({ url: youtube[0], hostnameOnly: true }).scripts,
+    [],
+    "a paused page gets no scripts"
+  );
+
+  Services.prefs.setBoolPref("zen.adblock.youtube.pause", false);
+  Assert.equal(gZenAdblock.getEffectiveLevel(youtube[0]), "medium", "blocked again");
+  Services.prefs.clearUserPref("zen.adblock.youtube.pause");
+});
+
+add_task(function test_the_extension_follows_the_youtube_tabs() {
+  const on = { selected: "ext@id", youtubeTabs: 1, enabled: true, started: false };
+  const cases = [
+    ["turned on when a YouTube tab appears", { ...on, enabled: false }, "enable"],
+    ["left on while a YouTube tab is open", on, null],
+    ["turned off once none is left, if Peppermint turned it on", { ...on, youtubeTabs: 0, started: true }, "disable"],
+    ["left on without YouTube tabs if it was on before", { ...on, youtubeTabs: 0 }, null],
+    ["turned off when it is no longer chosen", { ...on, selected: "", started: true }, "disable"],
+    ["left alone when none is chosen", { ...on, selected: "", enabled: false }, null],
+    ["not touched twice when already off", { ...on, youtubeTabs: 0, enabled: false, started: true }, null],
+  ];
+  for (const [message, state, expected] of cases) {
+    Assert.equal(decideExtensionAction(state), expected, message);
+  }
 });

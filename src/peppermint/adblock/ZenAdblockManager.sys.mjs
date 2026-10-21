@@ -41,6 +41,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   parseEarlyHosts: "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs",
   buildEarlyScriptTable: "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs",
   VideoAdStreamListener: "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs",
+  gZenAdblockYouTube: "resource:///modules/zen/adblock/ZenAdblockYouTube.sys.mjs",
 });
 
 const PREF_ENABLED = "zen.adblock.enabled";
@@ -48,6 +49,7 @@ const PREF_LEVEL = "zen.adblock.level";
 const PREF_CNAME = "zen.adblock.cname-uncloak";
 const PREF_CUSTOM = "zen.adblock.customRules";
 const PREF_EARLY_HOSTS = "zen.adblock.early-script-hosts";
+const PREF_YOUTUBE_PAUSE = "zen.adblock.youtube.pause";
 const PREF_WALL_FALLBACK = "zen.adblock.youtube-wall-fallback";
 const CACHE_VERSION = 1;
 const TOPIC = "zen-adblock-updated";
@@ -192,6 +194,7 @@ class ZenAdblockManager {
   // Mirrors of the two prefs read for every request.
   #enabled = true;
   #level = "medium";
+  #pauseOnYouTube = false;
   // Lists are refreshed one level at a time; they share the stored files.
   #listQueue = Promise.resolve();
   #listMeta = null;
@@ -217,6 +220,7 @@ class ZenAdblockManager {
     this.#initialized = true;
     this.#enabled = Services.prefs.getBoolPref(PREF_ENABLED, true);
     this.#level = this.#readLevelPref();
+    this.#pauseOnYouTube = Services.prefs.getBoolPref(PREF_YOUTUBE_PAUSE, false);
     this.#blockedTotal = Services.prefs.getIntPref(PREF_STATS_TOTAL, 0);
     this.#addonListener = {
       onEnabled: addon => this.#onAddonEvent(addon),
@@ -229,10 +233,12 @@ class ZenAdblockManager {
     Services.prefs.addObserver(PREF_LEVEL, this);
     Services.prefs.addObserver(PREF_CUSTOM, this);
     Services.prefs.addObserver(PREF_EARLY_HOSTS, this);
+    Services.prefs.addObserver(PREF_YOUTUBE_PAUSE, this);
     Services.obs.addObserver(this, "quit-application");
     this.#registerWarmActor();
     lazy.AddonManager.addAddonListener(this.#addonListener);
     this.#loadOverrides();
+    lazy.gZenAdblockYouTube.init();
     this.#refreshUblock().finally(() => {
       this.#uboKnown = true;
       if (!this.#uboActive && Services.prefs.getBoolPref(PREF_ENABLED, true)) {
@@ -281,6 +287,10 @@ class ZenAdblockManager {
     }
     if (topic === "nsPref:changed" && data === PREF_EARLY_HOSTS) {
       this.#publishEarlyScripts();
+    }
+    if (topic === "nsPref:changed" && data === PREF_YOUTUBE_PAUSE) {
+      this.#pauseOnYouTube = Services.prefs.getBoolPref(PREF_YOUTUBE_PAUSE, false);
+      this.#notifyUpdated();
     }
     if (topic === "nsPref:changed" && data === PREF_LEVEL) {
       this.#level = this.#readLevelPref();
@@ -386,6 +396,15 @@ class ZenAdblockManager {
   getEffectiveLevel(url) {
     const spec = typeof url === "string" ? url : url?.spec;
     if (!this.#isOn() || this.#uboActive) {
+      return "off";
+    }
+    // The page's own URL decides, so everything a YouTube page loads is left
+    // alone, and a video embedded elsewhere is not.
+    if (
+      this.#pauseOnYouTube &&
+      spec?.includes("youtube") &&
+      lazy.isYouTubeHost(hostnameOf(spec))
+    ) {
       return "off";
     }
     // Most people never set a per-site level, and then every request would

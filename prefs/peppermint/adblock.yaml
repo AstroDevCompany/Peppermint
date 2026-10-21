@@ -30,3 +30,18 @@
 # clear it, pause blocking on YouTube in that tab until it is closed.
 - name: zen.adblock.youtube-wall-fallback
   value: true
+
+# Leave YouTube pages alone: YouTube refuses to play while it detects an ad
+# blocker, and what gets past that changes often.
+- name: zen.adblock.youtube.pause
+  value: false
+
+# The id of an ad blocker extension to turn on while a YouTube tab is open
+# (only with the pause above), or empty for none.
+- name: zen.adblock.youtube.extension
+  value: ""
+
+# The extension Peppermint turned on for YouTube, so that it is turned off
+# again afterwards. Not a setting.
+- name: zen.adblock.youtube.extension-started
+  value: ""
