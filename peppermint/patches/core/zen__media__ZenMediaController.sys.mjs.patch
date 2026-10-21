@@ -1,6 +1,6 @@
---- a/zen/media/ZenMediaController.mjs
-+++ b/zen/media/ZenMediaController.mjs
-@@ -230,12 +230,32 @@
+--- a/zen/media/ZenMediaController.sys.mjs
++++ b/zen/media/ZenMediaController.sys.mjs
+@@ -228,12 +228,32 @@
    }
  
    updateLabelOverflows() {
@@ -29,15 +29,15 @@
 +        }
 +      }
 +    };
-+    if (window.promiseDocumentFlushed) {
-+      window.promiseDocumentFlushed(measure).then(apply, () => {});
++    if (this.window.promiseDocumentFlushed) {
++      this.window.promiseDocumentFlushed(measure).then(apply, () => {});
 +      return;
      }
 +    apply(measure());
    }
  
    updateSupportedKeys() {
-@@ -446,10 +466,9 @@
+@@ -451,10 +471,9 @@
        // Animate the card out instead of popping it away. It leaves the
        // flex flow immediately (so the remaining cards re-slot right away)
        // but stays anchored where it currently is while it sinks and fades.
@@ -45,13 +45,13 @@
 -        this.manager.mediaControlBar.getBoundingClientRect().bottom;
 -      element.style.bottom =
 -        barBottom - element.getBoundingClientRect().bottom + "px";
-+      const bounds = window.windowUtils.getBoundsWithoutFlushing;
++      const bounds = this.window.windowUtils.getBoundsWithoutFlushing;
 +      const barBottom = bounds(this.manager.mediaControlBar).bottom;
 +      element.style.bottom = barBottom - bounds(element).bottom + "px";
        element.setAttribute("zen-removing", "true");
        // Resolves once the exit transitions finish or get cancelled, and
        // immediately if they never start (e.g. reduced motion).
-@@ -706,18 +725,18 @@
+@@ -721,18 +740,18 @@
        card.element.style.setProperty("--zen-media-card-index", index);
        card.element.style.zIndex = 100 - index;
      });
@@ -67,7 +67,7 @@
 -        "--zen-media-card-peek-level",
 -        Math.min(index, MAX_PEEK_LEVELS)
 -      );
-+    window.promiseDocumentFlushed(() => true).then(() => {
++    this.window.promiseDocumentFlushed(() => true).then(() => {
 +      if (!this.mediaControlBar?.isConnected) {
 +        return;
 +      }
@@ -81,13 +81,13 @@
      });
  
      const stackedCount = Math.min(visibleCards.length, MAX_STACKED_CARDS);
-@@ -778,7 +797,8 @@
+@@ -797,7 +816,8 @@
  
        this.mediaControlBar.style.setProperty(
          "--zen-media-collapsed-height",
 -        front.element.getBoundingClientRect().height + "px"
-+        window.windowUtils.getBoundsWithoutFlushing(front.element).height +
-+          "px"
++        this.window.windowUtils.getBoundsWithoutFlushing(front.element)
++          .height + "px"
        );
        this.mediaControlBar.style.opacity = 0;
-       gZenUIManager.updateTabsToolbar();
+       this.window.gZenUIManager.updateTabsToolbar();

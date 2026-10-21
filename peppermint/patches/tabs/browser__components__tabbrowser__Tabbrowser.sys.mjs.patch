@@ -1,19 +1,19 @@
 --- a/browser/components/tabbrowser/Tabbrowser.sys.mjs
 +++ b/browser/components/tabbrowser/Tabbrowser.sys.mjs
-@@ -7968,7 +7968,11 @@
+@@ -7980,7 +7980,11 @@
     * @param {boolean} [options.replaceLastTab=false]
     *   When true, opens a newtab to prevent the window from closing.
     */
--  replaceTabWithWindow(aTab, { replaceLastTab = false, ...features } = {}) {
+-  replaceTabWithWindow(aTab, { replaceLastTab = false, ...features } = {}, zenForceSync = false) {
 +  replaceTabWithWindow(
 +    aTab,
 +    { replaceLastTab = false, ...features } = {},
 +    zenForceSync = false
 +  ) {
+     if (!this.isTab(aTab)) return; // TODO: Handle tab groups
      if (this.tabs.length == 1) {
        if (!replaceLastTab) {
-         return null;
-@@ -8762,9 +8766,6 @@
+@@ -8775,9 +8779,6 @@
        const tabId = aTab.id;
        const thisTab = this.documentGlobal.gZenWindowSync.getItemFromWindow(this.documentGlobal, tabId);
        if (thisTab) {
@@ -23,7 +23,7 @@
          // Just move the tab to the index
          this.moveTabTo(thisTab, { elementIndex, tabIndex });
          if (spaceId) {
-@@ -8828,10 +8829,6 @@
+@@ -8841,10 +8842,6 @@
        this.removeTab(newTab);
        return null;
      }

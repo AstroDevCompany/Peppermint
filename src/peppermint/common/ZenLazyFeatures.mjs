@@ -17,7 +17,6 @@
 const STYLE = {
   welcome: "chrome://browser/content/zen-styles/zen-welcome.css",
   homepage: "chrome://browser/content/zen-styles/zen-homepage.css",
-  media: "chrome://browser/content/zen-styles/zen-media-controls.css",
   downloads:
     "chrome://browser/content/zen-styles/zen-download-box-animation.css",
   gradient: "chrome://browser/content/zen-styles/zen-gradient-generator.css",
@@ -85,12 +84,6 @@ const FEATURES = [
     module: "resource:///modules/zen/homepage/ZenHomepage.mjs",
     styles: ["homepage"],
     manualInit: true,
-  },
-  {
-    id: "media",
-    global: "gZenMediaController",
-    module: "chrome://browser/content/zen-components/ZenMediaController.mjs",
-    styles: ["media"],
   },
   {
     id: "emoji",
@@ -210,14 +203,6 @@ function prefetchAfterStartup() {
   whenDelayedStartupFinished(() => {
     ChromeUtils.idleDispatch(() => {
       loadGroup("idle");
-      if (!byId.get("media").loaded) {
-        for (const tab of window.gBrowser?.tabs || []) {
-          if (tab.hasAttribute("soundplaying")) {
-            load("media");
-            break;
-          }
-        }
-      }
       try {
         // Motion is ~141KB and was parsed on the first animation.
         void window.gZenUIManager?.motion;
@@ -290,30 +275,6 @@ document.addEventListener(
       window.gZenEmojiPicker?.handleEvent?.(event);
     } catch (error) {
       console.error("ZenLazyFeatures: emoji picker failed to open", error);
-    }
-  },
-  true
-);
-
-window.addEventListener(
-  "TabAttrModified",
-  event => {
-    if (byId.get("media").loaded) {
-      return;
-    }
-    if (!event.detail?.changed?.includes("soundplaying")) {
-      return;
-    }
-    load("media");
-    if (!event.target?.hasAttribute?.("soundplaying")) {
-      return;
-    }
-    try {
-      window.gZenMediaController?.onAudioPlaybackStarted?.(
-        event.target.linkedBrowser
-      );
-    } catch (error) {
-      console.error("ZenLazyFeatures: media controls failed to start", error);
     }
   },
   true

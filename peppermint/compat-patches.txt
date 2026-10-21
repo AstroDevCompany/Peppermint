@@ -2,6 +2,7 @@ src/-prettierignore.patch
 src/-stylelintrc-js.patch
 src/browser/base/content/browser-commands-js.patch
 src/browser/base/moz-build.patch
+src/browser/components/BrowserContentHandler-sys-mjs.patch
 src/browser/components/customizableui/CustomizableUI-sys-mjs.patch
 src/browser/components/extensions/parent/ext-browser-js.patch
 src/browser/components/preferences/preferences-js.patch

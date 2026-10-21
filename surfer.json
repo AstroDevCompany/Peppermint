@@ -5,8 +5,8 @@
   "binaryName": "peppermint",
   "version": {
     "product": "firefox",
-    "version": "158.0",
-    "candidate": "158.0",
+    "version": "158.0.1",
+    "candidate": "158.0.1",
     "candidateBuild": 1
   },
   "buildOptions": {
