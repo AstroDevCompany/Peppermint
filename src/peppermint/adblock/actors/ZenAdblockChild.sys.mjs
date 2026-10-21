@@ -17,8 +17,29 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 const STYLE_ID = "zen-adblock-css";
 const SCAN_LIMIT = 2000;
-const QUIET_MS = 15000;
+// A page that keeps changing is scanned at most this often. The wait doubles
+// while scans find nothing, and after several empty scans in a row the page
+// is left alone until the user scrolls again.
+const MIN_SCAN_INTERVAL_MS = 1000;
+const MAX_SCAN_INTERVAL_MS = 10000;
+const MAX_EMPTY_SCANS = 8;
+const IDLE_TIMEOUT_MS = 1000;
+const MAX_EXTENDED_RULES = 500;
 const compiledScripts = new Map();
+
+// Shows up in the Firefox Profiler under "ZenAdblock"; costs next to nothing
+// while no profiler is running.
+function addMarker(name, start, text) {
+  try {
+    ChromeUtils.addProfilerMarker("ZenAdblock " + name, start, text);
+  } catch {
+    // Markers are a diagnostic only.
+  }
+}
+
+function isHttpUrl(url) {
+  return url.startsWith("http:") || url.startsWith("https:");
+}
 
 // Each scriptlet carries its own copy of the shared helpers. Run as bare
 // global scripts they redeclare each other's top-level bindings and rewire
@@ -42,35 +63,56 @@ function compilePageScript(code) {
 const MAX_PENDING_NODES = 1000;
 const MAX_SEEN_ENTRIES = 10000;
 
+/**
+ * Applies the cosmetic side of the ad blocker to one document.
+ *
+ * The site's own rules arrive once, in the hostname reply. After that the
+ * document is scanned for the ids, classes and links it contains, so the
+ * generic rules for them can be added. Scanning is the costly part, so it is
+ * limited to the visible top frame, runs no more than once a second, and
+ * stops when it keeps finding nothing. Rules are only ever added, as separate
+ * user style sheets, so earlier matches stay and the page is not restyled as
+ * a whole each time.
+ */
 export class ZenAdblockChild extends JSWindowActorChild {
-  #style = null;
+  #sheets = new Set();
+  #fallbackStyles = [];
+  #extended = new Map();
   #observer = null;
-  #timer = 0;
-  #quietTimer = 0;
+  #scanTimer = 0;
   #idleId = 0;
   #injectedScripts = new Set();
   #seenIds = new Set();
   #seenClasses = new Set();
   #seenHrefs = new Set();
-  #hostnameApplied = false;
+  #hostnameQuery = null;
+  #domEnabled = false;
   #destroyed = false;
-  #applying = false;
-  #pending = false;
+  #scanning = false;
   #pendingNodes = [];
+  #interval = MIN_SCAN_INTERVAL_MS;
+  #emptyScans = 0;
+  #lastScan = 0;
+  #dormant = false;
+  #waitingForVisible = false;
+  #wakeListening = false;
 
   handleEvent(event) {
-    if (
-      event.type === "DOMDocElementInserted" ||
-      event.type === "DOMContentLoaded" ||
-      event.type === "pageshow"
-    ) {
-      if (event.type === "DOMDocElementInserted") {
+    switch (event.type) {
+      case "DOMDocElementInserted":
         this.#precompileVideoHook();
-      }
-      this.#apply({ hostnameOnly: !this.#hostnameApplied });
-      if (event.type !== "DOMDocElementInserted") {
-        this.#scheduleDomScan();
-      }
+        this.#ensureHostname();
+        break;
+      case "DOMContentLoaded":
+      case "pageshow":
+        this.#ensureHostname().then(() => this.#scheduleDomScan());
+        break;
+      case "visibilitychange":
+        this.#onVisibilityChange();
+        break;
+      case "scroll":
+        this.#wake();
+        break;
     }
   }
 
@@ -90,29 +132,16 @@ export class ZenAdblockChild extends JSWindowActorChild {
 
   receiveMessage(message) {
     if (message.name === "ZenAdblock:Refresh") {
-      this.#seenIds.clear();
-      this.#seenClasses.clear();
-      this.#seenHrefs.clear();
-      this.#hostnameApplied = false;
-      this.#apply({ hostnameOnly: true });
-      this.#scheduleDomScan();
+      this.#resetPage();
+      this.#ensureHostname().then(() => this.#scheduleDomScan());
     }
   }
 
   didDestroy() {
     this.#destroyed = true;
-    this.#observer?.disconnect();
-    this.#observer = null;
-    const win = this.contentWindow;
-    if (win && this.#timer) {
-      win.clearTimeout(this.#timer);
-    }
-    if (win && this.#quietTimer) {
-      win.clearTimeout(this.#quietTimer);
-    }
-    if (win && this.#idleId) {
-      win.cancelIdleCallback?.(this.#idleId);
-    }
+    this.#stopScanning();
+    this.#unlisten();
+    this.#pendingNodes = [];
   }
 
   #isTopFrame() {
@@ -120,9 +149,90 @@ export class ZenAdblockChild extends JSWindowActorChild {
     return !!context && context.top === context;
   }
 
+  // Page-state
+
+  /**
+   * Back to a clean slate for a list or setting change: the rules in the
+   * page are removed and the document is asked about again from the start.
+   */
+  #resetPage() {
+    this.#stopScanning();
+    this.#removeStyles();
+    this.#extended.clear();
+    this.#seenIds.clear();
+    this.#seenClasses.clear();
+    this.#seenHrefs.clear();
+    this.#pendingNodes = [];
+    this.#interval = MIN_SCAN_INTERVAL_MS;
+    this.#emptyScans = 0;
+    this.#dormant = false;
+    this.#domEnabled = false;
+    this.#hostnameQuery = null;
+  }
+
+  #ensureHostname() {
+    if (!this.#hostnameQuery) {
+      this.#hostnameQuery = this.#applyHostname();
+    }
+    return this.#hostnameQuery;
+  }
+
+  async #applyHostname() {
+    if (this.#destroyed) {
+      return;
+    }
+    const doc = this.document;
+    if (!doc || doc.nodePrincipal?.isSystemPrincipal) {
+      return;
+    }
+    const url = doc.documentURI || "";
+    if (!isHttpUrl(url)) {
+      return;
+    }
+    const start = ChromeUtils.now();
+    try {
+      const result = await this.sendQuery("ZenAdblock:GetCosmetics", {
+        url,
+        hostnameOnly: true,
+      });
+      if (this.#destroyed) {
+        return;
+      }
+      if (!result?.active) {
+        this.#removeStyles();
+        return;
+      }
+      // Subframes (mostly ads) get their site's rules but are never scanned.
+      this.#domEnabled = !!result.dom && this.#isTopFrame();
+      this.#addStyles(result.styles);
+      this.#applyExtended(result.extended);
+      for (const script of result.scripts || []) {
+        if (!script || this.#injectedScripts.has(script)) {
+          continue;
+        }
+        if (await this.#injectScript(script)) {
+          this.#injectedScripts.add(script);
+        }
+      }
+    } catch (error) {
+      if (!this.#destroyed) {
+        console.error("ZenAdblock content apply failed", error);
+      }
+    } finally {
+      addMarker("hostname apply", start);
+    }
+  }
+
+  // Scanning
+
   #scheduleDomScan(nodes) {
+    if (this.#destroyed || !this.#domEnabled) {
+      return;
+    }
     if (nodes?.length) {
-      this.#pendingNodes.push(...nodes);
+      for (const node of nodes) {
+        this.#pendingNodes.push(node);
+      }
       if (this.#pendingNodes.length > MAX_PENDING_NODES) {
         // A burst this large is cheaper to cover with one bounded scan from
         // the root than by holding every node until the page goes idle.
@@ -130,39 +240,40 @@ export class ZenAdblockChild extends JSWindowActorChild {
         this.#pendingNodes = root ? [root] : [];
       }
     }
-    if (this.#destroyed) {
+    if (this.#dormant) {
+      this.#pendingNodes = [];
+      return;
+    }
+    if (this.document?.hidden) {
+      // A tab in the background is not worth the work; it catches up when
+      // it is shown.
+      this.#pendingNodes = [];
+      this.#waitForVisible();
+      return;
+    }
+    if (this.#scanTimer || this.#idleId || this.#scanning) {
       return;
     }
     const win = this.contentWindow;
     if (!win) {
       return;
     }
-    if (this.#idleId) {
-      return;
-    }
-    const run = () => {
-      this.#idleId = 0;
-      const batch = this.#pendingNodes;
-      this.#pendingNodes = [];
-      this.#apply({ nodes: batch.length ? batch : null });
-    };
-    if (win.requestIdleCallback) {
-      this.#idleId = win.requestIdleCallback(run, { timeout: 250 });
-    } else {
-      this.#timer = win.setTimeout(run, 50);
-    }
-    this.#armQuietStop(win);
-  }
-
-  #armQuietStop(win) {
-    if (this.#quietTimer) {
-      win.clearTimeout(this.#quietTimer);
-    }
-    this.#quietTimer = win.setTimeout(() => {
-      this.#quietTimer = 0;
-      this.#observer?.disconnect();
-      this.#observer = null;
-    }, QUIET_MS);
+    const wait = Math.max(0, this.#lastScan + this.#interval - Date.now());
+    this.#scanTimer = win.setTimeout(() => {
+      this.#scanTimer = 0;
+      if (win.requestIdleCallback) {
+        this.#idleId = win.requestIdleCallback(
+          () => {
+            this.#idleId = 0;
+            this.#runScan();
+          },
+          { timeout: IDLE_TIMEOUT_MS }
+        );
+      } else {
+        this.#runScan();
+      }
+    }, wait);
+    this.#watch();
   }
 
   #watch() {
@@ -178,7 +289,8 @@ export class ZenAdblockChild extends JSWindowActorChild {
       const added = [];
       for (const record of records) {
         for (const node of record.addedNodes) {
-          if (node.nodeType === 1) {
+          // Our own fallback style element must not wake the scan again.
+          if (node.nodeType === 1 && node.id !== STYLE_ID) {
             added.push(node);
           }
         }
@@ -191,83 +303,149 @@ export class ZenAdblockChild extends JSWindowActorChild {
       subtree: true,
       childList: true,
     });
-    this.#armQuietStop(win);
   }
 
-  async #apply({ hostnameOnly = false, nodes = null } = {}) {
-    if (this.#destroyed) {
-      return;
+  #stopScanning() {
+    this.#observer?.disconnect();
+    this.#observer = null;
+    const win = this.contentWindow;
+    if (win && this.#scanTimer) {
+      win.clearTimeout(this.#scanTimer);
     }
-    if (this.#applying) {
-      this.#pending = true;
+    if (win && this.#idleId) {
+      win.cancelIdleCallback?.(this.#idleId);
+    }
+    this.#scanTimer = 0;
+    this.#idleId = 0;
+  }
+
+  async #runScan() {
+    if (this.#destroyed || !this.#domEnabled || this.#scanning) {
       return;
     }
     const doc = this.document;
-    if (!doc || doc.nodePrincipal?.isSystemPrincipal) {
+    const url = doc?.documentURI || "";
+    if (!doc?.documentElement || !isHttpUrl(url)) {
       return;
     }
-    const url = doc.documentURI || "";
-    if (!url.startsWith("http:") && !url.startsWith("https:")) {
-      return;
-    }
-    const collected = hostnameOnly
-      ? { ids: [], classes: [], hrefs: [] }
-      : this.#collect(nodes || [doc.documentElement]);
+    const start = ChromeUtils.now();
+    const batch = this.#pendingNodes;
+    this.#pendingNodes = [];
+    const collected = this.#collect(batch.length ? batch : [doc.documentElement]);
+    this.#lastScan = Date.now();
     if (
-      !hostnameOnly &&
       !collected.ids.length &&
       !collected.classes.length &&
       !collected.hrefs.length
     ) {
+      addMarker("scan", start, "nothing new");
+      this.#noteScanResult(false);
       return;
     }
-    this.#applying = true;
+    this.#scanning = true;
     try {
       const result = await this.sendQuery("ZenAdblock:GetCosmetics", {
         url,
-        hostnameOnly,
+        hostnameOnly: false,
         ...collected,
       });
-      if (hostnameOnly) {
-        this.#hostnameApplied = true;
-      }
-      if (this.#destroyed || !result?.active) {
-        if (result && !result.active) {
-          this.#style?.remove();
-          this.#style = null;
-        }
+      if (this.#destroyed) {
         return;
       }
-      const hasRules =
-        !!result.styles ||
-        !!result.scripts?.length ||
-        !!result.extended?.length;
-      if (!this.#isTopFrame() && !hasRules) {
-        this.#observer?.disconnect();
-        this.#observer = null;
-        return;
-      }
-      this.#applyStyles(result.styles);
-      this.#applyExtended(result.extended);
-      if (result.scripts?.length) {
-        for (const script of result.scripts) {
-          if (!script || this.#injectedScripts.has(script)) {
-            continue;
-          }
-          if (await this.#injectScript(script)) {
-            this.#injectedScripts.add(script);
-          }
+      let found = false;
+      if (result?.active) {
+        if (result.styles) {
+          this.#addStyles(result.styles);
+          found = true;
+        }
+        if (result.extended?.length) {
+          this.#applyExtended(result.extended);
+          found = true;
         }
       }
-      this.#watch();
+      this.#noteScanResult(found);
     } catch (error) {
-      console.error("ZenAdblock content apply failed", error);
+      if (!this.#destroyed) {
+        console.error("ZenAdblock content apply failed", error);
+      }
     } finally {
-      this.#applying = false;
-      if (this.#pending && !this.#destroyed) {
-        this.#pending = false;
+      this.#scanning = false;
+      addMarker(
+        "scan",
+        start,
+        `${collected.ids.length + collected.classes.length + collected.hrefs.length} names`
+      );
+      if (!this.#destroyed && this.#pendingNodes.length) {
         this.#scheduleDomScan();
       }
+    }
+  }
+
+  #noteScanResult(found) {
+    if (found) {
+      this.#interval = MIN_SCAN_INTERVAL_MS;
+      this.#emptyScans = 0;
+      return;
+    }
+    this.#emptyScans++;
+    this.#interval = Math.min(this.#interval * 2, MAX_SCAN_INTERVAL_MS);
+    if (this.#emptyScans >= MAX_EMPTY_SCANS) {
+      this.#goDormant();
+    }
+  }
+
+  // Nothing has matched for a while: stop watching the page and look again
+  // only after the user scrolls, which is when most new content arrives.
+  #goDormant() {
+    this.#dormant = true;
+    this.#stopScanning();
+    this.#pendingNodes = [];
+    const win = this.contentWindow;
+    if (win && !this.#wakeListening) {
+      this.#wakeListening = true;
+      // Capture, because scrolling inside an element does not bubble.
+      win.addEventListener("scroll", this, {
+        capture: true,
+        passive: true,
+        once: true,
+      });
+    }
+  }
+
+  #wake() {
+    this.#wakeListening = false;
+    if (this.#destroyed || !this.#dormant) {
+      return;
+    }
+    this.#dormant = false;
+    this.#emptyScans = 0;
+    this.#interval = MIN_SCAN_INTERVAL_MS;
+    this.#scheduleDomScan();
+  }
+
+  #waitForVisible() {
+    if (this.#waitingForVisible) {
+      return;
+    }
+    this.#waitingForVisible = true;
+    this.document?.addEventListener("visibilitychange", this);
+  }
+
+  #onVisibilityChange() {
+    if (this.#destroyed || this.document?.hidden) {
+      return;
+    }
+    this.#waitingForVisible = false;
+    this.document?.removeEventListener("visibilitychange", this);
+    this.#scheduleDomScan();
+  }
+
+  #unlisten() {
+    try {
+      this.document?.removeEventListener("visibilitychange", this);
+      this.contentWindow?.removeEventListener("scroll", this, true);
+    } catch {
+      // The window is already gone.
     }
   }
 
@@ -319,35 +497,84 @@ export class ZenAdblockChild extends JSWindowActorChild {
     return { ids, classes, hrefs };
   }
 
-  #applyStyles(css) {
-    const doc = this.document;
+  // Applying rules
+
+  /**
+   * Adds a style sheet to the document without touching its DOM: the page
+   * cannot see it, it does not wake the page's own observers, and adding one
+   * does not rewrite the ones before it.
+   */
+  #addStyles(css) {
     if (!css) {
-      this.#style?.remove();
-      this.#style = null;
       return;
     }
-    if (!this.#style || !this.#style.isConnected) {
-      this.#style = doc.createElement("style");
-      this.#style.id = STYLE_ID;
-      (doc.head || doc.documentElement).appendChild(this.#style);
+    const win = this.contentWindow;
+    const uri = "data:text/css;charset=utf-8," + encodeURIComponent(css);
+    if (this.#sheets.has(uri)) {
+      return;
     }
-    if (this.#style.textContent !== css) {
-      this.#style.textContent = css;
+    try {
+      win.windowUtils.loadSheetUsingURIString(
+        uri,
+        Ci.nsIDOMWindowUtils.USER_SHEET
+      );
+      this.#sheets.add(uri);
+      return;
+    } catch {
+      // Fall back to a style element below.
     }
+    const doc = this.document;
+    const style = doc?.createElement("style");
+    if (!style) {
+      return;
+    }
+    style.id = STYLE_ID;
+    style.textContent = css;
+    (doc.head || doc.documentElement).appendChild(style);
+    this.#fallbackStyles.push(style);
   }
 
+  #removeStyles() {
+    const win = this.contentWindow;
+    for (const uri of this.#sheets) {
+      try {
+        win.windowUtils.removeSheetUsingURIString(
+          uri,
+          Ci.nsIDOMWindowUtils.USER_SHEET
+        );
+      } catch {
+        // The document is already gone.
+      }
+    }
+    this.#sheets.clear();
+    for (const style of this.#fallbackStyles) {
+      style.remove();
+    }
+    this.#fallbackStyles = [];
+  }
+
+  /**
+   * Procedural filters have to be evaluated against the page itself. Rules
+   * from earlier replies are kept, so each pass covers all of them.
+   */
   #applyExtended(extended) {
-    if (!extended?.length) {
-      return;
-    }
-    const root = this.document.documentElement;
-    if (!root) {
-      return;
-    }
-    for (const rule of extended) {
+    for (const rule of extended || []) {
       if (!rule?.ast) {
         continue;
       }
+      const key = rule.id ?? JSON.stringify(rule.ast);
+      if (this.#extended.size < MAX_EXTENDED_RULES || this.#extended.has(key)) {
+        this.#extended.set(key, rule);
+      }
+    }
+    if (!this.#extended.size) {
+      return;
+    }
+    const root = this.document?.documentElement;
+    if (!root) {
+      return;
+    }
+    for (const rule of this.#extended.values()) {
       let elements = [];
       try {
         elements = lazy.querySelectorAll(root, rule.ast);

@@ -19,14 +19,59 @@ export function engineConfigForLevel(level) {
   };
 }
 
-export function cosmeticQueryOptions(level) {
+/**
+ * A page asks twice. The hostname query returns everything that depends only
+ * on the site (hostname rules, the base stylesheet, scriptlets) and is sent
+ * once per document. DOM queries come back many times while the page changes,
+ * so they return only the generic rules for the names they carry.
+ *
+ * @param {"light" | "medium" | "heavy"} level
+ * @param {object} [options]
+ * @param {boolean} [options.hostnameOnly]
+ */
+export function cosmeticQueryOptions(level, { hostnameOnly = false } = {}) {
+  if (hostnameOnly) {
+    return {
+      getBaseRules: level !== "light",
+      getInjectionRules: level !== "light",
+      getExtendedRules: level === "heavy",
+      getRulesFromDOM: false,
+      getRulesFromHostname: true,
+    };
+  }
   return {
-    getBaseRules: level !== "light",
-    getInjectionRules: level !== "light",
+    getBaseRules: false,
+    getInjectionRules: false,
     getExtendedRules: level === "heavy",
     getRulesFromDOM: true,
-    getRulesFromHostname: true,
+    getRulesFromHostname: false,
   };
+}
+
+/**
+ * Whether a level has generic (class, id, link) cosmetic filters at all. Without
+ * them a page scan can never match, so the page does not need to be scanned.
+ *
+ * @param {"light" | "medium" | "heavy"} level
+ * @returns {boolean}
+ */
+export function levelScansDom(level) {
+  return engineConfigForLevel(level).loadGenericCosmeticsFilters;
+}
+
+/**
+ * Drops scriptlets that are exactly the same as one already in the list.
+ * Filter lists often repeat a rule under several hostnames, and every copy
+ * carries its own helper code and wraps the same page API again.
+ *
+ * @param {string[]} scripts
+ * @returns {string[]}
+ */
+export function dedupeScriptlets(scripts) {
+  if (!scripts || scripts.length < 2) {
+    return scripts || [];
+  }
+  return [...new Set(scripts)];
 }
 
 export function parseFilterList(text, level) {

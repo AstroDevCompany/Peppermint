@@ -3,14 +3,24 @@
 
 "use strict";
 
-const { decideNetworkRequest, parseFilterList, shouldInspectNetworkRequest } =
-  ChromeUtils.importESModule(
-    "resource:///modules/zen/adblock/ZenAdblockPolicy.sys.mjs"
-  );
-const { isVideoAdRequest, rewriteVideoAdBody, shouldRewriteVideoAdResponse } =
-  ChromeUtils.importESModule(
-    "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs"
-  );
+const {
+  cosmeticQueryOptions,
+  decideNetworkRequest,
+  dedupeScriptlets,
+  levelScansDom,
+  parseFilterList,
+  shouldInspectNetworkRequest,
+} = ChromeUtils.importESModule(
+  "resource:///modules/zen/adblock/ZenAdblockPolicy.sys.mjs"
+);
+const {
+  isVideoAdRequest,
+  isYouTubeHost,
+  rewriteVideoAdBody,
+  shouldRewriteVideoAdResponse,
+} = ChromeUtils.importESModule(
+  "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs"
+);
 const { cacheNeedsRefresh, fetchFilterLists, gZenAdblock } =
   ChromeUtils.importESModule(
     "resource:///modules/zen/adblock/ZenAdblockManager.sys.mjs"
@@ -488,4 +498,100 @@ add_task(function test_cname_lookup_is_for_heavy_only() {
   Assert.ok(!request("light").uncloak, "light does no lookup");
   Assert.ok(!request("medium").uncloak, "medium does no extra DNS lookups");
   Assert.ok(request("heavy").uncloak, "heavy checks the real host");
+});
+
+add_task(function test_cosmetic_queries_split_by_cost() {
+  for (const level of ["light", "medium", "heavy"]) {
+    const dom = cosmeticQueryOptions(level);
+    Assert.ok(dom.getRulesFromDOM, `${level}: a page scan reads the DOM rules`);
+    Assert.ok(
+      !dom.getRulesFromHostname && !dom.getBaseRules && !dom.getInjectionRules,
+      `${level}: a page scan never repeats the site's rules or scriptlets`
+    );
+    Assert.equal(dom.getExtendedRules, level === "heavy");
+
+    const host = cosmeticQueryOptions(level, { hostnameOnly: true });
+    Assert.ok(host.getRulesFromHostname, `${level}: the site query reads the site rules`);
+    Assert.ok(!host.getRulesFromDOM, `${level}: the site query ignores the DOM`);
+    Assert.equal(host.getInjectionRules, level !== "light", "light has no scriptlets");
+    Assert.equal(host.getBaseRules, level !== "light");
+  }
+});
+
+add_task(function test_only_levels_with_generic_filters_scan_the_page() {
+  Assert.ok(!levelScansDom("light"), "light has no generic filters to find");
+  Assert.ok(levelScansDom("medium"));
+  Assert.ok(levelScansDom("heavy"));
+
+  const text = ["##.ad-slot", "news.example###top-ad"].join("\n");
+  const light = parseFilterList(text, "light");
+  const fromDom = light.getCosmeticsFilters({
+    url: "https://other.example/",
+    hostname: "other.example",
+    domain: "other.example",
+    classes: ["ad-slot"],
+    ids: [],
+    hrefs: [],
+    ...cosmeticQueryOptions("light"),
+  });
+  Assert.equal(fromDom.styles, "", "a scan at light can never match");
+  const fromHost = light.getCosmeticsFilters({
+    url: "https://news.example/",
+    hostname: "news.example",
+    domain: "news.example",
+    classes: [],
+    ids: [],
+    hrefs: [],
+    ...cosmeticQueryOptions("light", { hostnameOnly: true }),
+  });
+  Assert.ok(fromHost.styles.includes("#top-ad"), "site rules still apply at light");
+});
+
+add_task(function test_dom_scan_replies_carry_only_new_generic_rules() {
+  const engine = parseFilterList(
+    ["##.ad-slot", "news.example###top-ad"].join("\n"),
+    "medium"
+  );
+  const query = (extra, options) =>
+    engine.getCosmeticsFilters({
+      url: "https://news.example/",
+      hostname: "news.example",
+      domain: "news.example",
+      classes: [],
+      ids: [],
+      hrefs: [],
+      ...extra,
+      ...options,
+    });
+  const host = query({}, cosmeticQueryOptions("medium", { hostnameOnly: true }));
+  Assert.ok(host.styles.includes("#top-ad"), "the site reply has the site rule");
+
+  const scan = query({ classes: ["ad-slot"] }, cosmeticQueryOptions("medium"));
+  Assert.ok(scan.styles.includes(".ad-slot"), "a scan returns the generic rule");
+  Assert.ok(!scan.styles.includes("#top-ad"), "a scan does not repeat the site rule");
+  Assert.equal(scan.scripts.length, 0, "a scan carries no scriptlets");
+});
+
+add_task(function test_scriptlets_are_not_injected_twice() {
+  Assert.deepEqual(dedupeScriptlets(["a", "b", "a", "c", "b"]), ["a", "b", "c"]);
+  Assert.deepEqual(dedupeScriptlets([]), []);
+  Assert.deepEqual(dedupeScriptlets(null), []);
+  const one = ["x"];
+  Assert.equal(dedupeScriptlets(one), one, "a single scriptlet is passed through");
+});
+
+add_task(function test_youtube_host_check_is_exact_and_case_insensitive() {
+  for (const host of [
+    "youtube.com",
+    "www.youtube.com",
+    "WWW.YouTube.com",
+    "m.youtube.com.",
+    "www.youtube-nocookie.com",
+    "youtubei.googleapis.com",
+  ]) {
+    Assert.ok(isYouTubeHost(host), `${host} is a video host`);
+  }
+  for (const host of ["", null, "example.com", "notyoutube.com", "youtube.com.evil.example"]) {
+    Assert.ok(!isYouTubeHost(host), `${host} is not a video host`);
+  }
 });

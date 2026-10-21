@@ -39,6 +39,8 @@ function runSurfer() {
     cwd: root,
     encoding: "utf8",
     maxBuffer: 1 << 28,
+    // npx is a .cmd file on Windows and cannot be started without a shell.
+    shell: process.platform === "win32",
   });
   return {
     ok: result.status === 0,
@@ -51,7 +53,8 @@ function failingPatch(output) {
   if (!match) {
     return null;
   }
-  const rel = path.relative(root, match[1]);
+  // Listed and compared with forward slashes on every platform.
+  const rel = path.relative(root, match[1]).split(path.sep).join("/");
   return rel.startsWith("src/") ? rel : null;
 }
 

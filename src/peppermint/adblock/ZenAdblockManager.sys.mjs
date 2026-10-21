@@ -12,6 +12,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource:///modules/zen/adblock/ZenAdblockPolicy.sys.mjs",
   decideNetworkRequest:
     "resource:///modules/zen/adblock/ZenAdblockPolicy.sys.mjs",
+  dedupeScriptlets: "resource:///modules/zen/adblock/ZenAdblockPolicy.sys.mjs",
+  levelScansDom: "resource:///modules/zen/adblock/ZenAdblockPolicy.sys.mjs",
   deserializeEngine: "resource:///modules/zen/adblock/ZenAdblockPolicy.sys.mjs",
   parseFilterList: "resource:///modules/zen/adblock/ZenAdblockPolicy.sys.mjs",
   contentPolicyToRequestType:
@@ -51,6 +53,16 @@ const PREF_STATS_TOTAL = "zen.adblock.stats.blocked-total";
 const PREF_UNDERPOWERED = "zen.underpowered.enabled";
 const STATS_FLUSH_MS = 30 * 1000;
 const DECISION_CACHE_SIZE = 2048;
+const LEVEL_CACHE_SIZE = 256;
+// URLs longer than this carry unique tokens (media ranges, signed links) and
+// would only push useful decisions out of the cache.
+const DECISION_CACHE_MAX_URL = 256;
+// Only these request types are worth holding back for a CNAME lookup.
+const UNCLOAK_TYPES = new Set(["script", "sub_frame", "xmlhttprequest"]);
+// The response observers are only needed once a video site has been seen, and
+// are dropped again after this long without one.
+const RESPONSE_OBSERVER_IDLE_MS = 5 * 60 * 1000;
+const RESPONSE_OBSERVER_REARM_MS = 30 * 1000;
 // A busy browser or a low battery postpones the background update check.
 const BUSY_RETRY_MS = 60 * 60 * 1000;
 
@@ -111,6 +123,20 @@ function hostnameOf(url) {
   }
 }
 
+// Shows up in the Firefox Profiler under "ZenAdblock"; costs next to nothing
+// while no profiler is running.
+function markerStart() {
+  return ChromeUtils.now();
+}
+
+function addMarker(name, start, text) {
+  try {
+    ChromeUtils.addProfilerMarker("ZenAdblock " + name, start, text);
+  } catch {
+    // Markers are a diagnostic only.
+  }
+}
+
 function siteKeyFromUrl(url) {
   if (!url) {
     return null;
@@ -144,6 +170,12 @@ class ZenAdblockManager {
   #generation = { light: 0, medium: 0, heavy: 0 };
   #overrides = {};
   #overridesEpoch = 0;
+  #overrideCount = 0;
+  // Effective level per page URL; only consulted once a site has an override.
+  #levelCache = new Map();
+  #responseObserversOn = false;
+  #responseObserverTimer = null;
+  #responseObserverArmedAt = 0;
   #counts = new WeakMap();
   #cnameCache = new Map();
   #decisionCache = new Map();
@@ -179,8 +211,6 @@ class ZenAdblockManager {
       onUninstalled: addon => this.#onAddonEvent(addon, true),
     };
     Services.obs.addObserver(this, "http-on-modify-request");
-    Services.obs.addObserver(this, "http-on-examine-response");
-    Services.obs.addObserver(this, "http-on-examine-cached-response");
     Services.prefs.addObserver(PREF_ENABLED, this);
     Services.prefs.addObserver(PREF_LEVEL, this);
     Services.prefs.addObserver(PREF_CUSTOM, this);
@@ -200,14 +230,17 @@ class ZenAdblockManager {
   observe(subject, topic, data) {
     if (topic === "quit-application") {
       this.#flushStats();
+      this.#removeResponseObservers();
       return;
     }
     if (topic === "http-on-modify-request") {
+      const start = markerStart();
       try {
         this.#onModifyRequest(subject.QueryInterface(Ci.nsIHttpChannel));
       } catch (error) {
         console.error("ZenAdblock request failed", error);
       }
+      addMarker("request", start);
       return;
     }
     if (
@@ -309,6 +342,8 @@ class ZenAdblockManager {
     } else {
       this.#overrides[key] = level;
     }
+    this.#overrideCount = Object.keys(this.#overrides).length;
+    this.#levelCache.clear();
     const path = this.#overridesPath();
     IOUtils.writeJSON(path, this.#overrides).catch(error => {
       console.error("ZenAdblock failed to store overrides", error);
@@ -328,11 +363,20 @@ class ZenAdblockManager {
     if (!this.#isOn() || this.#uboActive) {
       return "off";
     }
-    const override = this.getOverride(spec);
-    if (override) {
-      return override;
+    // Most people never set a per-site level, and then every request would
+    // pay for a URI parse and a base-domain lookup to find that out.
+    if (!this.#overrideCount) {
+      return this.getGlobalLevel();
     }
-    return this.getGlobalLevel();
+    let level = this.#levelCache.get(spec);
+    if (level === undefined) {
+      level = this.getOverride(spec) || this.getGlobalLevel();
+      if (this.#levelCache.size >= LEVEL_CACHE_SIZE) {
+        this.#levelCache.clear();
+      }
+      this.#levelCache.set(spec, level);
+    }
+    return level;
   }
 
   getBlockedCount(browser) {
@@ -417,63 +461,80 @@ class ZenAdblockManager {
     return loading;
   }
 
+  /**
+   * Answers a page's cosmetic query. The hostname query (`hostnameOnly`) is
+   * sent once per document and carries everything that depends on the site;
+   * later DOM queries only return the generic rules for the names they send.
+   */
   getCosmetics(data) {
+    const start = markerStart();
     try {
-      if (!data?.url || !isHttpUrl(data.url) || !this.#uboKnown || this.#uboActive) {
-        return INACTIVE_COSMETICS;
-      }
-      const level = this.getEffectiveLevel(data.url);
-      if (level === "off") {
-        return INACTIVE_COSMETICS;
-      }
-      const engine = this.#engines[level];
-      if (!engine) {
-        this.ensureEngine(level);
-        if (lazy.needsVideoPageHook(data.url)) {
-          return {
-            active: true,
-            styles: "",
-            scripts: [lazy.VIDEO_PAGE_HOOK],
-            extended: [],
-          };
-        }
-        return INACTIVE_COSMETICS;
-      }
-      const cosmeticOptions = lazy.cosmeticQueryOptions(level);
-      if (data.hostnameOnly) {
-        cosmeticOptions.getRulesFromDOM = false;
-      }
-      const result = engine.getCosmeticsFilters({
-        url: data.url,
-        hostname: hostnameOf(data.url),
-        domain: siteKeyFromUrl(data.url),
-        classes: data.classes || [],
-        ids: data.ids || [],
-        hrefs: data.hrefs || [],
-        ...cosmeticOptions,
-      });
-      let extended = [];
-      if (level === "heavy" && result.extended?.length) {
-        try {
-          extended = JSON.parse(JSON.stringify(result.extended));
-        } catch {
-          extended = [];
-        }
-      }
-      const scripts = level === "light" ? [] : (result.scripts || []).slice();
-      if (lazy.needsVideoPageHook(data.url)) {
-        scripts.unshift(lazy.VIDEO_PAGE_HOOK);
-      }
-      return {
-        active: true,
-        styles: result.styles || "",
-        scripts,
-        extended,
-      };
+      return this.#getCosmetics(data);
     } catch (error) {
       console.error("ZenAdblock cosmetics failed", error);
       return INACTIVE_COSMETICS;
+    } finally {
+      addMarker("getCosmetics", start, data?.hostnameOnly ? "hostname" : "dom");
     }
+  }
+
+  #getCosmetics(data) {
+    if (!data?.url || !isHttpUrl(data.url) || !this.#uboKnown || this.#uboActive) {
+      return INACTIVE_COSMETICS;
+    }
+    const level = this.getEffectiveLevel(data.url);
+    if (level === "off") {
+      return INACTIVE_COSMETICS;
+    }
+    const hostnameOnly = !!data.hostnameOnly;
+    const engine = this.#engines[level];
+    if (!engine) {
+      this.ensureEngine(level);
+      if (hostnameOnly && lazy.needsVideoPageHook(data.url)) {
+        return {
+          active: true,
+          dom: false,
+          styles: "",
+          scripts: [lazy.VIDEO_PAGE_HOOK],
+          extended: [],
+        };
+      }
+      return INACTIVE_COSMETICS;
+    }
+    const result = engine.getCosmeticsFilters({
+      url: data.url,
+      hostname: hostnameOf(data.url),
+      domain: siteKeyFromUrl(data.url),
+      classes: data.classes || [],
+      ids: data.ids || [],
+      hrefs: data.hrefs || [],
+      ...lazy.cosmeticQueryOptions(level, { hostnameOnly }),
+    });
+    let extended = [];
+    if (level === "heavy" && result.extended?.length) {
+      try {
+        extended = JSON.parse(JSON.stringify(result.extended));
+      } catch {
+        extended = [];
+      }
+    }
+    let scripts = [];
+    if (hostnameOnly) {
+      if (level !== "light") {
+        scripts = lazy.dedupeScriptlets(result.scripts || []);
+      }
+      if (lazy.needsVideoPageHook(data.url)) {
+        scripts = [lazy.VIDEO_PAGE_HOOK, ...scripts];
+      }
+    }
+    return {
+      active: true,
+      // Whether the page has to be scanned for ids, classes and links.
+      dom: lazy.levelScansDom(level),
+      styles: result.styles || "",
+      scripts,
+      extended,
+    };
   }
 
   #onAddonEvent(addon, removed = false) {
@@ -511,6 +572,7 @@ class ZenAdblockManager {
    */
   #notifyUpdated(siteKey = null) {
     this.#decisionCache.clear();
+    this.#levelCache.clear();
     Services.obs.notifyObservers(null, TOPIC, siteKey || "");
     this.#refreshContentActors(siteKey);
   }
@@ -626,6 +688,8 @@ class ZenAdblockManager {
       return;
     }
     this.#overrides = data;
+    this.#overrideCount = Object.keys(data).length;
+    this.#levelCache.clear();
   }
 
   async #readEngineMeta(level) {
@@ -914,6 +978,52 @@ class ZenAdblockManager {
     };
   }
 
+  // Every response of every tab would otherwise run a script here, although
+  // only video sites need it. The first request to one registers the
+  // observers, which is always before its response, and they are dropped
+  // again after a while without one.
+  #noteVideoHostRequest() {
+    if (!this.#responseObserversOn) {
+      this.#responseObserversOn = true;
+      Services.obs.addObserver(this, "http-on-examine-response");
+      Services.obs.addObserver(this, "http-on-examine-cached-response");
+    }
+    // A busy video page sends many requests; re-arming the timer for each
+    // one would cost more than the observers it saves.
+    const now = Date.now();
+    if (
+      this.#responseObserverTimer &&
+      now - this.#responseObserverArmedAt < RESPONSE_OBSERVER_REARM_MS
+    ) {
+      return;
+    }
+    if (this.#responseObserverTimer) {
+      lazy.clearTimeout(this.#responseObserverTimer);
+    }
+    this.#responseObserverArmedAt = now;
+    this.#responseObserverTimer = lazy.setTimeout(() => {
+      this.#responseObserverTimer = null;
+      this.#removeResponseObservers();
+    }, RESPONSE_OBSERVER_IDLE_MS);
+  }
+
+  #removeResponseObservers() {
+    if (this.#responseObserverTimer) {
+      lazy.clearTimeout(this.#responseObserverTimer);
+      this.#responseObserverTimer = null;
+    }
+    if (!this.#responseObserversOn) {
+      return;
+    }
+    this.#responseObserversOn = false;
+    try {
+      Services.obs.removeObserver(this, "http-on-examine-response");
+      Services.obs.removeObserver(this, "http-on-examine-cached-response");
+    } catch {
+      // Already gone at shutdown.
+    }
+  }
+
   #maybeRewriteVideoResponse(subject) {
     if (!this.isEnabled()) {
       return;
@@ -1045,6 +1155,9 @@ class ZenAdblockManager {
     if (!channel.loadInfo?.browsingContext) {
       return;
     }
+    if (lazy.isYouTubeHost(uri.host)) {
+      this.#noteVideoHostRequest();
+    }
 
     const type = lazy.contentPolicyToRequestType(
       channel.loadInfo.externalContentPolicyType ??
@@ -1085,22 +1198,26 @@ class ZenAdblockManager {
       this.ensureEngine(level);
     }
     const sourceUrl = this.#sourceUrl(channel) || pageUrl;
-    const cacheKey = `${level}\n${type}\n${sourceHost}\n${uri.spec}`;
-    let decision = this.#decisionCache.get(cacheKey);
+    const spec = uri.spec;
+    const cacheable = type !== "media" && spec.length <= DECISION_CACHE_MAX_URL;
+    const cacheKey = cacheable
+      ? `${level}\n${type}\n${sourceHost}\n${spec}`
+      : null;
+    let decision = cacheable ? this.#decisionCache.get(cacheKey) : null;
     if (decision) {
       this.#decisionCache.delete(cacheKey);
       this.#decisionCache.set(cacheKey, decision);
     } else {
-      decision = this.#rememberDecision(
-        cacheKey,
-        lazy.decideNetworkRequest({
-          engine,
-          level,
-          url: uri.spec,
-          sourceUrl,
-          type,
-        })
-      );
+      decision = lazy.decideNetworkRequest({
+        engine,
+        level,
+        url: spec,
+        sourceUrl,
+        type,
+      });
+      if (cacheable) {
+        this.#rememberDecision(cacheKey, decision);
+      }
     }
     if (decision.action === "cancel" || decision.action === "redirect") {
       this.#applyDecision(channel, decision);
@@ -1109,6 +1226,7 @@ class ZenAdblockManager {
     if (
       decision.uncloak &&
       level === "heavy" &&
+      UNCLOAK_TYPES.has(type) &&
       decision.hostname &&
       engine &&
       Services.prefs.getBoolPref(PREF_CNAME, true)

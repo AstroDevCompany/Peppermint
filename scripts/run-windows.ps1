@@ -120,12 +120,25 @@ if (-not (Test-Path "node_modules\.bin\surfer.cmd") -and -not (Test-Path "node_m
 }
 
 function Repair-EnginePatches {
+    # Zen's patches and Peppermint's overlay patches edit the same lines, so
+    # Zen's patches only re-apply cleanly with the overlay taken off. The
+    # overlay goes back on afterwards, as in `npm run import`.
+    $overlay = Join-Path $Root "peppermint\scripts\apply-overlay.mjs"
+    node $overlay revert
+    if ($LASTEXITCODE -ne 0) {
+        throw "apply-overlay revert failed"
+    }
     node (Join-Path $Root "scripts\apply-engine-patches.mjs")
     if ($LASTEXITCODE -ne 0) {
         throw "apply-engine-patches failed"
     }
     node (Join-Path $Root "scripts\ensure-jar-manifest-patches.mjs")
-    return $LASTEXITCODE -eq 2
+    $manifestRepaired = $LASTEXITCODE -eq 2
+    node $overlay apply
+    if ($LASTEXITCODE -ne 0) {
+        throw "apply-overlay apply failed"
+    }
+    return $manifestRepaired
 }
 
 function Find-Browser {
@@ -190,7 +203,10 @@ else {
     Repair-EnginePatches | Out-Null
 }
 
-node (Join-Path $Root "scripts\run-python.mjs") -c @'
+# A multi-line -c argument is cut at the first newline by cmd on Windows, so
+# the snippet goes through a file.
+$vendorScript = Join-Path $env:TEMP "peppermint-set-vendor.py"
+@'
 from pathlib import Path
 vendor = Path("engine/browser/moz.configure")
 text = vendor.read_text(encoding="utf-8")
@@ -199,7 +215,8 @@ new = "imply_option(\"MOZ_APP_VENDOR\", \"MintFlow Technologies\")"
 if old in text:
     vendor.write_text(text.replace(old, new, 1), encoding="utf-8")
     print("Set the application vendor to MintFlow Technologies")
-'@
+'@ | Set-Content -Path $vendorScript -Encoding ASCII
+node (Join-Path $Root "scripts\run-python.mjs") $vendorScript
 if ($LASTEXITCODE -ne 0) { throw "vendor moz.configure update failed" }
 
 Invoke-Checked "Selecting the Peppermint release brand" { npm run surfer -- set brand release }

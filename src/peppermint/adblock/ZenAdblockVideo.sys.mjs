@@ -130,10 +130,15 @@ function hostnameOf(url) {
 }
 
 export function isYouTubeHost(hostname) {
+  // Runs for every request, and every host this matches contains "youtube".
   if (!hostname) {
     return false;
   }
-  const host = hostname.toLowerCase().replace(/\.$/, "");
+  const lower = hostname.toLowerCase();
+  if (!lower.includes("youtube")) {
+    return false;
+  }
+  const host = lower.replace(/\.$/, "");
   return (
     host === "youtube.com" ||
     host.endsWith(".youtube.com") ||

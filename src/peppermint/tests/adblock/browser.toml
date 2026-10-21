@@ -9,3 +9,6 @@ prefs = [
 ]
 
 ["browser_adblock_policy.js"]
+
+["browser_adblock_page.js"]
+requesttimeout = 300
