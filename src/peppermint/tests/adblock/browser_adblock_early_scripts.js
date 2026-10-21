@@ -3,6 +3,9 @@
 
 "use strict";
 
+// The wall tests wait out the seconds the retries get.
+requestLongerTimeout(4);
+
 // Offline: the lists are seeded into the profile as if they had just been
 // downloaded, so the blocker has nothing to fetch.
 
@@ -11,6 +14,9 @@ const { HttpServer } = ChromeUtils.importESModule(
 );
 const { gZenAdblock } = ChromeUtils.importESModule(
   "resource:///modules/zen/adblock/ZenAdblockManager.sys.mjs"
+);
+const { VIDEO_PAGE_HOOK } = ChromeUtils.importESModule(
+  "resource:///modules/zen/adblock/ZenAdblockVideo.sys.mjs"
 );
 const { LIST_URLS, RESOURCES_URL, hashString } = ChromeUtils.importESModule(
   "resource:///modules/zen/adblock/ZenAdblockLists.sys.mjs"
@@ -179,4 +185,143 @@ add_task(async function test_paused_site_is_not_published() {
     "no scriptlet runs on a paused site"
   );
   gZenAdblock.removeOverrideForSite("localhost");
+});
+
+// A player that answers with the "ad blockers violate the Terms of Service"
+// screen, as some accounts get it, under a status the lists do not retry on.
+async function runEnforcementPage(status) {
+  // The page must not be one the blocker pauses itself on (see below).
+  Services.prefs.setStringPref("zen.adblock.early-script-hosts", "");
+  await TestUtils.waitForCondition(
+    () => !gZenAdblock.hasEarlyScripts("localhost"),
+    "nothing is published for the host"
+  );
+  return BrowserTestUtils.withNewTab(pageUrl(), async browser => {
+    await SpecialPowers.spawn(browser, [VIDEO_PAGE_HOOK, status], (hook, initial) => {
+      content.eval(`
+        window.ytcfg = { data_: { INNERTUBE_CONTEXT: { client: {
+          userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:1.0) Gecko/1 Firefox/1.0",
+        } } } };
+        window.loads = [];
+        window.wallEvents = 0;
+        window.addEventListener("zen-adblock-wall", () => window.wallEvents++);
+        window.nextStatus = ${JSON.stringify(initial)};
+        const player = document.createElement("div");
+        player.id = "movie_player";
+        player.getPlayerResponse = () => ({
+          playabilityStatus: window.nextStatus,
+          videoDetails: { videoId: "abc" },
+          playerConfig: { playbackStartConfig: { startSeconds: 7 } },
+        });
+        player.loadVideoById = (id, start) => {
+          window.loads.push(id + "@" + start + " " + window.ytcfg.data_.INNERTUBE_CONTEXT.client.userAgent);
+          // The retry is answered with the same screen, as a fresh response.
+          window.nextStatus = JSON.parse(JSON.stringify(window.nextStatus));
+        };
+        document.body.appendChild(player);
+      `);
+      content.eval(hook);
+    });
+    // Each pass of the retry runs once a second.
+    await new Promise(resolve => setTimeout(resolve, 6500));
+    return SpecialPowers.spawn(browser, [], () => ({
+      loads: Array.from(content.wrappedJSObject.loads),
+      agent: content.wrappedJSObject.ytcfg.data_.INNERTUBE_CONTEXT.client.userAgent,
+      wallEvents: content.wrappedJSObject.wallEvents,
+    }));
+  });
+}
+
+const ENFORCED = {
+  status: "ERROR",
+  errorScreen: { enforcementMessageViewModel: { isVisible: true } },
+};
+
+add_task(async function test_enforcement_screen_is_retried_with_each_marker_once() {
+  const { loads, agent, wallEvents } = await runEnforcementPage(ENFORCED);
+  Assert.equal(wallEvents, 1, "the page is told once that the retries ran out");
+  Assert.deepEqual(
+    loads.map(entry => entry.match(/rv:1.0; (\w+)\)/)?.[1]),
+    ["lactmilli", "inline", "yahi", "channel"],
+    "the video is loaded again once per marker, in order"
+  );
+  Assert.ok(loads.every(entry => entry.startsWith("abc@7 ")), "same video and position");
+  Assert.ok(
+    !/lactmilli|inline|yahi|channel/.test(agent),
+    "once every marker has failed the client is left as it was"
+  );
+});
+
+add_task(async function test_other_player_states_are_left_alone() {
+  for (const status of [
+    { status: "OK" },
+    // The list's own retry handles this one.
+    { status: "UNPLAYABLE", errorScreen: { enforcementMessageViewModel: {} } },
+    { status: "ERROR", errorScreen: { playerErrorMessageRenderer: {} } },
+  ]) {
+    const { loads } = await runEnforcementPage(status);
+    Assert.deepEqual(loads, [], `no retry for ${JSON.stringify(status)}`);
+  }
+});
+
+// The wall is looked for on YouTube and on the hosts that have scripts
+// published, which is how a local page stands in for YouTube here.
+const WALL_PAGE = `<!DOCTYPE html><html><body>
+  <ytd-enforcement-message-view-model>Ad blockers violate YouTube's Terms of Service</ytd-enforcement-message-view-model>
+</body></html>`;
+
+async function loadWallPage({ expectReload }) {
+  const wallServer = new HttpServer();
+  let requests = 0;
+  wallServer.registerPathHandler("/watch", (request, response) => {
+    requests++;
+    response.setHeader("Content-Type", "text/html", false);
+    response.write(WALL_PAGE);
+  });
+  wallServer.start(-1);
+  const url = `http://localhost:${wallServer.identity.primaryPort}/watch?v=abc`;
+  await useRules();
+  Services.prefs.setStringPref("zen.adblock.early-script-hosts", "localhost");
+  await TestUtils.waitForCondition(
+    () => gZenAdblock.hasEarlyScripts("localhost"),
+    "the host is published"
+  );
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  let result;
+  await BrowserTestUtils.withNewTab(url, async browser => {
+    // The retries get a few seconds before blocking is paused.
+    if (expectReload) {
+      await TestUtils.waitForCondition(() => requests >= 2, "the page is reloaded", 500, 80);
+    } else {
+      await new Promise(resolve => setTimeout(resolve, 12000));
+    }
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    result = {
+      requests,
+      allowed: gZenAdblock.isTabAllowed(browser, url),
+      stored: await SpecialPowers.spawn(browser, [], () =>
+        content.sessionStorage.getItem("zen-adblock-allowed")
+      ),
+    };
+  });
+  await new Promise(resolve => wallServer.stop(resolve));
+  return result;
+}
+
+add_task(async function test_a_wall_that_stays_pauses_blocking_for_the_tab() {
+  const { requests, allowed, stored } = await loadWallPage({ expectReload: true });
+  Assert.equal(requests, 2, "the page is loaded once more, and only once");
+  Assert.ok(allowed, "blocking is paused for the site in that tab");
+  Assert.equal(stored, "1", "the tab remembers it for the reload and later pages");
+});
+
+add_task(async function test_the_fallback_can_be_turned_off() {
+  Services.prefs.setBoolPref("zen.adblock.youtube-wall-fallback", false);
+  registerCleanupFunction(() =>
+    Services.prefs.clearUserPref("zen.adblock.youtube-wall-fallback")
+  );
+  const { requests, allowed } = await loadWallPage({ expectReload: false });
+  Assert.equal(requests, 1, "the page is not reloaded");
+  Assert.ok(!allowed, "blocking stays on");
+  Services.prefs.clearUserPref("zen.adblock.youtube-wall-fallback");
 });

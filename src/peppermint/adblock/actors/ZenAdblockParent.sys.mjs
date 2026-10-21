@@ -11,9 +11,16 @@ ChromeUtils.defineESModuleGetters(lazy, {
 export class ZenAdblockParent extends JSWindowActorParent {
   receiveMessage(message) {
     if (message.name === "ZenAdblock:GetCosmetics") {
-      return lazy.gZenAdblock.getCosmetics(message.data);
+      return lazy.gZenAdblock.getCosmetics(message.data, this.#browser());
+    }
+    if (message.name === "ZenAdblock:AllowTab") {
+      return lazy.gZenAdblock.allowTab(this.#browser(), message.data?.url);
     }
     return null;
+  }
+
+  #browser() {
+    return this.browsingContext?.top?.embedderElement || null;
   }
 }
 

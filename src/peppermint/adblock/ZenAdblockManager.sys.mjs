@@ -48,6 +48,7 @@ const PREF_LEVEL = "zen.adblock.level";
 const PREF_CNAME = "zen.adblock.cname-uncloak";
 const PREF_CUSTOM = "zen.adblock.customRules";
 const PREF_EARLY_HOSTS = "zen.adblock.early-script-hosts";
+const PREF_WALL_FALLBACK = "zen.adblock.youtube-wall-fallback";
 const CACHE_VERSION = 1;
 const TOPIC = "zen-adblock-updated";
 const FETCH_TIMEOUT_MS = 20000;
@@ -204,6 +205,10 @@ class ZenAdblockManager {
   // many bundles were stored, so stale ones can be removed.
   #earlyHosts = {};
   #earlyBundleCount = 0;
+  // Sites where blocking is paused in a tab, until the tab is closed (see
+  // allowTab).
+  #allowedBrowsers = new WeakMap();
+  #anyTabAllowed = false;
 
   init() {
     if (this.#initialized || Services.appinfo.inSafeMode) {
@@ -486,9 +491,16 @@ class ZenAdblockManager {
    * sent once per document and carries everything that depends on the site;
    * later DOM queries only return the generic rules for the names they send.
    */
-  getCosmetics(data) {
+  /**
+   * @param {object} data
+   * @param {Element} [browser] The tab the page is in.
+   */
+  getCosmetics(data, browser = null) {
     const start = markerStart();
     try {
+      if (this.isTabAllowed(browser, data?.url)) {
+        return INACTIVE_COSMETICS;
+      }
       return this.#getCosmetics(data);
     } catch (error) {
       console.error("ZenAdblock cosmetics failed", error);
@@ -630,6 +642,62 @@ class ZenAdblockManager {
       process.getActor("ZenAdblockWarm").sendAsyncMessage("ZenAdblock:Warm");
     } catch {
       // Not a web process, or it is already shutting down.
+    }
+  }
+
+  /**
+   * YouTube answers some accounts with a wall that refuses to play anything
+   * while ads are blocked. When the page cannot get past it, blocking is
+   * paused for that tab, as AdBlock does, and lasts until the tab is closed.
+   * The page remembers this for its own tab (see ZenAdblockChild), so a
+   * reload or a restored session asks again.
+   *
+   * @param {Element} browser
+   * @param {string} url A page of the site to pause blocking on.
+   * @returns {boolean} Whether blocking is now paused there.
+   */
+  allowTab(browser, url) {
+    const site = siteKeyFromUrl(url);
+    if (
+      !browser ||
+      !site ||
+      !Services.prefs.getBoolPref(PREF_WALL_FALLBACK, true) ||
+      !this.isEnabled()
+    ) {
+      return false;
+    }
+    let sites = this.#allowedBrowsers.get(browser);
+    if (!sites) {
+      sites = new Set();
+      this.#allowedBrowsers.set(browser, sites);
+    }
+    sites.add(site);
+    this.#anyTabAllowed = true;
+    return true;
+  }
+
+  /**
+   * @param {Element} browser
+   * @param {string} url The page being loaded in it.
+   * @returns {boolean}
+   */
+  isTabAllowed(browser, url) {
+    if (!this.#anyTabAllowed || !browser) {
+      return false;
+    }
+    const sites = this.#allowedBrowsers.get(browser);
+    return !!sites && sites.has(siteKeyFromUrl(url));
+  }
+
+  #tabAllowsChannel(channel) {
+    if (!this.#anyTabAllowed) {
+      return false;
+    }
+    try {
+      const browser = channel.loadInfo?.browsingContext?.top?.embedderElement;
+      return this.isTabAllowed(browser, this.#pageUrl(channel) || channel.URI.spec);
+    } catch {
+      return false;
     }
   }
 
@@ -1177,6 +1245,9 @@ class ZenAdblockManager {
     if (channel.responseStatus !== 200) {
       return;
     }
+    if (this.#tabAllowsChannel(channel)) {
+      return;
+    }
     let spec = "";
     let contentType = "";
     try {
@@ -1284,6 +1355,9 @@ class ZenAdblockManager {
       return;
     }
     if (!channel.loadInfo?.browsingContext) {
+      return;
+    }
+    if (this.#tabAllowsChannel(channel)) {
       return;
     }
     if (lazy.isYouTubeHost(uri.host)) {

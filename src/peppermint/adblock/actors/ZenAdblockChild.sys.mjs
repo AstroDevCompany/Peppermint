@@ -28,6 +28,14 @@ const MAX_SCAN_INTERVAL_MS = 10000;
 const MAX_EMPTY_SCANS = 8;
 const IDLE_TIMEOUT_MS = 1000;
 const MAX_EXTENDED_RULES = 500;
+// YouTube's full-page "ad blockers violate the Terms of Service" screen. The
+// retries in the video hook and the filter lists get a few seconds to clear
+// it before blocking is paused for the tab. The video hook can also report
+// that it has run out of retries, which does not wait.
+const WALL_SELECTOR = "ytd-enforcement-message-view-model";
+const WALL_POLL_MS = 1500;
+const WALL_GRACE_MS = 6000;
+const ALLOWED_KEY = "zen-adblock-allowed";
 const compiledScripts = new Map();
 // The same scripts once compilation has finished, for injecting without
 // waiting.
@@ -87,6 +95,13 @@ let earlyListening = false;
 // Set once the main process has asked this process to keep the scripts of
 // every published host compiled, not only of the ones it has shown.
 let warmAll = false;
+
+// Hosts that get the wall handling: YouTube, and any host whose scripts are
+// published (the main process only publishes for hosts it is blocking on).
+function isWallHost(hostname) {
+  const host = hostname?.toLowerCase();
+  return !!host && (isYouTubeHost(host) || !!readEarlyScripts(host));
+}
 
 function listenForEarlyChanges() {
   if (earlyListening) {
@@ -215,10 +230,17 @@ export class ZenAdblockChild extends JSWindowActorChild {
   #dormant = false;
   #waitingForVisible = false;
   #wakeListening = false;
+  #wallTimer = 0;
+  // Blocking is paused for this site in this tab (see #allowTab).
+  #allowed = false;
+  #allowing = false;
 
   handleEvent(event) {
     switch (event.type) {
       case "DOMDocElementInserted":
+        if (this.#resumeAllowed()) {
+          break;
+        }
         this.#injectEarlyScripts();
         this.#precompileVideoHook();
         this.#ensureHostname();
@@ -226,6 +248,7 @@ export class ZenAdblockChild extends JSWindowActorChild {
       case "DOMContentLoaded":
       case "pageshow":
         this.#ensureHostname().then(() => this.#scheduleDomScan());
+        this.#watchForWall();
         break;
       case "visibilitychange":
         this.#onVisibilityChange();
@@ -296,6 +319,127 @@ export class ZenAdblockChild extends JSWindowActorChild {
     }
   }
 
+  /**
+   * A tab where the wall could not be cleared remembers it in its own session
+   * storage, which lasts as long as the tab, so the reload that follows (and
+   * any later page of the site) is left alone. The main process is told
+   * again, since it forgets when the browser restarts and the tab is restored.
+   *
+   * @returns {boolean} Whether this page is left alone.
+   */
+  #resumeAllowed() {
+    const doc = this.document;
+    if (!doc || !isWallHost(doc.location?.hostname)) {
+      return false;
+    }
+    try {
+      if (this.contentWindow.sessionStorage.getItem(ALLOWED_KEY) !== "1") {
+        return false;
+      }
+    } catch {
+      return false;
+    }
+    this.#allowed = true;
+    this.sendQuery("ZenAdblock:AllowTab", { url: doc.documentURI })
+      .then(allowed => {
+        if (!allowed) {
+          // The fallback was turned off since; the next page is blocked again.
+          this.contentWindow?.sessionStorage.removeItem(ALLOWED_KEY);
+        }
+      })
+      .catch(() => {});
+    return true;
+  }
+
+  // Temporary: see the same trace in ZenAdblockVideo.
+  #trace(step) {
+    try {
+      const storage = this.contentWindow.sessionStorage;
+      const old = storage.getItem("zen-adblock-wall-log") || "";
+      storage.setItem("zen-adblock-wall-log", (old + " " + step).slice(-600));
+    } catch {
+      // Not available on this page.
+    }
+  }
+
+  #watchForWall() {
+    const win = this.contentWindow;
+    if (
+      this.#wallTimer ||
+      this.#allowed ||
+      this.#destroyed ||
+      !win ||
+      !isWallHost(this.document?.location?.hostname)
+    ) {
+      if (win && !this.#wallTimer && isYouTubeHost(this.document?.location?.hostname)) {
+        this.#trace("skip:" + [!!this.#allowed, !!this.#destroyed].join(","));
+      }
+      return;
+    }
+    // Fired by the video hook, so the page can fake it: the only effect is
+    // that this tab stops being blocked on a YouTube host.
+    win.addEventListener("zen-adblock-wall", () => this.#allowTab(), false, true);
+    this.#trace("watch");
+    let since = 0;
+    this.#wallTimer = win.setInterval(() => {
+      if (this.#destroyed) {
+        return;
+      }
+      if (!this.document?.querySelector(WALL_SELECTOR)) {
+        since = 0;
+        return;
+      }
+      if (!since) {
+        since = Date.now();
+        this.#trace("wall");
+      }
+      if (Date.now() - since >= WALL_GRACE_MS) {
+        win.clearInterval(this.#wallTimer);
+        this.#wallTimer = 0;
+        this.#allowTab();
+      }
+    }, WALL_POLL_MS);
+  }
+
+  async #allowTab() {
+    const win = this.contentWindow;
+    const doc = this.document;
+    if (!win || !doc || this.#allowed || this.#allowing) {
+      return;
+    }
+    this.#allowing = true;
+    this.#trace("ask");
+    const time = doc.querySelector("video")?.currentTime || 0;
+    let allowed = false;
+    try {
+      allowed = await this.sendQuery("ZenAdblock:AllowTab", {
+        url: doc.documentURI,
+      });
+    } catch (error) {
+      this.#allowing = false;
+      this.#trace("ask-error:" + String(error).slice(0, 80));
+      return;
+    }
+    if (!allowed || this.#destroyed || this.contentWindow !== win) {
+      this.#allowing = false;
+      this.#trace("denied");
+      return;
+    }
+    this.#trace("allowed");
+    try {
+      win.sessionStorage.setItem(ALLOWED_KEY, "1");
+    } catch {
+      // Without it only this reload is unblocked, and that is enough to play.
+    }
+    if (time > 5) {
+      const url = new URL(win.location.href);
+      url.searchParams.set("t", String(Math.floor(time)));
+      win.location.replace(url.href);
+    } else {
+      win.location.reload();
+    }
+  }
+
   async #injectInOrder(codes, win) {
     // Compiling starts for all of them at once; they still run in order.
     const compiled = codes.map(code => compilePageScript(code));
@@ -331,6 +475,11 @@ export class ZenAdblockChild extends JSWindowActorChild {
 
   didDestroy() {
     this.#destroyed = true;
+    try {
+      this.contentWindow?.clearInterval(this.#wallTimer);
+    } catch {
+      // The window is already gone.
+    }
     this.#stopScanning();
     this.#unlisten();
     this.#pendingNodes = [];
@@ -370,7 +519,7 @@ export class ZenAdblockChild extends JSWindowActorChild {
   }
 
   async #applyHostname() {
-    if (this.#destroyed) {
+    if (this.#destroyed || this.#allowed) {
       return;
     }
     const doc = this.document;

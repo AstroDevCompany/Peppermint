@@ -118,6 +118,83 @@ export const VIDEO_PAGE_HOOK = `
       return send.apply(this, arguments);
     };
   }
+  // Some accounts get a full-page "ad blockers violate the Terms of Service"
+  // screen under a status other than UNPLAYABLE. The retry in the filter lists
+  // only looks for UNPLAYABLE, so it never starts for them. This runs the same
+  // retry: put a marker in the client's user agent (the lists' request rules
+  // key on it) and load the video again, trying each marker once.
+  (function () {
+    // Temporary: a short trace of what this did, for sessionStorage
+    // "zen-adblock-wall-log", read while the wall is being debugged.
+    function trace(step) {
+      try {
+        const old = sessionStorage.getItem("zen-adblock-wall-log") || "";
+        sessionStorage.setItem("zen-adblock-wall-log", (old + " " + step).slice(-600));
+      } catch (e) {}
+    }
+    trace("hook@" + Math.round(performance.now() / 1000) + "s");
+    const MARKERS = ["lactmilli", "inline", "yahi", "channel"];
+    const ALL = MARKERS.concat([]);
+    let remaining = MARKERS.slice();
+    let handled = null;
+    function clientContext() {
+      const config = window.ytcfg && window.ytcfg.data_;
+      return config && config.INNERTUBE_CONTEXT && config.INNERTUBE_CONTEXT.client;
+    }
+    function setMarker(marker) {
+      const client = clientContext();
+      if (!client || typeof client.userAgent !== "string") {
+        return;
+      }
+      let agent = client.userAgent;
+      for (const known of ALL) {
+        agent = agent.split("; " + known + ")").join(")");
+      }
+      const end = agent.indexOf(")");
+      client.userAgent =
+        marker && end > 0 ? agent.slice(0, end) + "; " + marker + agent.slice(end) : agent;
+    }
+    function check() {
+      const player = document.getElementById("movie_player");
+      if (!player || typeof player.getPlayerResponse !== "function") {
+        return;
+      }
+      let response;
+      try {
+        response = player.getPlayerResponse();
+      } catch (e) {
+        return;
+      }
+      const status = response && response.playabilityStatus;
+      if (!status || status === handled || status.status === "UNPLAYABLE") {
+        return;
+      }
+      if (!status.errorScreen || !status.errorScreen.enforcementMessageViewModel) {
+        return;
+      }
+      handled = status;
+      trace("seen:" + status.status + "/" + remaining.length);
+      if (!remaining.length) {
+        setMarker("");
+        remaining = MARKERS.slice();
+        console.info("Peppermint: YouTube's ad wall stays after every retry");
+        trace("exhausted");
+        // The page's tab can now be allowed to play (see ZenAdblockChild).
+        window.dispatchEvent(new CustomEvent("zen-adblock-wall"));
+        return;
+      }
+      const marker = remaining.shift();
+      console.info("Peppermint: YouTube's ad wall is showing, retrying as " + marker);
+      setMarker(marker);
+      trace("retry:" + marker);
+      const videoId = response.videoDetails && response.videoDetails.videoId;
+      const config = response.playerConfig && response.playerConfig.playbackStartConfig;
+      if (videoId && typeof player.loadVideoById === "function") {
+        player.loadVideoById(videoId, (config && config.startSeconds) || 0);
+      }
+    }
+    setInterval(check, 1000);
+  })();
 })();
 `;
 

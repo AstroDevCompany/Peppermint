@@ -25,3 +25,8 @@
 # Requests blocked so far, over all pages. Kept on this device only.
 - name: zen.adblock.stats.blocked-total
   value: 0
+
+# When YouTube refuses to play while ads are blocked and the retries do not
+# clear it, pause blocking on YouTube in that tab until it is closed.
+- name: zen.adblock.youtube-wall-fallback
+  value: true
