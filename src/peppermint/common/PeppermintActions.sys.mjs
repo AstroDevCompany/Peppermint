@@ -5,8 +5,8 @@
 const PREF_UNDERPOWERED = "zen.underpowered.enabled";
 const PREF_ADBLOCK = "zen.adblock.enabled";
 
-// Gap left on every side of the screen's usable area by "almost maximize".
-const ALMOST_MAXIMIZE_MARGIN = 24;
+// Share of the screen's usable area (per axis) that "almost maximize" fills.
+const ALMOST_MAXIMIZE_RATIO = 0.9;
 
 const lazy = {};
 
@@ -42,11 +42,13 @@ const gRestoreBounds = new WeakMap();
 
 function almostMaximizedBounds(window) {
   const { screen } = window;
+  const width = Math.round(screen.availWidth * ALMOST_MAXIMIZE_RATIO);
+  const height = Math.round(screen.availHeight * ALMOST_MAXIMIZE_RATIO);
   return {
-    x: screen.availLeft + ALMOST_MAXIMIZE_MARGIN,
-    y: screen.availTop + ALMOST_MAXIMIZE_MARGIN,
-    width: screen.availWidth - ALMOST_MAXIMIZE_MARGIN * 2,
-    height: screen.availHeight - ALMOST_MAXIMIZE_MARGIN * 2,
+    x: screen.availLeft + Math.round((screen.availWidth - width) / 2),
+    y: screen.availTop + Math.round((screen.availHeight - height) / 2),
+    width,
+    height,
   };
 }
 
