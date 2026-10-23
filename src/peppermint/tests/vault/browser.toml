@@ -16,6 +16,8 @@ support-files = [
 
 ["browser_vault_page.js"]
 
+["browser_vault_permissions.js"]
+
 ["browser_vault_session.js"]
 
 ["browser_vault_settings.js"]

@@ -10,6 +10,11 @@
  * sections plug in.
  */
 
+import { PeppermintVaultPermissionLog } from "moz-src:///peppermint/vault/PeppermintVaultPermissionLog.sys.mjs";
+import {
+  PermissionHistorySection,
+  PermissionsSection,
+} from "moz-src:///peppermint/vault/PeppermintVaultPermissions.sys.mjs";
 import { PeppermintVaultPassword } from "moz-src:///peppermint/vault/PeppermintVaultPassword.sys.mjs";
 import { PeppermintVaultRegistry } from "moz-src:///peppermint/vault/PeppermintVaultRegistry.sys.mjs";
 import { PeppermintVaultSession } from "moz-src:///peppermint/vault/PeppermintVaultSession.sys.mjs";
@@ -50,6 +55,8 @@ class PeppermintVaultImpl {
       this.#started = true;
       PeppermintVaultRegistry.register(LoginsSection);
       PeppermintVaultRegistry.register(CodesSection);
+      PeppermintVaultRegistry.register(PermissionsSection);
+      PeppermintVaultRegistry.register(PermissionHistorySection);
       Services.obs.addObserver(this, "passwordmgr-primary-pw-changed");
       if (Cu.isInAutomation) {
         return;
@@ -178,6 +185,7 @@ class PeppermintVaultImpl {
   #enter() {
     this.#active = true;
     PeppermintVaultSession.start();
+    PeppermintVaultPermissionLog.start();
     if (Services.prefs.getBoolPref(SIDEBAR_PREF, false)) {
       Services.prefs.setCharPref(PREFS.restoreSidebar, "true");
       Services.prefs.setBoolPref(SIDEBAR_PREF, false);
@@ -187,6 +195,7 @@ class PeppermintVaultImpl {
   #leave() {
     this.#active = false;
     PeppermintVaultSession.stop();
+    PeppermintVaultPermissionLog.stop();
     if (Services.prefs.getCharPref(PREFS.restoreSidebar, "") == "true") {
       Services.prefs.setBoolPref(SIDEBAR_PREF, true);
     }

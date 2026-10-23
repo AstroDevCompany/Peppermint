@@ -71,6 +71,11 @@ async function toItem(login, now) {
     secrets: {},
     lastUsed: login.timeLastUsed,
     changed: login.timePasswordChanged,
+    created: login.timeCreated,
+    timestamps: [
+      { kind: "created", time: login.timeCreated },
+      { kind: "used", time: login.timeLastUsed },
+    ],
   };
 }
 

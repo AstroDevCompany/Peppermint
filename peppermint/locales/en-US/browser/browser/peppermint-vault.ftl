@@ -94,6 +94,7 @@ peppermint-vault-filter-no-username = No username
 peppermint-vault-sort-title = Name
 peppermint-vault-sort-recent-use = Recently used
 peppermint-vault-sort-recent-change = Recently changed
+peppermint-vault-sort-recent-add = Recently added
 peppermint-vault-result-count =
     { $count ->
         [one] { $count } result
@@ -168,3 +169,55 @@ peppermint-vault-error-invalid-secret = That setup key is not valid. Use the let
 peppermint-vault-copy-code =
     .title = Copy the code for { $site }
     .aria-label = Copy the code for { $site }
+
+## Timestamps
+
+# $date (String) - a date and time such as "Oct 23, 2026, 9:41 AM".
+peppermint-vault-time-created = Saved { $date }
+peppermint-vault-time-changed = Password changed { $date }
+peppermint-vault-time-used = Last used { $date }
+peppermint-vault-time-modified = Changed { $date }
+peppermint-vault-time-event = { $date }
+
+## Website permissions
+
+peppermint-vault-section-permissions = Permissions
+peppermint-vault-section-permission-history = Permission history
+peppermint-vault-field-permission = Permission
+peppermint-vault-field-change = Change
+peppermint-vault-permissions-empty-title = No permissions set
+peppermint-vault-permissions-empty-description = When you allow or block something for a website, such as the camera, location or notifications, it shows up here and you can change it at any time.
+peppermint-vault-permissions-filter-allowed = Allowed
+peppermint-vault-permissions-filter-blocked = Blocked
+peppermint-vault-permissions-filter-location = Location
+peppermint-vault-permissions-filter-camera = Camera
+peppermint-vault-permissions-filter-microphone = Microphone
+peppermint-vault-permissions-filter-notifications = Notifications
+peppermint-vault-permissions-session = Until Peppermint closes
+peppermint-vault-permissions-managed = Set by your organization
+peppermint-vault-permissions-error-read-only = Your organization set this permission, so it cannot be changed.
+peppermint-vault-permissions-error-invalid-state = That choice is not available for this permission.
+peppermint-vault-toast-saved = Saved.
+
+# $permission (String) - for example "Camera".
+# $site (String) - the website.
+peppermint-vault-choice-label =
+    .aria-label = { $permission } for { $site }
+
+# $site (String) - the website.
+peppermint-vault-permissions-reset =
+    .aria-label = Reset all permissions for { $site }
+    .title = Reset all permissions
+peppermint-vault-permissions-reset-confirm =
+    .aria-label = Confirm resetting all permissions for { $site }
+    .title = Click again to reset
+
+## Permission history
+
+peppermint-vault-history-empty-title = No changes recorded yet
+peppermint-vault-history-empty-description = From now on, every time a website permission is allowed, blocked or reset, the change is listed here with the time it happened. Private windows are never recorded.
+peppermint-vault-history-filter-reset = Reset
+peppermint-vault-history-sort-newest = Newest first
+peppermint-vault-history-sort-oldest = Oldest first
+peppermint-vault-history-clear = Clear history
+peppermint-vault-history-clear-confirm = Click again to clear

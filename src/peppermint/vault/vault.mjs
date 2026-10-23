@@ -49,6 +49,7 @@ const root = document.getElementById("vault-root");
 const toastEl = document.getElementById("vault-toast");
 
 let currentView = null;
+let currentSection = null;
 let currentSectionId = null;
 let confirmDialog = null;
 let toastTimer = null;
@@ -135,6 +136,7 @@ function renderShell() {
   const active =
     sections.find(section => section.id == currentSectionId) ?? sections[0];
   currentSectionId = active.id;
+  currentSection = active;
 
   const params = new URLSearchParams(window.location.search);
   const view = createSectionView({
@@ -367,6 +369,10 @@ const observer = {
   observe(_subject, topic) {
     if (topic == "passwordmgr-storage-changed") {
       currentView?.refresh();
+    } else if (topic == "perm-changed") {
+      if (currentSection?.refreshOn.includes(topic)) {
+        currentView?.refresh();
+      }
     } else {
       scheduleRender();
     }
@@ -376,6 +382,7 @@ const TOPICS = [
   STATE_TOPIC,
   "passwordmgr-primary-pw-changed",
   "passwordmgr-storage-changed",
+  "perm-changed",
 ];
 for (const topic of TOPICS) {
   Services.obs.addObserver(observer, topic);

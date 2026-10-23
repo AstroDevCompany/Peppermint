@@ -555,6 +555,33 @@ a.vault-site {
   gap: var(--vault-space-1);
 }
 
+.vault-choice {
+  flex: none;
+  min-height: 2rem;
+  max-width: 100%;
+}
+
+.vault-choice-note {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0 var(--vault-space-2);
+  min-width: 0;
+  font-size: 0.8rem;
+  text-align: end;
+}
+
+.vault-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vault-space-1) var(--vault-space-4);
+  margin: 0;
+  padding: 0 var(--vault-space-1);
+  list-style: none;
+  color: var(--vault-muted);
+  font-size: 0.8rem;
+}
+
 .vault-empty {
   display: flex;
   flex-direction: column;

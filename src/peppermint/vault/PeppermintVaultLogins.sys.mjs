@@ -22,6 +22,19 @@ function webLink(origin) {
     : null;
 }
 
+/**
+ * @param {nsILoginInfo} login
+ * @returns {{ kind: string, time: number }[]} When a login was saved, last
+ *   had its password changed and last used.
+ */
+function timestampsOf(login) {
+  return [
+    { kind: "created", time: login.timeCreated },
+    { kind: "changed", time: login.timePasswordChanged },
+    { kind: "used", time: login.timeLastUsed },
+  ];
+}
+
 function toItem(login) {
   return {
     id: login.guid,
@@ -32,6 +45,8 @@ function toItem(login) {
     secrets: { password: true },
     lastUsed: login.timeLastUsed,
     changed: login.timePasswordChanged,
+    created: login.timeCreated,
+    timestamps: timestampsOf(login),
   };
 }
 
@@ -45,6 +60,7 @@ const SORTS = {
   title: (a, b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id),
   "recent-use": (a, b) => b.lastUsed - a.lastUsed,
   "recent-change": (a, b) => b.changed - a.changed,
+  "recent-add": (a, b) => b.created - a.created,
 };
 
 async function findLogin(guid) {
@@ -108,6 +124,7 @@ export const LoginsSection = {
     { id: "title", l10nId: "peppermint-vault-sort-title" },
     { id: "recent-use", l10nId: "peppermint-vault-sort-recent-use" },
     { id: "recent-change", l10nId: "peppermint-vault-sort-recent-change" },
+    { id: "recent-add", l10nId: "peppermint-vault-sort-recent-add" },
   ],
 
   isAvailable() {

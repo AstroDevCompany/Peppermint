@@ -43,3 +43,8 @@
 # switched it off ("" when Vault has not changed it).
 - name: peppermint.vault.restore-password-sidebar
   value: ""
+
+# Keep at most this many entries in the permission history shown in Vault.
+# The oldest are dropped first.
+- name: peppermint.vault.permission-history-limit
+  value: 1000

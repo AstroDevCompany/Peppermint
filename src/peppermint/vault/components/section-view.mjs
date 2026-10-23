@@ -7,6 +7,7 @@ import { openModal } from "./modal.mjs";
 
 const REVEAL_MS = 30000;
 const SEARCH_DEBOUNCE_MS = 150;
+const CONFIRM_RESET_MS = 6000;
 const MASK = "•".repeat(10);
 
 const ERROR_L10N = {
@@ -25,6 +26,11 @@ const secondsFormat = new Intl.NumberFormat(undefined, {
   unitDisplay: "narrow",
 });
 
+const dateFormat = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
 export function errorL10n(error) {
   return ERROR_L10N[error?.code] ?? "peppermint-vault-error-generic";
 }
@@ -33,6 +39,49 @@ function openWebLink(url) {
   Services.wm
     .getMostRecentBrowserWindow()
     ?.openWebLinkIn(url, "tab", { relatedToCurrent: false });
+}
+
+/**
+ * Makes a button ask for a second click before it acts. Moving focus away or
+ * waiting cancels it.
+ *
+ * @param {HTMLElement} button
+ * @param {object} options
+ * @param {string} options.idleL10n
+ * @param {string} options.armedL10n
+ * @param {object} [options.args]
+ * @param {string} [options.idleIcon]   Swapped for armedIcon while armed.
+ * @param {string} [options.armedIcon]
+ * @param {() => void} options.onConfirm
+ */
+function makeConfirmable(
+  button,
+  { idleL10n, armedL10n, args, idleIcon, armedIcon, onConfirm }
+) {
+  let timer = null;
+  const show = (l10n, icon) => {
+    document.l10n.setAttributes(button, l10n, args);
+    const image = button.querySelector("img");
+    if (image && icon) {
+      image.src = icon;
+    }
+  };
+  const reset = () => {
+    clearTimeout(timer);
+    timer = null;
+    show(idleL10n, idleIcon);
+  };
+  button.addEventListener("blur", () => timer && reset());
+  button.addEventListener("click", () => {
+    if (!timer) {
+      button.setAttribute("aria-live", "polite");
+      show(armedL10n, armedIcon);
+      timer = setTimeout(reset, CONFIRM_RESET_MS);
+      return;
+    }
+    reset();
+    onConfirm();
+  });
 }
 
 /**
@@ -133,6 +182,28 @@ export function createSectionView({ section, api, toast, query = "" }) {
     h("span", { l10n: "peppermint-vault-add" })
   );
 
+  const clearButton = section.clearable
+    ? h("button", {
+        class: "vault-button vault-danger",
+        attrs: { type: "button" },
+        l10n: texts.clear,
+      })
+    : null;
+  if (clearButton) {
+    makeConfirmable(clearButton, {
+      idleL10n: texts.clear,
+      armedL10n: texts.clearConfirm,
+      async onConfirm() {
+        try {
+          await api.call("clear");
+          refresh();
+        } catch (error) {
+          showFailure(error);
+        }
+      },
+    });
+  }
+
   const controls = h(
     "div",
     { class: "vault-toolbar", attrs: { role: "search" } },
@@ -143,7 +214,8 @@ export function createSectionView({ section, api, toast, query = "" }) {
     section.sorts.length
       ? select(section.sorts, "sort", "peppermint-vault-sort-label")
       : null,
-    section.createFields.length ? addButton : null
+    section.createFields.length ? addButton : null,
+    clearButton
   );
 
   const element = h(
@@ -388,6 +460,86 @@ export function createSectionView({ section, api, toast, query = "" }) {
     }, CODE_TICK_MS);
   }
 
+  function renderTime(kind, time) {
+    return h(
+      "li",
+      {},
+      h("time", {
+        class: "vault-time",
+        attrs: { datetime: new Date(time).toISOString() },
+        l10n: `peppermint-vault-time-${kind}`,
+        l10nArgs: { date: dateFormat.format(time) },
+      })
+    );
+  }
+
+  function renderTimestamps(item) {
+    const times = (item.timestamps ?? []).filter(entry => entry.time > 0);
+    return times.length
+      ? h(
+          "ul",
+          { class: "vault-times" },
+          times.map(entry => renderTime(entry.kind, entry.time))
+        )
+      : null;
+  }
+
+  function renderChoices(item, field) {
+    return item.values[field.id].map(entry => {
+      const select = h(
+        "select",
+        {
+          class: "vault-select vault-choice",
+          attrs: { disabled: entry.readOnly },
+          l10n: "peppermint-vault-choice-label",
+          l10nArgs: { permission: entry.label, site: item.title },
+        },
+        entry.options.map(option =>
+          h("option", { attrs: { value: option.value }, text: option.label })
+        )
+      );
+      select.value = entry.state;
+      select.addEventListener("change", async () => {
+        try {
+          await api.call("update", item.id, {
+            permission: entry.key,
+            state: select.value,
+          });
+          toast("peppermint-vault-toast-saved");
+        } catch (error) {
+          showFailure(error);
+        }
+        refresh();
+      });
+      return h(
+        "div",
+        { class: "vault-field-row" },
+        h("dt", { text: entry.label }),
+        h(
+          "dd",
+          {},
+          select,
+          h(
+            "span",
+            { class: "vault-choice-note vault-muted" },
+            entry.readOnly
+              ? h("span", { l10n: "peppermint-vault-permissions-managed" })
+              : entry.session
+                ? h("span", { l10n: "peppermint-vault-permissions-session" })
+                : null,
+            entry.time > 0
+              ? h("time", {
+                  attrs: { datetime: new Date(entry.time).toISOString() },
+                  l10n: "peppermint-vault-time-modified",
+                  l10nArgs: { date: dateFormat.format(entry.time) },
+                })
+              : null
+          )
+        )
+      );
+    });
+  }
+
   function renderRow(item) {
     const site = item.link
       ? h("a", {
@@ -409,12 +561,37 @@ export function createSectionView({ section, api, toast, query = "" }) {
         })
       : h("span", { class: "vault-site", text: item.title });
 
-    const editButton = iconButton(ICONS.edit, "peppermint-vault-edit", {
-      site: item.title,
-    });
-    editButton.addEventListener("click", () => openEdit(item, editButton));
+    const editButton = section.editFields.length
+      ? iconButton(ICONS.edit, "peppermint-vault-edit", { site: item.title })
+      : null;
+    editButton?.addEventListener("click", () => openEdit(item, editButton));
 
-    const fields = section.fields.map(field => {
+    let removeButton = null;
+    if (section.removable) {
+      removeButton = iconButton(ICONS.delete, texts.removeRow, {
+        site: item.title,
+      });
+      makeConfirmable(removeButton, {
+        idleL10n: texts.removeRow,
+        armedL10n: texts.removeRowConfirm,
+        args: { site: item.title },
+        idleIcon: ICONS.delete,
+        armedIcon: ICONS.check,
+        async onConfirm() {
+          try {
+            await api.call("remove", item.id);
+          } catch (error) {
+            showFailure(error);
+          }
+          refresh();
+        },
+      });
+    }
+
+    const fields = section.fields.flatMap(field => {
+      if (field.kind == "choices") {
+        return renderChoices(item, field);
+      }
       if (field.kind == "code") {
         return renderCodeField(item, field);
       }
@@ -480,9 +657,11 @@ export function createSectionView({ section, api, toast, query = "" }) {
               })
             : null
         ),
-        editButton
+        editButton,
+        removeButton
       ),
-      h("dl", { class: "vault-fields" }, fields)
+      h("dl", { class: "vault-fields" }, fields),
+      renderTimestamps(item)
     );
   }
 

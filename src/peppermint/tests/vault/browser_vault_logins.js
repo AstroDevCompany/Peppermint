@@ -42,6 +42,15 @@ add_task(async function test_list_has_no_secrets() {
   Assert.equal(first.link, "https://example.com", "Site is a link");
   Assert.equal(first.values.username, "alice");
   Assert.deepEqual(first.secrets, { password: true });
+  Assert.deepEqual(
+    first.timestamps.map(entry => entry.kind),
+    ["created", "changed", "used"],
+    "Each login carries when it was saved, changed and used"
+  );
+  Assert.ok(
+    first.timestamps.every(entry => entry.time > 0),
+    "With real times"
+  );
   Assert.ok(items[1].insecure, "http logins are flagged");
   Assert.ok(!first.insecure);
 });

@@ -255,7 +255,11 @@ add_task(async function test_one_time_codes_section() {
   try {
     await waitFor(tab, ".vault-tabs", "Sections can be switched");
     const tabs = [...doc(tab).querySelectorAll(".vault-tab")];
-    Assert.equal(tabs.length, 2, "Logins and one-time codes");
+    Assert.equal(
+      tabs.length,
+      4,
+      "Logins, one-time codes, permissions and permission history"
+    );
     tabs[1].click();
 
     const code = await waitFor(tab, ".vault-code", "A code is shown");

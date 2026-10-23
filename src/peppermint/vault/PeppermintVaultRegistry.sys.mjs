@@ -40,10 +40,11 @@ const METHOD_TIERS = {
   create: TIER_STEPUP,
   update: TIER_STEPUP,
   remove: TIER_STEPUP,
+  clear: TIER_STEPUP,
 };
 
 const REQUIRED_STRING = ["id", "titleL10nId"];
-const REQUIRED_FUNCTIONS = ["list", "copy", "getSecret"];
+const REQUIRED_FUNCTIONS = ["list"];
 
 const sections = new Map();
 
@@ -53,13 +54,20 @@ function validate(section) {
       throw new Error(`Vault section needs a string "${key}"`);
     }
   }
-  for (const key of REQUIRED_FUNCTIONS) {
+  if (!Array.isArray(section.fields) || !section.fields.length) {
+    throw new Error(`Vault section "${section.id}" needs fields`);
+  }
+  const required = [...REQUIRED_FUNCTIONS];
+  if (section.fields.some(field => field.copy)) {
+    required.push("copy");
+  }
+  if (section.fields.some(field => field.reveal || field.kind == "secret")) {
+    required.push("getSecret");
+  }
+  for (const key of required) {
     if (typeof section[key] != "function") {
       throw new Error(`Vault section "${section.id}" needs ${key}()`);
     }
-  }
-  if (!Array.isArray(section.fields) || !section.fields.length) {
-    throw new Error(`Vault section "${section.id}" needs fields`);
   }
   const ids = new Set();
   for (const field of section.fields) {
@@ -122,6 +130,9 @@ export const PeppermintVaultRegistry = {
         editFields: section.editFields ?? [],
         filters: section.filters ?? [],
         sorts: section.sorts ?? [],
+        refreshOn: section.refreshOn ?? [],
+        clearable: !!section.clearable,
+        removable: typeof section.remove == "function" && !!section.texts?.removeRow,
         availability: section.isAvailable?.() ?? { available: true },
       }));
   },
