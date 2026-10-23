@@ -9,3 +9,7 @@ prefs = [
 ]
 
 ["browser_actions.js"]
+
+["browser_palette_settings.js"]
+
+["browser_palette_site.js"]

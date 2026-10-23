@@ -2,6 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import {
+  action,
+  isWebPage,
+} from "moz-src:///peppermint/palette/PeppermintPaletteAction.sys.mjs";
+import { settingsActions } from "moz-src:///peppermint/palette/PeppermintPaletteSettings.sys.mjs";
+import { siteActions } from "moz-src:///peppermint/palette/PeppermintPaletteSite.sys.mjs";
+
 const PREF_UNDERPOWERED = "zen.underpowered.enabled";
 const PREF_ADBLOCK = "zen.adblock.enabled";
 
@@ -22,10 +29,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PeppermintVault: "moz-src:///peppermint/vault/PeppermintVault.sys.mjs",
   PeppermintVaultSession:
     "moz-src:///peppermint/vault/PeppermintVaultSession.sys.mjs",
-});
-
-ChromeUtils.defineLazyGetter(lazy, "l10n", () => {
-  return new Localization(["browser/zen-command-palette.ftl"], true);
 });
 
 function togglePref(name) {
@@ -84,23 +87,6 @@ function toggleAlmostMaximize(window) {
   window.resizeTo(target.width, target.height);
 }
 
-function action(id, labelId, icon, command, isAvailable = () => true) {
-  return {
-    commandId: `peppermint:${id}`,
-    icon,
-    extraPayload: {},
-    isAvailable,
-    command,
-    get label() {
-      return lazy.l10n.formatValueSync(labelId);
-    },
-  };
-}
-
-function isWebPage(uri) {
-  return !!uri && (uri.schemeIs("http") || uri.schemeIs("https"));
-}
-
 /**
  * Opens the note about the page being shown, starting one (a heading and a
  * link to the page) the first time.
@@ -112,8 +98,12 @@ async function openNoteAboutPage(window) {
   let id = await lazy.findNoteIdForUrl(url);
   if (!id) {
     id = crypto.randomUUID();
-    const title = (window.gBrowser.selectedTab.label || url).replace(/\s+/g, " ").trim();
-    await lazy.saveNote(id, `# ${title}\n\n[${title}](${url})\n\n`, null, { url });
+    const title = (window.gBrowser.selectedTab.label || url)
+      .replace(/\s+/g, " ")
+      .trim();
+    await lazy.saveNote(id, `# ${title}\n\n[${title}](${url})\n\n`, null, {
+      url,
+    });
   }
   window.openTrustedLinkIn(lazy.noteURL(id), "tab");
 }
@@ -220,6 +210,8 @@ const ACTIONS = [
     () => cookieConsent().clearPaused(),
     () => cookieConsent().hasPaused()
   ),
+  ...settingsActions(),
+  ...siteActions(),
 ];
 
 let registered = false;
