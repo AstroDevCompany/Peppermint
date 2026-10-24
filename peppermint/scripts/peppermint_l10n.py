@@ -46,7 +46,9 @@ def parse_blocks(text):
   lines = text.split("\n")
   segments = []
   for line in lines:
-    starts = bool(line) and not line[0].isspace()
+    # A column-0 "}" closes a multi-line placeable and, like a variant key,
+    # belongs to the message above it.
+    starts = bool(line) and not line[0].isspace() and line[0] not in "}[*"
     if starts or not segments:
       segments.append([line])
     else:
