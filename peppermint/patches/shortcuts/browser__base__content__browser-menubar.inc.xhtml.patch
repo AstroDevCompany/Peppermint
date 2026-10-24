@@ -1,0 +1,22 @@
+--- a/browser/base/content/browser-menubar.inc.xhtml
++++ b/browser/base/content/browser-menubar.inc.xhtml
+@@ -116,7 +116,8 @@
+                 hidden="true" data-l10n-id="menu-edit-bidi-switch-text-direction"/>
+ #if defined(XP_UNIX) && !defined(XP_MACOSX)
+       <menuseparator/>
+-      <menuitem id="menu_preferences" data-l10n-id="menu-settings" />
++      <menuitem id="menu_preferences" data-l10n-id="menu-settings"
++                key="key_preferencesCmdWin"/>
+ #endif
+     </menupopup>
+   </menu>
+@@ -399,7 +400,8 @@
+ #ifndef XP_UNIX
+       <menuseparator id="prefSep"/>
+       <menuitem id="menu_preferences"
+-                data-l10n-id="menu-settings"/>
++                data-l10n-id="menu-settings"
++                key="key_preferencesCmdWin"/>
+ #endif
+ #ifdef MOZ_DEBUG
+       <menuitem id="menu_layout_debugger"

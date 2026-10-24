@@ -1,0 +1,11 @@
+--- a/browser/base/content/appmenu-viewcache.inc.xhtml
++++ b/browser/base/content/appmenu-viewcache.inc.xhtml
+@@ -207,6 +207,8 @@
+                      data-l10n-id="appmenuitem-settings"
+ #ifdef XP_MACOSX
+                      key="key_preferencesCmdMac"
++#else
++                     key="key_preferencesCmdWin"
+ #endif
+                      />
+       <toolbarbutton id="appMenu-more-button2"

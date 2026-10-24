@@ -1,0 +1,15 @@
+--- a/browser/base/content/browser-sets.inc.xhtml
++++ b/browser/base/content/browser-sets.inc.xhtml
+@@ -420,6 +420,12 @@
+     <key id="key_hideOtherAppsCmdMac"
+          data-l10n-id="hide-other-apps-shortcut"
+          modifiers="accel,alt"
++         internal="true"/>
++#else
++    <key id="key_preferencesCmdWin"
++         data-l10n-id="preferences-shortcut"
++         modifiers="accel"
++         command="menu_preferences"
+          internal="true"/>
+ #endif
+   </keyset>
