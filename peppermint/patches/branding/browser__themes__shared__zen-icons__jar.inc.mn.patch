@@ -8,10 +8,10 @@
  *  skin/classic/browser/zen-icons/blank.svg                      (../shared/zen-icons/common/blank.svg) 
  *  skin/classic/browser/zen-icons/urlbar-arrow.svg                      (../shared/zen-icons/common/urlbar-arrow.svg) 
  *  skin/classic/browser/zen-icons/selectable/airplane.svg          (../shared/zen-icons/common/selectable/airplane.svg) 
-@@ -564,7 +565,8 @@
- *  skin/classic/browser/zen-icons/library/library-history-sprite.svg          (../shared/zen-icons/common/library/library-history-sprite.svg) 
+@@ -565,7 +566,8 @@
  *  skin/classic/browser/zen-icons/library/library-media-sprite.svg          (../shared/zen-icons/common/library/library-media-sprite.svg) 
  *  skin/classic/browser/zen-icons/library/library-spaces-sprite.svg          (../shared/zen-icons/common/library/library-spaces-sprite.svg) 
+ *  skin/classic/browser/zen-icons/library/library-space-routing-sprite.svg          (../shared/zen-icons/common/library/library-space-routing-sprite.svg) 
 -*  skin/classic/browser/zen-icons/library/library-sprite.svg          (../shared/zen-icons/common/library/library-sprite.svg) 
 +*  skin/classic/browser/zen-icons/library/library-sprite.svg          (../shared/zen-icons/common/library/library-sprite.svg)
 +   skin/classic/browser/zen-icons/ghost/ghost.png          (../shared/zen-icons/common/ghost/ghost.png) 

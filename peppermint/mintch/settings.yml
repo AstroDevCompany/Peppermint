@@ -1,0 +1,33 @@
+# Mintch: SearXNG settings. Everything not listed here keeps the SearXNG default.
+use_default_settings: true
+
+general:
+  instance_name: "Mintch"
+  enable_metrics: false
+
+search:
+  # Powers the address bar suggestions (/autocompleter).
+  autocomplete: "duckduckgo"
+  autocomplete_min: 2
+  safe_search: 0
+  formats:
+    - html
+
+server:
+  # secret_key comes from the SEARXNG_SECRET environment variable.
+  limiter: false
+  image_proxy: true
+  # GET keeps result pages linkable and lets the browser build search URLs.
+  method: "GET"
+
+ui:
+  default_theme: simple
+  theme_args:
+    simple_style: dark
+  query_in_title: true
+  infinite_scroll: true
+  center_alignment: true
+
+brand:
+  issue_url: https://github.com/AstroDevCompany/Peppermint/issues
+  docs_url: https://docs.searxng.org

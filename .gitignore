@@ -40,3 +40,4 @@ bloat-dump.log
 
 # Local regression snapshot used by npm run pm:verify
 peppermint/baseline/
+peppermint/mintch/.env

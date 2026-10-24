@@ -1,0 +1,24 @@
+# Local Mintch: `docker compose up -d --build` then open http://localhost:8888
+services:
+  mintch:
+    build: .
+    image: mintch:latest
+    container_name: mintch
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8888:8080"
+    environment:
+      # Set a real secret in a .env file next to this one for anything public.
+      SEARXNG_SECRET: ${MINTCH_SECRET:-change-me-before-exposing-this-instance}
+      SEARXNG_BASE_URL: ${MINTCH_BASE_URL:-http://localhost:8888/}
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "1"

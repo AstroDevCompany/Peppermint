@@ -92,6 +92,11 @@ export const PeppermintStartup = {
         "moz-src:///peppermint/updater/PeppermintUpdaterUI.sys.mjs"
       ).PeppermintUpdaterUI.init()
     );
+    start("PeppermintSearch", () =>
+      ChromeUtils.importESModule(
+        "moz-src:///peppermint/search/PeppermintSearch.sys.mjs"
+      ).PeppermintSearch.init()
+    );
     start("PeppermintVault", () =>
       ChromeUtils.importESModule(
         "moz-src:///peppermint/vault/PeppermintVault.sys.mjs"

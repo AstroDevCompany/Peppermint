@@ -1,0 +1,17 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Mintch is Peppermint's default search engine (a themed SearXNG, see
+# peppermint/mintch). It is added at startup rather than through the search
+# config, because Mozilla's remote settings replace that config after the first
+# sync and would drop it.
+
+# Origin of the Mintch instance. Point release builds at the public host.
+- name: peppermint.search.mintch.url
+  value: "http://localhost:8888"
+
+# Version of the default engine choice already applied to this profile. Raising
+# the version in PeppermintSearch makes Mintch the default once more.
+- name: peppermint.search.mintch.default-version
+  value: 0

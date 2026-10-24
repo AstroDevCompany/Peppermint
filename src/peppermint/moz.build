@@ -16,6 +16,7 @@ DIRS += [
     "notepad",
     "palette",
     "reader",
+    "search",
     "shortcut-tooltips",
     "tab-numbers",
     "tab-unloader",

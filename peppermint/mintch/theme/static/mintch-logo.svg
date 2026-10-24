@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Mintch">
+  <defs>
+    <linearGradient id="ring" x1="14" y1="10" x2="104" y2="104" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#b9fff0"/>
+      <stop offset="0.55" stop-color="#3ee0c4"/>
+      <stop offset="1" stop-color="#1a8fe0"/>
+    </linearGradient>
+    <linearGradient id="handle" x1="84" y1="84" x2="118" y2="118" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3ee0c4"/>
+      <stop offset="1" stop-color="#2f6bff"/>
+    </linearGradient>
+    <radialGradient id="lens" cx="0.38" cy="0.32" r="0.8">
+      <stop offset="0" stop-color="#bfffee" stop-opacity="0.55"/>
+      <stop offset="0.6" stop-color="#2fd0c0" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#1572c9" stop-opacity="0.7"/>
+    </radialGradient>
+    <linearGradient id="leaf" x1="78" y1="4" x2="108" y2="34" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7dfbd0"/>
+      <stop offset="1" stop-color="#14b8a6"/>
+    </linearGradient>
+    <clipPath id="clip"><circle cx="54" cy="54" r="34"/></clipPath>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#glow)">
+    <circle cx="54" cy="54" r="34" fill="url(#lens)"/>
+    <g clip-path="url(#clip)" fill="none" stroke-linecap="round" opacity="0.95">
+      <path d="M54 54 C54 40 63 29 80 26" stroke="#f4fffc" stroke-width="8" transform="rotate(0 54 54)"/>
+      <path d="M54 54 C54 40 63 29 80 26" stroke="#ff5d73" stroke-width="6" transform="rotate(60 54 54)"/>
+      <path d="M54 54 C54 40 63 29 80 26" stroke="#f4fffc" stroke-width="8" transform="rotate(120 54 54)"/>
+      <path d="M54 54 C54 40 63 29 80 26" stroke="#ff5d73" stroke-width="6" transform="rotate(180 54 54)"/>
+      <path d="M54 54 C54 40 63 29 80 26" stroke="#f4fffc" stroke-width="8" transform="rotate(240 54 54)"/>
+      <path d="M54 54 C54 40 63 29 80 26" stroke="#ff5d73" stroke-width="6" transform="rotate(300 54 54)"/>
+    </g>
+    <circle cx="54" cy="54" r="34" fill="none" stroke="url(#ring)" stroke-width="7"/>
+    <path d="M80 80 L112 112" stroke="url(#handle)" stroke-width="11" stroke-linecap="round" fill="none"/>
+    <path d="M78 30 C76 14 90 6 108 6 C110 24 100 36 82 36 C80 34 79 32 78 30 Z" fill="url(#leaf)"/>
+    <path d="M80 33 C88 24 96 17 104 11" stroke="#0b6f66" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0.7"/>
+    <path d="M36 36 C40 30 46 26 52 25" stroke="#fff" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.65"/>
+  </g>
+</svg>

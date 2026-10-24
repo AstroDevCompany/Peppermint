@@ -1,0 +1,1 @@
+docker compose -f peppermint/mintch/docker-compose.yml up -d
