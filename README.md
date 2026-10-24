@@ -92,6 +92,13 @@ Modern browsers focus too much on adding useless features that you'll maybe end 
 
 ---
 
+### TODOs
+
+[] Replace the integrated ad-blocker with an ad-blocker auto-install & suggestion system
+[] Create fully isolated containers (highly requested, apparently)
+
+---
+
 ## If you're not interested in the source-code or contributing, you can stop here.
 
 ---
