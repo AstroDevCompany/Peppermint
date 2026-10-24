@@ -52,17 +52,6 @@ export const SETTINGS = [
     pref: "zen.cookie-consent.enabled",
     icon: "cookies-fill",
   },
-  {
-    id: "adblock-level",
-    pref: "zen.adblock.level",
-    icon: "extension",
-    requires: "zen.adblock.enabled",
-    choices: [
-      { id: "light", value: "light" },
-      { id: "medium", value: "medium" },
-      { id: "heavy", value: "heavy" },
-    ],
-  },
 
   // Address bar
   {

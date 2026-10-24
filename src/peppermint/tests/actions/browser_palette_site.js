@@ -13,9 +13,6 @@ const { PERMISSIONS } = ChromeUtils.importESModule(
 const { SitePermissions } = ChromeUtils.importESModule(
   "resource:///modules/SitePermissions.sys.mjs"
 );
-const { gZenAdblock } = ChromeUtils.importESModule(
-  "resource:///modules/zen/adblock/ZenAdblockManager.sys.mjs"
-);
 const { gZenCookieConsent } = ChromeUtils.importESModule(
   "resource:///modules/zen/cookieconsent/ZenCookieConsentManager.sys.mjs"
 );
@@ -32,13 +29,6 @@ add_task(function test_site_actions_have_labels() {
     "peppermint:site-reset-permissions",
     "peppermint:site-manage-permissions",
     "peppermint:site-clear-data",
-    "peppermint:site-adblock-pause",
-    "peppermint:site-adblock-resume",
-    "peppermint:site-adblock-level-light",
-    "peppermint:site-adblock-level-medium",
-    "peppermint:site-adblock-level-heavy",
-    "peppermint:site-adblock-reset",
-    "peppermint:clear-adblock-site-rules",
     "peppermint:site-cookie-banners-pause",
     "peppermint:site-cookie-banners-resume",
   ];
@@ -140,13 +130,4 @@ add_task(async function test_cookie_banner_rule_follows_the_site() {
     gZenCookieConsent.setPaused(SITE, false);
     BrowserTestUtils.removeTab(tab);
   }
-});
-
-add_task(async function test_adblock_site_rules_can_be_cleared() {
-  const clear = byId("peppermint:clear-adblock-site-rules");
-  gZenAdblock.setOverride(SITE, "off");
-  ok(clear.isAvailable(window), "Clearing is offered once a site has a rule");
-  clear.command(window);
-  Assert.equal(gZenAdblock.listOverrides().length, 0, "No site keeps a rule");
-  ok(!clear.isAvailable(window), "Clearing is not offered without rules");
 });

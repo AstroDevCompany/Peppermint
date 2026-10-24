@@ -103,18 +103,6 @@ add_task(async function test_choice_setting_offers_the_other_choices() {
   await SpecialPowers.popPrefEnv();
 });
 
-add_task(async function test_setting_follows_what_it_depends_on() {
-  const level = byId("peppermint:setting-adblock-level-heavy");
-  await SpecialPowers.pushPrefEnv({
-    set: [
-      ["zen.adblock.enabled", false],
-      ["zen.adblock.level", "medium"],
-    ],
-  });
-  ok(!level.isAvailable(window), "No level is offered with the blocker off");
-  await SpecialPowers.popPrefEnv();
-});
-
 add_task(async function test_locked_setting_is_not_offered() {
   const pref = "general.smoothScroll";
   const on = byId("peppermint:setting-smooth-scrolling-on");

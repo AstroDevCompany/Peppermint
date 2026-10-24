@@ -6,7 +6,6 @@
 prefs = [
   "zen.notepad.autocomplete-key=Tab",
   "zen.notepad.auto-lock-minutes=0",
-  "zen.adblock.enabled=false",
   "fission.autostart=false",
   "dom.ipc.processCount=1",
 ]

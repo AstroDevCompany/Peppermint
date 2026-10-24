@@ -33,7 +33,6 @@ add_task(function test_actions_are_in_the_palette() {
     "peppermint:manage-url-snippets",
     "peppermint:almost-maximize-window",
     "peppermint:fullscreen-window",
-    "peppermint:toggle-adblock",
     "peppermint:clear-cookie-exceptions",
   ];
   for (const id of ids) {

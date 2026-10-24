@@ -10,7 +10,6 @@ import { settingsActions } from "moz-src:///peppermint/palette/PeppermintPalette
 import { siteActions } from "moz-src:///peppermint/palette/PeppermintPaletteSite.sys.mjs";
 
 const PREF_UNDERPOWERED = "zen.underpowered.enabled";
-const PREF_ADBLOCK = "zen.adblock.enabled";
 
 // Share of the screen's usable area (per axis) that "almost maximize" fills.
 const ALMOST_MAXIMIZE_RATIO = 0.9;
@@ -196,12 +195,6 @@ const ACTIONS = [
     "zen-action-fullscreen-window",
     "chrome://browser/skin/zen-icons/fullscreen.svg",
     window => window.document.getElementById("View:FullScreen")?.doCommand()
-  ),
-  action(
-    "toggle-adblock",
-    "zen-action-toggle-adblock",
-    "chrome://browser/skin/zen-icons/extension.svg",
-    () => togglePref(PREF_ADBLOCK)
   ),
   action(
     "clear-cookie-exceptions",

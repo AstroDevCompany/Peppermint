@@ -5,7 +5,6 @@
 [DEFAULT]
 prefs = [
   "zen.cookie-consent.enabled=true",
-  "zen.adblock.enabled=false",
 ]
 support-files = [
   "head.js",

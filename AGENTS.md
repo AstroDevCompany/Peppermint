@@ -38,7 +38,7 @@ Peppermint is a layer on top of Zen (zen-browser/desktop), which is merged in ev
 
 - `npm run import`: ffprefs, dumps, Zen patches (adapted when needed), overlay patches, locale packs. Run after every change.
 - `npm run build:ui`: rebuild the UI only. `npm run build`: full rebuild (needed for C++, moz.build or new `.patch` changes).
-- `npm test -- <suite> --headless`: run `peppermint/tests/<suite>` or `zen/tests/<suite>`. Suites that leave adblock enabled need network access; pass `--setpref=zen.adblock.enabled=false` to run them offline.
+- `npm test -- <suite> --headless`: run `peppermint/tests/<suite>` or `zen/tests/<suite>`.
 - `npm run pm:record -- <engine path> <feature>`: save an edit to a Zen or Firefox file as an overlay patch.
 - `npm run pm:verify`: compare the engine with the snapshot taken before the restructure (differences are expected after intentional changes).
 - `npm run lint`: lint `zen` and `peppermint`.

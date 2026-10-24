@@ -4,7 +4,6 @@
 
 [DEFAULT]
 prefs = [
-  "zen.adblock.enabled=false",
   "browser.search.suggest.enabled=false",
   "browser.urlbar.suggest.searches=false",
 ]

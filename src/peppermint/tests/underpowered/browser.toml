@@ -4,7 +4,6 @@
 
 [DEFAULT]
 prefs = [
-  "zen.adblock.enabled=false",
   # The machine running the tests must not decide whether the mode is on.
   "zen.underpowered.auto-on-battery=false",
   "zen.underpowered.auto-on-resources=false",

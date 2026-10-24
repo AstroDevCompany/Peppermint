@@ -1,38 +1,54 @@
 --- a/zen/tests/welcome/browser_welcome.js
 +++ b/zen/tests/welcome/browser_welcome.js
-@@ -96,11 +96,33 @@
-   ok(true, "Welcome Search Step Test Finished");
+@@ -97,9 +97,8 @@
  
    await TestUtils.waitForCondition(
--    () => currentPageContent()?.getAttribute("page") === "essentials",
+     () => currentPageContent()?.getAttribute("page") === "essentials",
 -    "the ad blocking page to be skipped when uBlock is unavailable"
-+    () => currentPageContent()?.getAttribute("page") === "block-ads",
-+    "the ad blocking page is shown"
++    "essentials follows the search page"
    );
-+  const medium = document.getElementById("zen-welcome-block-ads-medium");
-+  ok(medium?.checked, "Medium blocking is selected by default");
-+  Assert.equal(
-+    currentPageContent().querySelectorAll(".zen-welcome-option").length,
-+    4,
-+    "ad blocking page offers light, medium, heavy, and off"
-+  );
-+  await goNextWelcomePage("zen-generic-next");
-+  Assert.equal(
-+    Services.prefs.getStringPref("zen.adblock.level"),
-+    "medium",
-+    "leaving the page on Medium keeps the default level"
-+  );
-+  Assert.ok(
-+    Services.prefs.getBoolPref("zen.adblock.enabled"),
-+    "built-in ad blocking stays enabled"
-+  );
-   ok(true, "Welcome Block Ads Step Test Finished");
+-  ok(true, "Welcome Block Ads Step Test Finished");
  
-+  await TestUtils.waitForCondition(
-+    () => currentPageContent()?.getAttribute("page") === "essentials",
-+    "essentials follows ad blocking"
-+  );
-+
    const essentials = currentPageContent().querySelectorAll(
      "#zen-welcome-essentials .zen-welcome-essential"
-   );
+@@ -147,6 +146,40 @@
+   await goNextWelcomePage("zen-generic-next");
+   ok(true, "Welcome Default Browser Step Test Finished");
+ 
++  await TestUtils.waitForCondition(
++    () => currentPageContent()?.getAttribute("page") === "block-ads",
++    "the ad blocker page follows the default browser page"
++  );
++  const labels = [
++    ...currentPageContent().querySelectorAll(".zen-welcome-option-label"),
++  ].map(label => label.textContent.trim());
++  Assert.deepEqual(
++    labels,
++    ["uBlock Origin", "AdGuard AdBlocker", "Ghostery", "AdBlock"],
++    "the ad blocker page lists the four ad blockers"
++  );
++  ok(
++    document.getElementById("zen-welcome-block-ads-adblock").checked,
++    "AdBlock is selected by default"
++  );
++  const { PeppermintAdblocker } = ChromeUtils.importESModule(
++    "moz-src:///peppermint/adblocker/PeppermintAdblocker.sys.mjs"
++  );
++  const realSelect = PeppermintAdblocker.select;
++  const picked = [];
++  PeppermintAdblocker.select = key => {
++    picked.push(key);
++    return Promise.resolve(true);
++  };
++  await EventUtils.synthesizeMouseAtCenter(
++    document.getElementById("zen-welcome-block-ads-ublock").closest("label"),
++    {}
++  );
++  await goNextWelcomePage("zen-generic-next");
++  PeppermintAdblocker.select = realSelect;
++  Assert.deepEqual(picked, ["ublock"], "the chosen ad blocker is selected");
++  ok(true, "Welcome Ad Blocker Step Test Finished");
++
+   await goNextWelcomePage("zen-welcome-start-browsing");
+   ok(true, "Welcome Finish Step Test Finished");
+ 

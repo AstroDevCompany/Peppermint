@@ -47,11 +47,6 @@ export const PeppermintStartup = {
         "resource:///actors/ZenNotepadParent.sys.mjs"
       ).watchMintDocuments(window)
     );
-    start("ZenAdblock", () =>
-      ChromeUtils.importESModule(
-        "resource:///modules/zen/adblock/ZenAdblockManager.sys.mjs"
-      ).gZenAdblock.init()
-    );
     start("ZenCookieConsent", () =>
       ChromeUtils.importESModule(
         "resource:///modules/zen/cookieconsent/ZenCookieConsentManager.sys.mjs"

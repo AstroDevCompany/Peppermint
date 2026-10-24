@@ -4,7 +4,6 @@
 
 [DEFAULT]
 prefs = [
-  "zen.adblock.enabled=false",
   "zen.notepad.auto-lock-minutes=0",
 ]
 

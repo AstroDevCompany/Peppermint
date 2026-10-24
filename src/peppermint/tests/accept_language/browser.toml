@@ -4,7 +4,6 @@
 
 [DEFAULT]
 prefs = [
-  "zen.adblock.enabled=false",
   "privacy.spoof_english=0",
   "privacy.resistFingerprinting=false",
 ]

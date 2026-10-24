@@ -7,7 +7,7 @@
 # (see peppermint/patches/build) and one #include in zen-assets.jar.inc.mn.
 
 DIRS += [
-    "adblock",
+    "adblocker",
     "common",
     "cookie-consent",
     "ghost-mode",

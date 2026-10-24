@@ -14,7 +14,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   SitePermissions: "resource:///modules/SitePermissions.sys.mjs",
   SiteDataManager: "resource:///modules/SiteDataManager.sys.mjs",
-  gZenAdblock: "resource:///modules/zen/adblock/ZenAdblockManager.sys.mjs",
   gZenCookieConsent:
     "resource:///modules/zen/cookieconsent/ZenCookieConsentManager.sys.mjs",
 });
@@ -32,8 +31,6 @@ export const PERMISSIONS = [
   { id: "desktop-notification", icon: "desktop-notification" },
   { id: "popup", icon: "popup" },
 ];
-
-const ADBLOCK_LEVELS = ["light", "medium", "heavy"];
 
 function currentPrincipal(window) {
   return window.gBrowser.contentPrincipal;
@@ -191,81 +188,6 @@ function permissionManagementActions() {
   ];
 }
 
-function adblockOverride(window) {
-  return lazy.gZenAdblock.getOverride(window.gBrowser.currentURI.spec);
-}
-
-function hasAdblockRules(window) {
-  return lazy.gZenAdblock.isEnabled() && isWebPage(window.gBrowser.currentURI);
-}
-
-function setAdblockOverride(window, level) {
-  lazy.gZenAdblock.setOverride(window.gBrowser.currentURI.spec, level);
-  showToast(window, "peppermint-site-rule-changed", {
-    site: siteName(window),
-  });
-  reloadPage(window);
-}
-
-function adblockActions() {
-  const icon = `${ICONS}extension.svg`;
-  const effectiveLevel = window =>
-    lazy.gZenAdblock.getEffectiveLevel(window.gBrowser.currentURI.spec);
-  const levelActions = ADBLOCK_LEVELS.map(level =>
-    action(
-      `site-adblock-level-${level}`,
-      "peppermint-site-adblock-level",
-      icon,
-      window =>
-        // A level equal to the global one is no rule at all.
-        setAdblockOverride(
-          window,
-          level === lazy.gZenAdblock.getGlobalLevel() ? null : level
-        ),
-      window =>
-        hasAdblockRules(window) &&
-        adblockOverride(window) !== "off" &&
-        effectiveLevel(window) !== level,
-      () => ({ level: formatLabel(`peppermint-adblock-level-${level}`) })
-    )
-  );
-  return [
-    action(
-      "site-adblock-pause",
-      "peppermint-site-adblock-pause",
-      icon,
-      window => setAdblockOverride(window, "off"),
-      window => hasAdblockRules(window) && effectiveLevel(window) !== "off"
-    ),
-    action(
-      "site-adblock-resume",
-      "peppermint-site-adblock-resume",
-      icon,
-      window => setAdblockOverride(window, null),
-      window => hasAdblockRules(window) && adblockOverride(window) === "off"
-    ),
-    ...levelActions,
-    action(
-      "site-adblock-reset",
-      "peppermint-site-adblock-reset",
-      icon,
-      window => setAdblockOverride(window, null),
-      window => hasAdblockRules(window) && !!adblockOverride(window)
-    ),
-    action(
-      "clear-adblock-site-rules",
-      "peppermint-clear-adblock-site-rules",
-      icon,
-      () => {
-        for (const { site } of lazy.gZenAdblock.listOverrides()) {
-          lazy.gZenAdblock.removeOverrideForSite(site);
-        }
-      },
-      () => !!lazy.gZenAdblock.listOverrides().length
-    ),
-  ];
-}
-
 function hasCookieBannerRules(window) {
   lazy.gZenCookieConsent.init();
   return (
@@ -312,7 +234,6 @@ export function siteActions() {
   return [
     ...PERMISSIONS.flatMap(permissionActions),
     ...permissionManagementActions(),
-    ...adblockActions(),
     ...cookieBannerActions(),
   ];
 }

@@ -23,7 +23,7 @@
    ZenGlance: {
      parent: {
        esModuleURI: "resource:///actors/ZenGlanceParent.sys.mjs",
-@@ -75,6 +59,19 @@
+@@ -74,6 +58,19 @@
      safeForUntrustedWebProcess: true,
      enablePreference: "zen.view.drag-window-from-content",
    },
@@ -43,28 +43,10 @@
  };
  
  if (!Services.appinfo.inSafeMode) {
-@@ -93,6 +90,41 @@
+@@ -91,6 +88,23 @@
      remoteTypes: ["web", "file"],
      enablePreference: "zen.boosts.enabled",
    };
-+  JSWINDOWACTORS.ZenAdblock = {
-+    parent: {
-+      esModuleURI: "resource:///actors/ZenAdblockParent.sys.mjs",
-+    },
-+    child: {
-+      esModuleURI: "resource:///actors/ZenAdblockChild.sys.mjs",
-+      events: {
-+        DOMDocElementInserted: {},
-+        DOMContentLoaded: {},
-+        pageshow: {},
-+      },
-+    },
-+    matches: ["http://*/*", "https://*/*"],
-+    safeForUntrustedWebProcess: true,
-+    allFrames: true,
-+    remoteTypes: ["web", "file"],
-+    enablePreference: "zen.adblock.enabled",
-+  };
 +  JSWINDOWACTORS.ZenCookieConsent = {
 +    parent: {
 +      esModuleURI: "resource:///actors/ZenCookieConsentParent.sys.mjs",

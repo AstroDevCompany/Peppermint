@@ -149,63 +149,22 @@ zen-theme-glass-enabled =
 
 zen-adblock-section-title = Ad blocking
 
-zen-adblock-header = Ad blocking
+zen-adblock-header = Ad blocker
 
-zen-adblock-description = Choose how aggressively { -brand-short-name } blocks ads and trackers. Medium is the default. You can override it for a single site from the site panel.
+zen-adblock-description = { -brand-short-name } blocks ads with an extension of your choice. The one you pick is installed right away and replaces the previous one.
 
-zen-adblock-enabled =
-    .label = Block ads and trackers
+zen-adblock-choice-label = Ad blocker
 
-zen-adblock-level-label = Blocking level
+zen-adblock-status-installed = Installed and ready.
 
-zen-adblock-level-light =
-    .label = Light
+zen-adblock-status-installing = Installing...
 
-zen-adblock-level-medium =
-    .label = Medium
+zen-adblock-status-missing = Not installed.
 
-zen-adblock-level-heavy =
-    .label = Heavy
+zen-adblock-status-failed = The ad blocker could not be installed. Check your connection and try again.
 
-zen-adblock-level-light-description = Light blocks classic ad networks and hides obvious ad slots, and leaves the rest of the page alone.
-
-zen-adblock-level-medium-description = Medium adds tracker lists, cosmetic filters, and scriptlets. Third-party scripts stay allowed unless a filter blocks them.
-
-zen-adblock-level-heavy-description = Heavy also hides cookie notices and social widgets, and blocks third-party scripts and frames unless a filter explicitly allows them.
-
-zen-adblock-ubo-note = uBlock Origin is enabled, so the built-in blocker stays idle. Disable that extension to use these levels.
-
-zen-adblock-youtube-header = YouTube
-
-zen-adblock-youtube-description = YouTube refuses to play videos while it detects an ad blocker, and what gets past that changes often. You can leave YouTube alone, and optionally let another ad blocker extension take over there.
-
-zen-adblock-youtube-pause =
-    .label = Pause the built-in blocker on YouTube
-
-zen-adblock-youtube-extension-label = On YouTube, turn on this extension:
-
-zen-adblock-youtube-extension-none = None
-
-zen-adblock-youtube-extension-description = The extension is turned on while a YouTube tab is open and turned off again afterwards, if it was off before. A YouTube page that was already open is reloaded once. Install the extension first; it is listed here once it is installed.
-
-zen-adblock-custom-header = Custom filters
-
-zen-adblock-custom-description = Extra filter rules, one per line, applied on top of the selected level.
-
-zen-adblock-save-custom =
-    .label = Save filters
-
-# $date (String) - when the filter lists were last checked for changes, for example "Oct 18, 2026, 3:04 PM".
-# $count (Number) - how many requests were blocked so far.
-zen-adblock-status = Filter lists last checked { $date }. { $count ->
-        [one] 1 request blocked so far.
-       *[other] { $count } requests blocked so far.
-    }
-
-zen-adblock-status-never = Filter lists have not been downloaded yet.
-
-zen-adblock-update-lists =
-    .label = Update lists now
+zen-adblock-install =
+    .label = Install now
 
 # $count (Number) - how many cookie popups were handled so far.
 zen-cookie-consent-status = { $count ->
@@ -215,14 +174,14 @@ zen-cookie-consent-status = { $count ->
 
 zen-cookie-consent-header = Cookie popups
 
-zen-cookie-consent-description = Refuse cookie popups on every site and hide any that stay on screen. This stays on even if ad blocking is off, and you can pause it for one site from the site panel.
+zen-cookie-consent-description = Refuse cookie popups on every site and hide any that stay on screen. This works with any ad blocker, and you can pause it for one site from the site panel.
 
 zen-cookie-consent-enabled =
     .label = Automatically refuse cookie popups
 
 zen-site-exceptions-header = Site exceptions
 
-zen-site-exceptions-description = Sites where ad blocking or cookie popup refusal differs from your global settings. Removing a site returns it to your defaults.
+zen-site-exceptions-description = Sites where cookie popup refusal differs from your global setting. Removing a site returns it to your defaults.
 
 zen-site-exceptions-empty = No sites have exceptions yet. Use the site panel next to the address bar to add one.
 
@@ -233,14 +192,6 @@ zen-site-exceptions-clear =
 zen-site-exceptions-remove =
     .label = Remove
     .aria-label = Remove exceptions for { $site }
-
-zen-site-exceptions-adblock-off = Ad blocking paused
-
-zen-site-exceptions-adblock-light = Ad blocking set to Light
-
-zen-site-exceptions-adblock-medium = Ad blocking set to Medium
-
-zen-site-exceptions-adblock-heavy = Ad blocking set to Heavy
 
 zen-site-exceptions-cookies = Cookie popups left alone
 

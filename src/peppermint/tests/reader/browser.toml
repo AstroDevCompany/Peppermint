@@ -4,7 +4,6 @@
 
 [DEFAULT]
 prefs = [
-  "zen.adblock.enabled=false",
   "peppermint.reader.always-available=true",
   "zen.notepad.auto-lock-minutes=0",
 ]

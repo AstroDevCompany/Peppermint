@@ -1,17 +1,11 @@
 --- a/zen/common/styles/zen-single-components.css
 +++ b/zen/common/styles/zen-single-components.css
-@@ -400,6 +400,30 @@
+@@ -400,6 +400,18 @@
        opacity: 0.5;
      }
    }
 +}
 +
-+#zen-site-data-adblock-level {
-+  width: 100%;
-+  margin-block: 2px 4px;
-+}
-+
-+#zen-site-data-adblock-count,
 +#zen-site-data-cookie-consent-count {
 +  margin-inline-start: 6px;
 +  font-weight: 500;
@@ -19,22 +13,18 @@
 +  opacity: 0.7;
 +}
 +
-+#zen-site-data-adblock-reset:not([hidden]) {
-+  opacity: 0.8;
-+}
-+
-+#zen-site-data-adblock-pause:focus-visible,
-+#zen-site-data-cookie-consent-pause:focus-visible,
-+#zen-site-data-adblock-reset:focus-visible {
++#zen-site-data-cookie-consent-pause:focus-visible {
 +  outline: 2px solid var(--focus-outline-color, currentColor);
 +  outline-offset: 2px;
  }
  
  #zen-site-data-new-addon-button .toolbarbutton-text {
-@@ -519,6 +543,22 @@
+@@ -517,8 +529,24 @@
+   .permission-popup-boost-item[state="enabled"] &::before {
+     opacity: 1;
    }
- }
- 
++}
++
 +.popup-notification-duration {
 +  margin-top: 8px;
 +  align-items: center;
@@ -44,8 +34,8 @@
 +.popup-notification-duration-label {
 +  margin: 0;
 +  opacity: 0.8;
-+}
-+
+ }
+ 
 +.popup-notification-duration-menulist {
 +  flex: 1;
 +  min-width: 12em;
@@ -54,7 +44,7 @@
  .zen-permission-popup-permission-state-label,
  .zen-permission-popup-boost-state-label {
    opacity: 0.6;
-@@ -572,12 +612,16 @@
+@@ -572,12 +600,16 @@
      flex-direction: row-reverse;
    }
  
@@ -75,7 +65,7 @@
      width: var(--size-item-xlarge);
      height: var(--size-item-large);
      position: relative;
-@@ -591,10 +635,14 @@
+@@ -591,10 +623,14 @@
        display: none;
      }
  
@@ -91,7 +81,7 @@
      }
  
      &::before {
-@@ -605,14 +653,17 @@
+@@ -605,14 +641,17 @@
        will-change: transform;
  
        @media (-moz-platform: macos) {
@@ -113,7 +103,7 @@
        }
  
        @media not (-moz-platform: macos) {
-@@ -696,6 +747,10 @@
+@@ -696,6 +735,10 @@
      /* Still works on firefox */
      -webkit-text-fill-color: transparent;
      animation: zen-text-gradient 5s linear infinite;
@@ -124,7 +114,7 @@
      font-size: initial;
    }
  
-@@ -730,7 +785,12 @@
+@@ -730,7 +773,12 @@
  
      & notification-message {
        background: color-mix(in srgb, var(--zen-colors-tertiary) 70%, transparent 30%);
@@ -138,7 +128,7 @@
        border: 1px solid var(--arrowpanel-border-color);
        border-radius: var(--zen-border-radius);
  
-@@ -771,6 +831,7 @@
+@@ -771,6 +819,7 @@
    contain: content;
  
    &[long-load="true"] {
@@ -146,7 +136,7 @@
      opacity: 1;
      animation: zen-progress-bar-settle .3s ease-out forwards;
      background: light-dark(rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.1));
-@@ -798,6 +859,13 @@
+@@ -798,6 +847,13 @@
    :root[inDOMFullscreen="true"] & {
      display: none;
    }
@@ -160,7 +150,7 @@
  }
  
  #TabsToolbar-customization-target:is([zen-library-stack-open], [zen-library-stack-closing]) {
-@@ -824,6 +892,8 @@
+@@ -824,6 +880,8 @@
  }
  
  %include zen-library-widget.css

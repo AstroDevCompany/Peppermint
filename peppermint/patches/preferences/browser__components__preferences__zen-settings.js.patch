@@ -664,14 +664,10 @@
      for (const pref of [kZenExtendedSidebar, kZenSingleToolbar]) {
        Services.prefs.addObserver(pref, this);
      }
-@@ -716,12 +73,109 @@
-         );
-         Services.prefs.setBoolPref(kZenSingleToolbar, layout.getAttribute("layout") == "single");
-       });
-+    }
-+  },
-+};
-+
+@@ -720,8 +77,105 @@
+   },
+ };
+ 
 +var gZenToolbarUrlbarSettings = {
 +  init() {},
 +};
@@ -735,7 +731,7 @@
 +          ),
 +        }
 +      );
-     }
++    }
 +    this._initUnderpoweredOptions();
 +    const input = document.getElementById("zenTabUnloaderMinutes");
 +    if (!input) {
@@ -748,9 +744,9 @@
 +      input.value = minutes;
 +      Services.prefs.setIntPref(pref, minutes);
 +    });
-   },
- };
- 
++  },
++};
++
  var gZenWorkspacesSettings = {
    init() {
 +    const syncLink = document.getElementById("zenSpacesOpenSyncSettings");
@@ -828,7 +824,7 @@
    _initializeEvents() {
      const resetAllListener = this.resetAllShortcuts.bind(this);
      const handleKeyDown = this._handleKeyDown.bind(this);
-@@ -1143,6 +638,453 @@
+@@ -1143,9 +638,400 @@
      input.classList.remove(`${ZEN_CKS_INPUT_FIELD_CLASS}-not-set`);
      input.value = modifiers.toDisplayString() + gZenKeyboardShortcutsManager.getKeyDisplay(shortcut);
      this._latestValidKey = shortcut;
@@ -879,9 +875,9 @@
 +      Services.prefs.setStringPref("zen.homepage.url", value);
 +    };
 +    input.addEventListener("change", commitURL);
-+  },
-+};
-+
+   },
+ };
+ 
 +var gZenUrlSnippetsSettings = {
 +  _manager: null,
 +  _queue: Promise.resolve(),
@@ -1003,64 +999,44 @@
 +
 +var gZenAdblockSettings = {
 +  init() {
-+    const { gZenAdblock } = ChromeUtils.importESModule(
-+      "resource:///modules/zen/adblock/ZenAdblockManager.sys.mjs"
-+    );
-+    const note = document.getElementById("zenAdblockUboNote");
-+    if (note) {
-+      note.hidden = !gZenAdblock.isUblockActive();
-+    }
-+    const custom = document.getElementById("zenAdblockCustomRules");
-+    if (custom) {
-+      custom.value = gZenAdblock.getCustomRules();
-+    }
-+    document.getElementById("zenAdblockSaveCustom")?.addEventListener("command", () => {
-+      gZenAdblock.setCustomRules(custom.value);
-+    });
-+    document.getElementById("zenAdblockUpdateLists")?.addEventListener("command", async () => {
-+      await gZenAdblock.updateListsNow();
-+      this._showStatus(gZenAdblock);
-+    });
-+    this._showStatus(gZenAdblock);
-+    this._showCookieStatus();
-+    this._initExceptions(gZenAdblock);
-+    this._initYouTube();
-+  },
-+
-+  async _initYouTube() {
-+    const pause = document.getElementById("zenAdblockYouTubePause");
-+    const list = document.getElementById("zenAdblockYouTubeExtension");
-+    if (!pause || !list) {
++    if (this.__hasInitialized) {
 +      return;
 +    }
-+    const { AddonManager } = ChromeUtils.importESModule(
-+      "resource://gre/modules/AddonManager.sys.mjs"
++    this.__hasInitialized = true;
++    const { ADBLOCKERS, PeppermintAdblocker } = ChromeUtils.importESModule(
++      "moz-src:///peppermint/adblocker/PeppermintAdblocker.sys.mjs"
 +    );
-+    const PREF = "zen.adblock.youtube.extension";
-+    const addons = (await AddonManager.getAddonsByTypes(["extension"])).filter(
-+      addon => !addon.isBuiltin && !addon.isSystem && !addon.hidden
-+    );
-+    const saved = Services.prefs.getStringPref(PREF, "");
-+    const none = await document.l10n.formatValue("zen-adblock-youtube-extension-none");
-+    list.removeAllItems();
-+    list.appendItem(none, "");
-+    for (const addon of addons.sort((a, b) => a.name.localeCompare(b.name))) {
-+      list.appendItem(addon.name, addon.id);
++    const list = document.getElementById("zenAdblocker");
++    const install = document.getElementById("zenAdblockInstall");
++    const status = document.getElementById("zenAdblockStatus");
++    if (list) {
++      list.removeAllItems();
++      for (const { key, name } of ADBLOCKERS) {
++        list.appendItem(name, key);
++      }
++      list.value = PeppermintAdblocker.selected.key;
++      const show = (state, retry) => {
++        document.l10n.setAttributes(status, `zen-adblock-status-${state}`);
++        install.hidden = !retry;
++        list.disabled = state === "installing";
++      };
++      const apply = async installing => {
++        show("installing", false);
++        const ok = await installing;
++        show(ok ? "installed" : "failed", !ok);
++      };
++      list.addEventListener("command", () =>
++        apply(PeppermintAdblocker.select(list.value))
++      );
++      install.addEventListener("command", () =>
++        apply(PeppermintAdblocker.install())
++      );
++      PeppermintAdblocker.isInstalled().then(installed =>
++        show(installed ? "installed" : "missing", !installed)
++      );
 +    }
-+    if (saved && !addons.some(addon => addon.id === saved)) {
-+      // Chosen once and uninstalled since: still shown, so it can be cleared.
-+      list.appendItem(saved, saved);
-+    }
-+    list.value = saved;
-+    list.addEventListener("command", () => {
-+      Services.prefs.setStringPref(PREF, list.value);
-+    });
-+    // The extension only takes over where the built-in blocker steps aside.
-+    const sync = () => {
-+      list.disabled = !pause.checked;
-+    };
-+    pause.addEventListener("command", sync);
-+    sync();
++    this._showCookieStatus();
++    this._initExceptions();
 +  },
 +
 +  _showCookieStatus() {
@@ -1075,27 +1051,7 @@
 +    }
 +  },
 +
-+  async _showStatus(gZenAdblock) {
-+    const status = document.getElementById("zenAdblockStatus");
-+    if (!status) {
-+      return;
-+    }
-+    const { updatedAt, blockedTotal } = await gZenAdblock.getStatus();
-+    if (!updatedAt) {
-+      document.l10n.setAttributes(status, "zen-adblock-status-never");
-+      return;
-+    }
-+    const date = new Intl.DateTimeFormat(undefined, {
-+      dateStyle: "medium",
-+      timeStyle: "short",
-+    }).format(updatedAt);
-+    document.l10n.setAttributes(status, "zen-adblock-status", {
-+      date,
-+      count: blockedTotal,
-+    });
-+  },
-+
-+  async _initExceptions(gZenAdblock) {
++  async _initExceptions() {
 +    const { gZenCookieConsent } = ChromeUtils.importESModule(
 +      "resource:///modules/zen/cookieconsent/ZenCookieConsentManager.sys.mjs"
 +    );
@@ -1106,19 +1062,12 @@
 +      return;
 +    }
 +    const collect = () => {
-+      const rows = new Map();
-+      for (const { site, level } of gZenAdblock.listOverrides()) {
-+        rows.set(site, { site, level });
-+      }
-+      for (const site of gZenCookieConsent.listPaused()) {
-+        rows.set(site, { site, ...rows.get(site), cookies: true });
-+      }
-+      return [...rows.values()].sort((a, b) => a.site.localeCompare(b.site));
++      return gZenCookieConsent
++        .listPaused()
++        .map(site => ({ site }))
++        .sort((a, b) => a.site.localeCompare(b.site));
 +    };
-+    const removeSite = site => {
-+      gZenAdblock.removeOverrideForSite(site);
-+      gZenCookieConsent.unpauseSite(site);
-+    };
++    const removeSite = site => gZenCookieConsent.unpauseSite(site);
 +    const render = () => {
 +      const rows = collect();
 +      list.replaceChildren();
@@ -1131,19 +1080,10 @@
 +        const site = document.createXULElement("label");
 +        site.setAttribute("value", row.site);
 +        text.append(site);
-+        const facts = [];
-+        if (row.level) {
-+          facts.push(`zen-site-exceptions-adblock-${row.level}`);
-+        }
-+        if (row.cookies) {
-+          facts.push("zen-site-exceptions-cookies");
-+        }
-+        for (const id of facts) {
-+          const fact = document.createXULElement("label");
-+          fact.classList.add("description-deemphasized");
-+          document.l10n.setAttributes(fact, id);
-+          text.append(fact);
-+        }
++        const fact = document.createXULElement("label");
++        fact.classList.add("description-deemphasized");
++        document.l10n.setAttributes(fact, "zen-site-exceptions-cookies");
++        text.append(fact);
 +        const remove = document.createXULElement("button");
 +        document.l10n.setAttributes(remove, "zen-site-exceptions-remove", {
 +          site: row.site,
@@ -1279,10 +1219,13 @@
 +      });
 +      sync();
 +    }
-   },
- };
- 
-@@ -1158,11 +1100,56 @@
++  },
++};
++
+ Preferences.addAll([
+   {
+     id: "zen.view.compact.toolbar-flash-popup",
+@@ -1158,11 +1044,56 @@
      default: true,
    },
    {
@@ -1339,7 +1282,7 @@
      id: "zen.pinned-tab-manager.restore-pinned-tabs-to-pinned-url",
      type: "bool",
      default: true,
-@@ -1203,6 +1190,11 @@
+@@ -1203,6 +1134,11 @@
      default: "float",
    },
    {
@@ -1351,7 +1294,7 @@
      id: "zen.workspaces.separate-essentials",
      type: "bool",
      default: false,
-@@ -1225,11 +1217,6 @@
+@@ -1225,11 +1161,6 @@
    {
      id: "zen.workspaces.continue-where-left-off",
      type: "bool",
@@ -1363,25 +1306,10 @@
      default: true,
    },
    {
-@@ -1257,6 +1244,121 @@
+@@ -1257,6 +1188,106 @@
      type: "bool",
      default: false,
    },
-+  {
-+    id: "zen.adblock.enabled",
-+    type: "bool",
-+    default: true,
-+  },
-+  {
-+    id: "zen.adblock.level",
-+    type: "string",
-+    default: "medium",
-+  },
-+  {
-+    id: "zen.adblock.youtube.pause",
-+    type: "bool",
-+    default: false,
-+  },
 +  {
 +    id: "zen.cookie-consent.enabled",
 +    type: "bool",

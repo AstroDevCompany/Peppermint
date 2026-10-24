@@ -6,17 +6,6 @@
 # data type. Vault settings are deliberately absent: Vault only works with a
 # Primary Password on the device, and its timings are a per-machine choice.
 
-# Ad blocking (custom rules stay per device: they can be large, and one oversized value would stop all settings from syncing)
-- name: services.sync.prefs.sync.zen.adblock.enabled
-  value: true
-
-- name: services.sync.prefs.sync.zen.adblock.level
-  value: true
-
-- name: services.sync.prefs.sync.zen.adblock.cname-uncloak
-  value: true
-
-
 # Cookie popups
 - name: services.sync.prefs.sync.zen.cookie-consent.enabled
   value: true

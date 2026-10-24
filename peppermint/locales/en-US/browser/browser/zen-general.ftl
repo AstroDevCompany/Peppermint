@@ -79,34 +79,8 @@ zen-permission-duration-tab =
 zen-permission-duration-always =
     .label = Always
 
-zen-site-data-adblock = Ad blocking
-
-zen-site-data-adblock-light =
-    .label = Light
-
-zen-site-data-adblock-medium =
-    .label = Medium
-
-zen-site-data-adblock-heavy =
-    .label = Heavy
-
-zen-site-data-adblock-pause = This site
-
-zen-site-data-adblock-on = On
-
-zen-site-data-adblock-paused = Paused
-
-zen-site-data-adblock-reset = Reset
-
-zen-site-data-adblock-level =
-    .aria-label = Ad blocking level for this site
-
-zen-site-data-adblock-count = { $count } blocked
-
 # $count (Number) - cookie popups refused or hidden on this page.
 zen-site-data-cookie-consent-count = { $count } handled
-
-zen-site-data-adblock-ubo = uBlock Origin is active
 
 zen-site-data-cookie-consent = Cookie popups
 

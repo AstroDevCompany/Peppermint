@@ -1,6 +1,6 @@
 --- a/zen/welcome/ZenWelcome.mjs
 +++ b/zen/welcome/ZenWelcome.mjs
-@@ -6,10 +6,6 @@
+@@ -6,13 +6,14 @@
    let lazy = {};
  
    ChromeUtils.defineESModuleGetters(lazy, {
@@ -11,7 +11,15 @@
      SearchService: "moz-src:///toolkit/components/search/SearchService.sys.mjs",
    });
  
-@@ -30,33 +26,12 @@
++  const { ADBLOCKERS, DEFAULT_ADBLOCKER, PeppermintAdblocker } =
++    ChromeUtils.importESModule(
++      "moz-src:///peppermint/adblocker/PeppermintAdblocker.sys.mjs"
++    );
++
+   const kZenElementsToIgnore = [
+     "zen-browser-background",
+     "zen-toast-container",
+@@ -30,33 +31,12 @@
      { url: "https://figma.com", icon: "figma", color: "#f24e1e" },
    ];
  
@@ -21,7 +29,7 @@
      setDefaultBrowser: false,
      essentials: new Set(),
 -    blockAds: true,
-+    adblockLevel: "medium",
++    adblocker: DEFAULT_ADBLOCKER,
    };
  
 -  let _adBlocker;
@@ -46,12 +54,10 @@
    function clearBrowserElements() {
      for (const element of document.getElementById("browser").children) {
        if (kZenElementsToIgnore.includes(element.id)) {
-@@ -155,44 +130,6 @@
-     }
-     label.appendChild(labelText);
+@@ -157,44 +137,6 @@
      return label;
--  }
--
+   }
+ 
 -  const _startedInstalls = new Set();
 -
 -  function unpinInstalledAddon(addon) {
@@ -88,10 +94,12 @@
 -        }
 -      })();
 -    }
-   }
- 
+-  }
+-
    function removeVideoBackground() {
-@@ -379,6 +316,7 @@
+     const video = document.getElementById("zen-welcome-video");
+     if (!video) {
+@@ -379,6 +321,7 @@
        _iconToData = undefined; // Unload icon data
        document.getElementById("zen-welcome").remove();
        document.documentElement.removeAttribute("zen-welcome-stage");
@@ -99,7 +107,7 @@
        unlockWindowSize();
        for (const element of document.getElementById("browser").children) {
          if (kZenElementsToIgnore.includes(element.id)) {
-@@ -394,8 +332,6 @@
+@@ -394,8 +337,6 @@
        await animate(`#browser > *:not(${elementsToIgnore})`, {
          opacity: [0, 1],
        });
@@ -108,10 +116,14 @@
      }
  
      async #applyChoices() {
-@@ -635,38 +571,35 @@
-         title: "zen-welcome-block-ads-title",
-         descriptions: ["zen-welcome-block-ads-description"],
-         buttons: [kNextButton],
+@@ -631,46 +572,6 @@
+         },
+       },
+       {
+-        id: "block-ads",
+-        title: "zen-welcome-block-ads-title",
+-        descriptions: ["zen-welcome-block-ads-description"],
+-        buttons: [kNextButton],
 -        // Nothing to offer once we know the add-on can't be installed.
 -        skip() {
 -          return _adBlocker === null;
@@ -128,17 +140,7 @@
 -          content.appendChild(
 -            createOption({
 -              id: "zen-welcome-block-ads-no",
-+        render(content) {
-+          for (const option of [
-+            ["light", "zen-welcome-block-ads-light"],
-+            ["medium", "zen-welcome-block-ads-medium"],
-+            ["heavy", "zen-welcome-block-ads-heavy"],
-+            ["off", "zen-welcome-block-ads-off"],
-+          ]) {
-+            const [value, l10n] = option;
-+            const row = createOption({
-+              id: "zen-welcome-block-ads-" + value,
-               group: "zen-welcome-block-ads",
+-              group: "zen-welcome-block-ads",
 -              l10n: "zen-welcome-block-ads-no",
 -              checked: !gChoices.blockAds,
 -            })
@@ -146,33 +148,54 @@
 -          // The lookup is warmed at startup, so this usually settled long ago.
 -          if ((await fetchAdBlocker()) === null && content.isConnected) {
 -            pages.next();
-+              l10n,
-+              checked: gChoices.adblockLevel === value,
-+            });
-+            row.querySelector("input").value = value;
-+            content.appendChild(row);
-           }
-         },
-         commit(content) {
+-          }
+-        },
+-        commit(content) {
 -          gChoices.blockAds = content.querySelector(
 -            "#zen-welcome-block-ads-yes"
 -          ).checked;
 -          if (gChoices.blockAds && _adBlocker) {
 -            installAddons([_adBlocker]);
+-          }
+-        },
+-      },
+-      {
+         id: "essentials",
+         title: "zen-welcome-essentials-title",
+         descriptions: ["zen-welcome-essentials-description"],
+@@ -765,6 +666,31 @@
+         },
+       },
+       {
++        id: "block-ads",
++        title: "zen-welcome-block-ads-title",
++        descriptions: ["zen-welcome-block-ads-description"],
++        buttons: [kNextButton],
++        render(content) {
++          for (const blocker of ADBLOCKERS) {
++            const row = createOption({
++              id: "zen-welcome-block-ads-" + blocker.key,
++              group: "zen-welcome-block-ads",
++              text: blocker.name,
++              checked: gChoices.adblocker === blocker.key,
++            });
++            row.querySelector("input").value = blocker.key;
++            content.appendChild(row);
++          }
++        },
++        commit(content) {
 +          const selected = content.querySelector(
 +            'input[name="zen-welcome-block-ads"]:checked'
 +          );
-+          const value = selected?.value || "medium";
-+          gChoices.adblockLevel = value;
-+          if (value === "off") {
-+            Services.prefs.setBoolPref("zen.adblock.enabled", false);
-+          } else {
-+            Services.prefs.setBoolPref("zen.adblock.enabled", true);
-+            Services.prefs.setStringPref("zen.adblock.level", value);
-           }
-         },
-       },
-@@ -880,7 +813,6 @@
++          gChoices.adblocker = selected?.value || DEFAULT_ADBLOCKER;
++          PeppermintAdblocker.select(gChoices.adblocker);
++        },
++      },
++      {
+         id: "finish",
+         title: "zen-welcome-start-browsing-title",
+         descriptions: ["zen-welcome-start-browsing-description-1"],
+@@ -880,7 +806,6 @@
    }
  
    function startZenWelcome() {
