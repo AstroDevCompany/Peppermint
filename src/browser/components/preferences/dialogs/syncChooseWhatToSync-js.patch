@@ -1,3 +1,5 @@
+diff --git a/browser/components/preferences/dialogs/syncChooseWhatToSync.js b/browser/components/preferences/dialogs/syncChooseWhatToSync.js
+index 68780e5ebd91eb8b0a6ca5841c95cd1245964441..c8a329201a20b29eeafc2407df67b76f67a9f5ed 100644
 --- a/browser/components/preferences/dialogs/syncChooseWhatToSync.js
 +++ b/browser/components/preferences/dialogs/syncChooseWhatToSync.js
 @@ -21,6 +21,7 @@ Preferences.addAll([
@@ -7,4 +9,4 @@
 +  { id: "services.sync.engine.spaces", type: "bool" },
  ]);
  
- let gSyncChooseWhatToSync = {
+ if (Services.prefs.getBoolPref("services.sync.perDeviceEngineChoices", false)) {

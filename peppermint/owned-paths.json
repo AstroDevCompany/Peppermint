@@ -37,8 +37,7 @@
     ".github/workflows/sync-upstream.yml",
     ".github/workflows/twilight-release-schedule.yml",
     "src/browser/components/tabbrowser/content/tabs-mjs.patch",
-    "src/external-patches/firefox/issue_14710.patch",
-    "src/external-patches/firefox/issue_14990.patch"
+    "src/external-patches/firefox/issue_14710.patch"
   ],
   "compatList": "peppermint/compat-patches.txt"
 }

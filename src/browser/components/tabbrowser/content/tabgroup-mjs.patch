@@ -1,6 +1,8 @@
+diff --git a/browser/components/tabbrowser/content/tabgroup.mjs b/browser/components/tabbrowser/content/tabgroup.mjs
+index 98ebd520d6d3ee5e7519a3ad6ff46c1beaba185a..552ebbede385ff271daabe37b59140a2a8224467 100644
 --- a/browser/components/tabbrowser/content/tabgroup.mjs
 +++ b/browser/components/tabbrowser/content/tabgroup.mjs
-@@ -17,11 +17,11 @@ const { TabMetrics } = ChromeUtils.importESModule(
+@@ -20,11 +20,11 @@ const { TabMetrics } = ChromeUtils.importESModule(
  export class MozTabbrowserTabGroup extends MozXULElement {
    static markup = `
      <vbox class="tab-group-label-container" pack="center">
@@ -15,7 +17,7 @@
      <vbox class="tab-group-overflow-count-container" pack="center">
        <label class="tab-group-overflow-count" role="button" />
      </vbox>
-@@ -93,21 +93,37 @@ export class MozTabbrowserTabGroup extends MozXULElement {
+@@ -90,21 +90,37 @@ export class MozTabbrowserTabGroup extends MozXULElement {
    }
  
    connectedCallback() {
@@ -57,7 +59,7 @@
  
      this._initialized = true;
      this.saveOnWindowClose = true;
-@@ -136,11 +152,14 @@ export class MozTabbrowserTabGroup extends MozXULElement {
+@@ -133,11 +149,14 @@ export class MozTabbrowserTabGroup extends MozXULElement {
  
      this.#labelContainerElement.addEventListener("mouseover", this);
      this.#labelContainerElement.addEventListener("mouseout", this);
@@ -77,7 +79,52 @@
  
      this.#updateLabelAriaAttributes();
  
-@@ -247,7 +266,10 @@ export class MozTabbrowserTabGroup extends MozXULElement {
+@@ -148,17 +167,21 @@ export class MozTabbrowserTabGroup extends MozXULElement {
+       ".tab-group-overflow-count"
+     );
+ 
++    if (!this.hasAttribute('drag-image')) {
+     this.dispatchEvent(
+       new CustomEvent("TabGroupCreate", {
+         bubbles: true,
+         detail: { adopting: this.#wasCreatedByAdoption },
+       })
+     );
++    }
+     // Reset `wasCreatedByAdoption` to default of false so that we only
+     // claim that a tab group was created by adoption the first time it
+     // mounts after getting created by `Tabbrowser.adoptTabGroup`.
+     this.#wasCreatedByAdoption = false;
+   }
++    this.#observeTabChanges();
++  }
+ 
+   resetDefaultGroupName = () => {
+     this.#defaultGroupName = "";
+@@ -193,13 +216,21 @@ export class MozTabbrowserTabGroup extends MozXULElement {
+     if (!this.#tabChangeObserver) {
+       this.#tabChangeObserver = new window.MutationObserver(mutations => {
+         if (!this.tabs.length) {
++          if (this.tagName === "zen-workspace-collapsible-pins") {
++            return;
++          }
+           this.dispatchEvent(
+             new CustomEvent("TabGroupRemoved", {
+               bubbles: true,
+               detail: { adopting: this.#removedByAdoption },
+             })
+           );
+-          this.remove();
++          gZenVerticalTabsManager.animateItemClose(this).then(() => {
++            this.dispatchEvent(
++              new CustomEvent("TabGroupRemovedFromDOM", { bubbles: true })
++            );
++            this.remove();
++          });
+           Services.obs.notifyObservers(
+             this,
+             "browser-tabgroup-removed-from-dom"
+@@ -244,7 +275,10 @@ export class MozTabbrowserTabGroup extends MozXULElement {
          }
        });
      }
@@ -89,7 +136,7 @@
    }
  
    get color() {
-@@ -353,6 +375,9 @@ export class MozTabbrowserTabGroup extends MozXULElement {
+@@ -350,6 +384,9 @@ export class MozTabbrowserTabGroup extends MozXULElement {
    }
  
    set collapsed(val) {
@@ -99,7 +146,7 @@
      if (!!val == this.collapsed) {
        return;
      }
-@@ -373,6 +398,10 @@ export class MozTabbrowserTabGroup extends MozXULElement {
+@@ -370,6 +407,10 @@ export class MozTabbrowserTabGroup extends MozXULElement {
      const eventName = val ? "TabGroupCollapse" : "TabGroupExpand";
      this.dispatchEvent(new CustomEvent(eventName, { bubbles: true }));
  
@@ -110,7 +157,7 @@
      let pendingAnimationPromises = this.tabs.flatMap(tab =>
        tab
          .getAnimations()
-@@ -436,7 +465,6 @@ export class MozTabbrowserTabGroup extends MozXULElement {
+@@ -433,7 +474,6 @@ export class MozTabbrowserTabGroup extends MozXULElement {
          tabGroupName,
        })
        .then(result => {
@@ -118,7 +165,7 @@
        });
    }
  
-@@ -511,9 +539,6 @@ export class MozTabbrowserTabGroup extends MozXULElement {
+@@ -508,9 +548,6 @@ export class MozTabbrowserTabGroup extends MozXULElement {
     *
     * @returns {false}
     */
@@ -128,7 +175,7 @@
  
    /**
     * @returns {null}
-@@ -522,10 +547,10 @@ export class MozTabbrowserTabGroup extends MozXULElement {
+@@ -519,10 +556,10 @@ export class MozTabbrowserTabGroup extends MozXULElement {
      return null;
    }
  
@@ -142,7 +189,7 @@
      return null;
    }
  
-@@ -533,13 +558,61 @@ export class MozTabbrowserTabGroup extends MozXULElement {
+@@ -530,13 +567,61 @@ export class MozTabbrowserTabGroup extends MozXULElement {
     * @returns {MozTabbrowserTab[]}
     */
    get tabs() {
@@ -157,8 +204,9 @@
 +      tabsCollect.push(item);
 +      if (gBrowser.isTabGroup(item)) {
 +        tabsCollect.push(...item.tabs);
-+      }
-+    }
+       }
+     }
+-    return childrenArray.filter(node => node.matches("tab"));
 +    return tabsCollect.filter(node => node.matches("tab"));
 +  }
 +
@@ -184,9 +232,8 @@
 +          result.push(labelContainer);
 +        }
 +        result.push(...item.childGroupsAndTabs);
-       }
-     }
--    return childrenArray.filter(node => node.matches("tab"));
++      }
++    }
 +    return result;
 +  }
 +
@@ -209,7 +256,7 @@
    }
  
    /**
-@@ -659,9 +732,6 @@ export class MozTabbrowserTabGroup extends MozXULElement {
+@@ -667,9 +752,6 @@ export class MozTabbrowserTabGroup extends MozXULElement {
          });
        } else {
          if (tabOrSplitView.pinned) {
@@ -219,7 +266,7 @@
          }
          let tabToMove =
            this.documentGlobal === tabOrSplitView.documentGlobal
-@@ -724,7 +794,7 @@ export class MozTabbrowserTabGroup extends MozXULElement {
+@@ -732,7 +814,7 @@ export class MozTabbrowserTabGroup extends MozXULElement {
     */
    on_click(event) {
      let isToggleElement =
@@ -228,7 +275,7 @@
        event.target === this.#overflowCountLabel;
      if (isToggleElement && event.button === 0) {
        event.preventDefault();
-@@ -803,4 +873,5 @@ export class MozTabbrowserTabGroup extends MozXULElement {
+@@ -812,4 +894,5 @@ export class MozTabbrowserTabGroup extends MozXULElement {
    }
  }
  

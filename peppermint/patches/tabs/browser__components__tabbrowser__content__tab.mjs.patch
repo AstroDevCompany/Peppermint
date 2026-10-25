@@ -1,0 +1,81 @@
+--- a/browser/components/tabbrowser/content/tab.mjs
++++ b/browser/components/tabbrowser/content/tab.mjs
+@@ -34,6 +34,7 @@
+             <label class="zen-tab-sublabel" data-l10n-id="zen-tab-sublabel" data-l10n-args='{"tabSubtitle": "zen-default-pinned"}' role="presentation"/>
+         </vbox>
+         <image class="tab-note-icon" role="presentation"/>
++          <image class="tab-split-button split-icon" role="button" data-l10n-id="tab-zen-split-tabs" data-l10n-args='{"tabCount": 1}' keyNav="false"/>
+         <image class="tab-close-button close-icon" role="button" data-l10n-id="tabbrowser-close-tabs-button" data-l10n-args='{"tabCount": 1}' keyNav="false"/>
+           <image class="tab-reset-button reset-icon" role="button" data-l10n-id="tabbrowser-unload-tab-button" data-l10n-args='{"tabCount": 1}' keyNav="false"/>
+       </hbox>
+@@ -594,6 +595,7 @@
+       this.style.MozUserFocus = "";
+     } else if (
+         event.target.classList?.contains("tab-reset-button") ||
++      event.target.classList?.contains("tab-split-button") ||
+       event.target.classList?.contains("tab-close-button") ||
+       gSharedTabWarning.willShowSharedTabWarning(this)
+     ) {
+@@ -617,6 +619,7 @@
+       this.style.MozUserFocus = "ignore";
+     } else if (
+       event.target.classList.contains("tab-close-button") ||
++      event.target.classList.contains("tab-split-button") ||
+         event.target.classList.contains("tab-reset-button") ||
+         event.target.classList.contains("tab-reset-pin-button") ||
+       event.target.classList.contains("tab-icon-overlay") ||
+@@ -702,6 +705,7 @@
+     if (event.altKey) {
+       if (
+         !event.target.classList.contains("tab-close-button") &&
++        !event.target.classList.contains("tab-split-button") &&
+         !event.target.classList.contains("tab-icon-overlay") &&
+         !event.target.classList.contains("tab-audio-button") &&
+         !this.selected &&
+@@ -719,6 +723,7 @@
+       }
+         if (
+           !event.target.classList.contains("tab-close-button") &&
++          !event.target.classList.contains("tab-split-button") &&
+           !event.target.classList.contains("tab-icon-overlay") &&
+           !event.target.classList.contains("tab-audio-button") &&
+           Services.prefs.getBoolPref("zen.splitView.enable-tab-click-split", false)
+@@ -744,6 +749,7 @@
+         !event.getModifierState("Accel") &&
+       gBrowser.multiSelectedTabsCount > 0 &&
+       !event.target.classList.contains("tab-close-button") &&
++      !event.target.classList.contains("tab-split-button") &&
+       !event.target.classList.contains("tab-icon-overlay") &&
+       !event.target.classList.contains("tab-audio-button")
+     ) {
+@@ -773,7 +779,30 @@
+       return;
+     }
+ 
++      if (
++        !event.getModifierState("Accel") &&
++        event.target.classList.contains("tab-split-button") &&
++        Services.prefs.getBoolPref("zen.splitView.show-tab-split-button", true)
++      ) {
++        gZenViewSplitter.contextSplitTabs(null, this);
++        gBrowser.tabContainer._blockDblClick = true;
++        return;
++      }
++
+       if (!event.getModifierState("Accel") && event.target.classList.contains("tab-close-button")) {
++      gBrowser.tabContainer._blockDblClick = true;
++      const { PeppermintTabCloseConfirm } = ChromeUtils.importESModule(
++        "moz-src:///peppermint/tab-close-confirm/PeppermintTabCloseConfirm.sys.mjs"
++      );
++      if (
++        !PeppermintTabCloseConfirm.confirm(
++          window,
++          "button",
++          this.multiselected ? gBrowser.multiSelectedTabsCount : 1
++        )
++      ) {
++        return;
++      }
+       if (this.multiselected) {
+         gBrowser.removeMultiSelectedTabs({
+           metricsContext: lazy.TabMetrics.userTriggeredContext(

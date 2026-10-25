@@ -1,7 +1,6 @@
-diff --git a/browser/locales/en-US/browser/preferences/preferences.ftl b/browser/locales/en-US/browser/preferences/preferences.ftl
 --- a/browser/locales/en-US/browser/preferences/preferences.ftl
 +++ b/browser/locales/en-US/browser/preferences/preferences.ftl
-@@ -618,7 +618,7 @@
+@@ -618,7 +618,7 @@ download-always-ask-where2 =
      .label = Ask where to save files before downloading
      .accesskey = A
  download-private-browsing-delete2 =
@@ -10,7 +9,7 @@ diff --git a/browser/locales/en-US/browser/preferences/preferences.ftl b/browser
      .accesskey = D
  
  applications-header = Applications
-@@ -1130,11 +1130,11 @@
+@@ -1040,11 +1040,11 @@ search-show-search-term-option-2 =
      .label = Show search terms in the address bar on results pages
  
  search-separate-default-engine-2 =
@@ -22,9 +21,9 @@ diff --git a/browser/locales/en-US/browser/preferences/preferences.ftl b/browser
 -    .aria-label = Default search engine in private windows
 +    .aria-label = Default search engine in ghost windows
  
- search-suggestions-header-2 =
-     .label = Search engine suggestions
-@@ -1156,7 +1156,7 @@
+ # "Navigation" here means moving around within the address bar and its results
+ # list, not navigation to the address bar.
+@@ -1076,7 +1076,7 @@ search-show-suggestions-above-history-option-2 =
      .label = Show search suggestions before browsing history in address bar results
  
  search-show-suggestions-private-windows-2 =
@@ -33,7 +32,7 @@ diff --git a/browser/locales/en-US/browser/preferences/preferences.ftl b/browser
  
  search-suggestions-cant-show-2 =
      .message = Search suggestions will not be shown in location bar results because you have configured { -brand-short-name } to never remember history.
-@@ -1831,7 +1831,7 @@
+@@ -1793,7 +1793,7 @@ history-remember-option-all2 =
      .label = Remember history
  history-remember-option-never2 =
      .label = Never remember history
@@ -42,7 +41,7 @@ diff --git a/browser/locales/en-US/browser/preferences/preferences.ftl b/browser
  history-remember-option-custom2 =
      .label = Customize history
  
-@@ -1841,14 +1841,14 @@
+@@ -1803,14 +1803,14 @@ history-remember-description4 =
  
  history-dontremember-description4 =
      .aria-label = { history-group.label }
@@ -59,7 +58,7 @@ diff --git a/browser/locales/en-US/browser/preferences/preferences.ftl b/browser
      .accesskey = p
  
  history-remember-browser-option =
-@@ -1993,10 +1993,10 @@
+@@ -1955,10 +1955,10 @@ content-blocking-etp-strict-desc = Stronger protection, but may cause some sites
  content-blocking-etp-custom-desc = Choose which trackers and scripts to block.
  content-blocking-etp-blocking-desc = { -brand-short-name } blocks the following:
  
@@ -72,7 +71,7 @@ diff --git a/browser/locales/en-US/browser/preferences/preferences.ftl b/browser
  content-blocking-isolate-cross-site-cookies = Isolate cross-site cookies
  content-blocking-social-media-trackers = Social media trackers
  content-blocking-all-cookies = All cookies
-@@ -2050,7 +2050,7 @@
+@@ -2012,7 +2012,7 @@ content-blocking-tracking-protection-option-all-windows =
    .label = In all windows
    .accesskey = A
  content-blocking-option-private =
@@ -81,7 +80,7 @@ diff --git a/browser/locales/en-US/browser/preferences/preferences.ftl b/browser
    .accesskey = p
  
  content-blocking-cookies-label =
-@@ -2283,7 +2283,7 @@
+@@ -2245,7 +2245,7 @@ httpsonly-radio-enabled =
      .label = Enable HTTPS-Only Mode in all windows
  
  httpsonly-radio-enabled-pbm =

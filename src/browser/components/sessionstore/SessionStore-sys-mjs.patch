@@ -1,6 +1,8 @@
+diff --git a/browser/components/sessionstore/SessionStore.sys.mjs b/browser/components/sessionstore/SessionStore.sys.mjs
+index 9fa4c8e8ccd31587442cec02e0563099dc65cd51..f9d57719fe78301615e906b1cd66326e1d70a8db 100644
 --- a/browser/components/sessionstore/SessionStore.sys.mjs
 +++ b/browser/components/sessionstore/SessionStore.sys.mjs
-@@ -204,6 +204,11 @@ const TAB_EVENTS = [
+@@ -288,6 +288,11 @@ const TAB_EVENTS = [
    "TabSplitViewActivate",
    "SplitViewRemoved",
    "SplitViewCreated",
@@ -12,7 +14,7 @@
  ];
  
  const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
-@@ -278,6 +283,8 @@ const lazy = XPCOMUtils.declareLazy({
+@@ -362,6 +367,8 @@ const lazy = XPCOMUtils.declareLazy({
    TabStateFlusher:
      "moz-src:///browser/components/sessionstore/TabStateFlusher.sys.mjs",
    setTimeout: "resource://gre/modules/Timer.sys.mjs",
@@ -21,7 +23,7 @@
    blankURI: () => Services.io.newURI("about:blank"),
    gRestoreWindowsToVirtualDesktop: {
      pref: "browser.sessionstore.restore_windows_to_virtual_desktop",
-@@ -458,6 +465,26 @@ class _SessionStore {
+@@ -557,6 +564,26 @@ class _SessionStore {
      return this.#shouldRestoreLastSession;
    }
  
@@ -48,7 +50,7 @@
    // whether we will potentially be restoring the session
    // more than once without Firefox restarting in between
    #restoreWithoutRestart = false;
-@@ -649,10 +676,7 @@ class _SessionStore {
+@@ -748,10 +775,7 @@ class _SessionStore {
     */
    get willAutoRestore() {
      return (
@@ -60,7 +62,7 @@
      );
    }
  
-@@ -1381,6 +1405,11 @@ class _SessionStore {
+@@ -1618,6 +1642,11 @@ class _SessionStore {
        case "TabPinned":
        case "TabUnpinned":
        case "SwapDocShells":
@@ -72,8 +74,8 @@
          this.#saveStateDelayed(win);
          break;
        case "TabGroupCreate":
-@@ -1510,6 +1539,10 @@ class _SessionStore {
-       this.#windows[aWindow.__SSi].isTaskbarTab = true;
+@@ -1756,6 +1785,10 @@ class _SessionStore {
+       this.#windows[this.#windowIds.get(aWindow)].isTaskbarTab = true;
      }
  
 +    if (aWindow.document.documentElement.hasAttribute("zen-unsynced-window")) {
@@ -81,10 +83,10 @@
 +    }
 +
      if (lazy.AIWindow.isAIWindowActiveAndEnabled(aWindow)) {
-       this.#windows[aWindow.__SSi].isAIWindow = true;
+       this.#windows[this.#windowIds.get(aWindow)].isAIWindow = true;
      }
-@@ -1558,7 +1591,7 @@ class _SessionStore {
-     let isTaskbarTab = this.#windows[aWindow.__SSi].isTaskbarTab;
+@@ -1807,7 +1840,7 @@ class _SessionStore {
+     let isTaskbarTab = this.#windows[this.#windowIds.get(aWindow)].isTaskbarTab;
      // A regular window is not a private window, taskbar tab window, or popup window
      let isRegularWindow =
 -      !isPrivateWindow && !isTaskbarTab && aWindow.toolbar.visible;
@@ -92,7 +94,7 @@
  
      // perform additional initialization when the first window is loading
      if (lazy.RunState.isStopped) {
-@@ -1570,7 +1603,7 @@ class _SessionStore {
+@@ -1819,7 +1852,7 @@ class _SessionStore {
          // to disk to NOW() to enforce a full interval before the next write.
          lazy.SessionSaver.updateLastSaveTime();
  
@@ -101,7 +103,7 @@
            this.#log.debug(
              "initializeWindow, the window is private or a web app. Saving SessionStartup.state for possibly restoring later"
            );
-@@ -1618,6 +1651,7 @@ class _SessionStore {
+@@ -1867,6 +1900,7 @@ class _SessionStore {
            null,
            "sessionstore-one-or-no-tab-restored"
          );
@@ -109,7 +111,7 @@
          this.#deferredAllWindowsRestored.resolve();
        }
        // this window was opened by #openWindowWithState
-@@ -1668,7 +1702,6 @@ class _SessionStore {
+@@ -1917,7 +1951,6 @@ class _SessionStore {
        if (closedWindowState) {
          let newWindowState;
          if (
@@ -117,7 +119,7 @@
            !lazy.SessionStartup.willRestore()
          ) {
            // We want to split the window up into pinned tabs and unpinned tabs.
-@@ -1703,6 +1736,7 @@ class _SessionStore {
+@@ -1952,6 +1985,7 @@ class _SessionStore {
          }
  
          if (newWindowState) {
@@ -125,7 +127,7 @@
            // Ensure that the window state isn't hidden
            this.#restoreCount = 1;
            let state = { windows: [newWindowState] };
-@@ -1745,6 +1779,9 @@ class _SessionStore {
+@@ -1997,6 +2031,9 @@ class _SessionStore {
        });
        this.#shouldRestoreLastSession = false;
      }
@@ -135,25 +137,25 @@
  
      if (this.#restoreLastWindow && aWindow.toolbar.visible) {
        // always reset (if not a popup window)
-@@ -1904,7 +1941,7 @@ class _SessionStore {
+@@ -2159,7 +2196,7 @@ class _SessionStore {
  
      var tabbrowser = aWindow.gBrowser;
  
 -    let browsers = Array.from(tabbrowser.browsers);
 +    let browsers = aWindow.gZenWorkspaces.allUsedBrowsers;
  
-     TAB_EVENTS.forEach(function (aEvent) {
-       tabbrowser.tabContainer.removeEventListener(aEvent, this, true);
-@@ -1914,6 +1951,8 @@ class _SessionStore {
+     for (let event of TAB_EVENTS) {
+       tabbrowser.tabContainer.removeEventListener(event, this, true);
+@@ -2169,6 +2206,8 @@ class _SessionStore {
  
-     let winData = this.#windows[aWindow.__SSi];
+     let winData = this.#windows[this.#windowIds.get(aWindow)];
  
 +    this.#clearRestoringWindows();
 +
      // Collect window data only when *not* closed during shutdown.
      if (lazy.RunState.isRunning) {
        // Grab the most recent window data. The tab data will be updated
-@@ -1955,7 +1994,7 @@ class _SessionStore {
+@@ -2210,7 +2249,7 @@ class _SessionStore {
  
        let isLastRegularWindow =
          Object.values(this.#windows).filter(
@@ -162,7 +164,7 @@
          ).length == 1;
        this.#log.debug(
          `onClose, closing window isLastRegularWindow? ${isLastRegularWindow}`
-@@ -2012,8 +2051,8 @@ class _SessionStore {
+@@ -2267,8 +2306,8 @@ class _SessionStore {
        // 2) Flush the window.
        // 3) When the flush is complete, revisit our decision to store the window
        //    in #closedWindows, and add/remove as necessary.
@@ -173,7 +175,7 @@
        }
  
        completionPromise = lazy.TabStateFlusher.flushWindow(aWindow).then(() => {
-@@ -2033,8 +2072,9 @@ class _SessionStore {
+@@ -2288,8 +2327,9 @@ class _SessionStore {
  
          // Save non-private windows if they have at
          // least one saveable tab or are the last window.
@@ -185,7 +187,7 @@
  
            if (!isLastWindow && winData.closedId > -1) {
              this.#addClosedAction(
-@@ -2113,7 +2153,7 @@ class _SessionStore {
+@@ -2368,7 +2408,7 @@ class _SessionStore {
     *        to call this method again asynchronously (for example, after
     *        a window flush).
     */
@@ -194,7 +196,7 @@
      // Make sure SessionStore is still running, and make sure that we
      // haven't chosen to forget this window.
      if (
-@@ -2130,6 +2170,7 @@ class _SessionStore {
+@@ -2385,6 +2425,7 @@ class _SessionStore {
        // #closedWindows from a previous call to this function.
        let winIndex = this.#closedWindows.indexOf(winData);
        let alreadyStored = winIndex != -1;
@@ -202,7 +204,7 @@
        // If sidebar command is truthy, i.e. sidebar is open, store sidebar settings
        let shouldStore = hasSaveableTabs || isLastWindow;
  
-@@ -2955,7 +2996,7 @@ class _SessionStore {
+@@ -3227,7 +3268,7 @@ class _SessionStore {
      if (!isPrivateWindow && tabState.isPrivate) {
        return;
      }
@@ -211,7 +213,7 @@
        return;
      }
  
-@@ -3798,7 +3839,15 @@ class _SessionStore {
+@@ -4084,7 +4125,15 @@ class _SessionStore {
          1,
          Math.min(tabState.index, tabState.entries.length)
        );
@@ -228,7 +230,7 @@
  
        if (inBackground === false) {
          aWindow.gBrowser.selectedTab = newTab;
-@@ -4338,6 +4387,8 @@ class _SessionStore {
+@@ -4584,6 +4633,8 @@ class _SessionStore {
        // Append the tab if we're opening into a different window,
        tabIndex: aSource == aTargetWindow ? pos : Infinity,
        pinned: state.pinned,
@@ -237,7 +239,7 @@
        userContextId: state.userContextId,
        skipLoad: true,
        preferredRemoteType,
-@@ -5019,9 +5070,10 @@ class _SessionStore {
+@@ -5259,9 +5310,10 @@ class _SessionStore {
        if (activePageData.title && activePageData.title != activePageData.url) {
          win.gBrowser.setInitialTabTitle(tab, activePageData.title, {
            isContentTitle: true,
@@ -249,7 +251,7 @@
        }
      }
  
-@@ -5494,7 +5546,7 @@ class _SessionStore {
+@@ -5735,7 +5787,7 @@ class _SessionStore {
  
      for (let i = tabbrowser.pinnedTabCount; i < tabbrowser.tabs.length; i++) {
        let tab = tabbrowser.tabs[i];
@@ -258,7 +260,7 @@
          removableTabs.push(tab);
        }
      }
-@@ -5590,7 +5642,7 @@ class _SessionStore {
+@@ -5831,7 +5883,7 @@ class _SessionStore {
  
      // collect the data for all windows
      for (ix in this.#windows) {
@@ -267,7 +269,24 @@
          // window data is still in #statesToRestore
          continue;
        }
-@@ -5750,6 +5802,15 @@ class _SessionStore {
+@@ -5979,11 +6031,15 @@ class _SessionStore {
+     }
+ 
+     let tabbrowser = aWindow.gBrowser;
+-    let tabs = tabbrowser.tabs;
++    let tabs = aWindow.gZenWorkspaces.allStoredTabs;
+     /** @type {WindowStateData} */
+     let winData = this.#windows[this.#windowIds.get(aWindow)];
+     let tabsData = (winData.tabs = []);
+ 
++    winData.splitViewData = Cu.cloneInto(
++      aWindow.gZenViewSplitter?.storeDataForSessionStore(),
++      {}
++    );
+     // update the internal state data for this window
+     for (let tab of tabs) {
+       if (tab == aWindow.FirefoxViewHandler.tab) {
+@@ -5994,6 +6050,15 @@ class _SessionStore {
        tabsData.push(tabData);
      }
  
@@ -283,7 +302,7 @@
      // update tab group state for this window
      winData.groups = [];
      for (let tabGroup of aWindow.gBrowser.tabGroups) {
-@@ -5766,7 +5827,7 @@ class _SessionStore {
+@@ -6010,7 +6075,7 @@ class _SessionStore {
      // a window is closed, point to the first item in the tab strip instead (it will never be the Firefox View tab,
      // since it's only inserted into the tab strip after it's selected).
      if (aWindow.FirefoxViewHandler.tab?.selected) {
@@ -292,7 +311,16 @@
        winData.title = tabbrowser.tabs[0].label;
      }
      winData.selected = selectedIndex;
-@@ -5995,6 +6056,7 @@ class _SessionStore {
+@@ -6214,7 +6279,7 @@ class _SessionStore {
+     // selectTab represents.
+     let selectTab = 0;
+     if (overwriteTabs) {
+-      selectTab = Math.max(winData.selected || 1, 1);
++      selectTab = Math.max(winData.selected || 0, 0);
+       selectTab = Math.min(selectTab, winData.tabs.length);
+     }
+ 
+@@ -6236,6 +6301,7 @@ class _SessionStore {
      if (overwriteTabs) {
        for (let i = tabbrowser.browsers.length - 1; i >= 0; i--) {
          if (!tabbrowser.tabs[i].selected) {
@@ -300,7 +328,7 @@
            tabbrowser.removeTab(tabbrowser.tabs[i]);
          }
        }
-@@ -6004,6 +6066,11 @@ class _SessionStore {
+@@ -6245,6 +6311,11 @@ class _SessionStore {
        this.#prefBranch.getBoolPref("sessionstore.restore_tabs_lazily") &&
        this.#restore_on_demand;
  
@@ -312,7 +340,7 @@
      this.#log.debug(
        `restoreWindow, will restore ${winData.tabs.length} tabs and ${
          winData.groups?.length ?? 0
-@@ -6029,6 +6096,8 @@ class _SessionStore {
+@@ -6270,6 +6341,8 @@ class _SessionStore {
          savedTabGroup => !openTabGroupIdsInWindow.has(savedTabGroup.id)
        );
      }
@@ -321,7 +349,7 @@
  
      // Move the originally open tabs to the end.
      if (initialTabs) {
-@@ -6130,6 +6199,8 @@ class _SessionStore {
+@@ -6372,6 +6445,8 @@ class _SessionStore {
      // set smoothScroll back to the original value
      arrowScrollbox.smoothScroll = smoothScroll;
  
@@ -330,7 +358,7 @@
      Glean.sessionRestore.restoreWindow.stopAndAccumulate(timerId);
    }
  
-@@ -6627,6 +6698,25 @@ class _SessionStore {
+@@ -6869,6 +6944,25 @@ class _SessionStore {
  
      // Most of tabData has been restored, now continue with restoring
      // attributes that may trigger external events.
@@ -356,7 +384,7 @@
  
      if (tabData.pinned) {
        tabbrowser.pinTab(tab);
-@@ -6789,6 +6879,10 @@ class _SessionStore {
+@@ -7025,6 +7119,10 @@ class _SessionStore {
        lazy.AIWindow.recordOpenWindowTelemetry(trigger);
      }
  
@@ -367,7 +395,7 @@
      let promiseParts = Promise.withResolvers();
      const wasMinimized = aWindow.windowState == aWindow.STATE_MINIMIZED;
      aWindow.setTimeout(() => {
-@@ -7330,6 +7424,7 @@ class _SessionStore {
+@@ -7566,6 +7664,7 @@ class _SessionStore {
     */
    #isCmdLineEmpty(aWindow, aState) {
      var pinnedOnly =
@@ -375,7 +403,7 @@
        aState.windows &&
        aState.windows.every(win => win.tabs.every(tab => tab.pinned));
  
-@@ -7688,7 +7783,7 @@ class _SessionStore {
+@@ -7922,7 +8021,7 @@ class _SessionStore {
  
        let groupsToSave = new Map();
        for (let tIndex = 0; tIndex < window.tabs.length; ) {
@@ -384,7 +412,7 @@
            // Adjust window.selected
            if (tIndex + 1 < window.selected) {
              window.selected -= 1;
-@@ -7703,7 +7798,7 @@ class _SessionStore {
+@@ -7937,7 +8036,7 @@ class _SessionStore {
            );
            // We don't want to increment tIndex here.
            continue;
@@ -393,7 +421,7 @@
            // Convert any open groups into saved groups.
            let groupStateToSave = window.groups.find(
              groupState => groupState.id == window.tabs[tIndex].groupId
-@@ -8285,7 +8380,6 @@ class _SessionStore {
+@@ -8516,7 +8615,6 @@ class _SessionStore {
      timer.initWithCallback(
        () => {
          if (beats <= 0) {
@@ -401,7 +429,7 @@
            Glean.sessionRestore.shutdownFlushAllOutcomes.timed_out.add(1);
            deferred.resolve();
          }
-@@ -8785,6 +8879,7 @@ class _SessionStore {
+@@ -9014,6 +9112,7 @@ class _SessionStore {
      if (
        !savedTabGroupState.tabs.length ||
        this.getSavedTabGroup(savedTabGroupState.id)

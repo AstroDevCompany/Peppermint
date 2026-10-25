@@ -1,6 +1,41 @@
+diff --git a/browser/themes/shared/urlbar.css b/browser/themes/shared/urlbar.css
+index bbd8b165659573824b09966fdd283b61ca6278a8..c0e76a7011c88f6dc19fef38bfefb17d60a5d7c7 100644
 --- a/browser/themes/shared/urlbar.css
 +++ b/browser/themes/shared/urlbar.css
-@@ -142,18 +142,13 @@
+@@ -27,30 +27,15 @@
+   /* How far the background reaches past the input while the view is open. */
+   --urlbar-background-overhang-open: 8px;
+ 
+-  /* How far each half of the joint background runs past the seam before it is
+-     clipped back to it. Must exceed the open background's 14px shadow blur, so
+-     each half's shadow is the whole surface's. */
+-  --urlbar-joint-background-overlap: 24px;
+-  /* Margin the clip leaves on the other three sides, where that shadow does
+-     reach past the surface. */
+-  --urlbar-joint-background-shadow-margin: 32px;
+-
+-  /* How far the joint background reaches past the view's border box, on the
+-     sides the input's own background doesn't cover. The view's margin is part
+-     of it because the surface wraps the view's margin box, not its border
+-     box. */
+-  --urlbarview-joint-background-outset-inline: calc(var(--urlbar-background-overhang-open) + var(--urlbarview-margin-inline));
+-  --urlbarview-joint-background-outset-block: calc(var(--urlbar-background-overhang-open) + var(--urlbarview-margin-block));
+-
+   /* The container's block padding, which the popover takes as its offset from
+      the container's border box. */
+   --urlbar-container-padding-block: var(--urlbar-padding-block);
+ 
+   @media not -moz-pref("browser.nova.enabled") {
+     --urlbar-basic-component-size: calc(var(--urlbar-height) - 2 * (var(--urlbar-input-container-border-width) + var(--urlbar-input-container-padding)));
+-    --urlbar-icon-padding: calc((var(--urlbar-height) - 2px /* border */ - 2px /* padding */ - 16px /* icon */) / 2);
++    --urlbar-icon-padding: calc((var(--urlbar-height) - 2px /* border */ - 14px /* icon */) / 2);
+     --urlbar-component-gap: 0px;
+-    --urlbar-input-container-padding: round(up, 1px, env(hairline));
++    --urlbar-input-container-padding: 2px;
+     --urlbar-background-overhang-open: 0px;
+   }
+   &[uidensity="compact"] {
+@@ -127,18 +112,13 @@
      min(var(--urlbar-background-border-radius), var(--urlbar-height) / 2) + var(--urlbar-background-overhang-open)
    );
    --urlbar-background-box-shadow-open: 0 0 14px 0 var(--chrome-box-shadow);
@@ -21,7 +56,7 @@
    --urlbar-searchmode-switcher-panel-list-min-width: 17em;
  
    @media (prefers-contrast) {
-@@ -165,6 +160,7 @@
+@@ -150,6 +130,7 @@
      --urlbar-background-border-open: var(--urlbar-input-container-border-width) solid var(--panel-border-color);
      --urlbar-background-border-focused: var(--urlbar-background-border);
      --urlbar-background-box-shadow-open: 0 2px 14px var(--chrome-box-shadow);
@@ -29,7 +64,7 @@
      /* We want the focus outline with the theme's border-color when focused.
         --toolbar-field-border-color-focus is set equal to --focus-outline-color
         on :root, but LWT themes can override this value. */
-@@ -173,8 +169,7 @@
+@@ -158,8 +139,7 @@
      --urlbar-input-container-outline-open: none;
      --urlbar-input-container-outline-open-focused: none;
      --urlbar-input-container-outline-offset-open: 0px;
@@ -39,7 +74,7 @@
      --urlbar-searchmode-switcher-panel-list-min-width: auto;
    }
  }
-@@ -190,7 +185,7 @@ toolbar[inactive="true"] .urlbar,
+@@ -175,7 +155,7 @@ toolbar[inactive="true"] .urlbar,
  .urlbar:not([usertyping]) > .urlbar-input-container > .urlbar-go-button,
  .urlbar:not(#searchbar-new, [focused]) > .urlbar-input-container > .urlbar-go-button,
  #urlbar-revert-button-container {
@@ -48,7 +83,7 @@
  }
  
  /* Document Picture-in-Picture API window */
-@@ -211,6 +206,8 @@ toolbar[inactive="true"] .urlbar,
+@@ -196,6 +176,8 @@ toolbar[inactive="true"] .urlbar,
  .urlbar-container {
    padding-block: var(--urlbar-container-padding-block);
    margin-inline: var(--urlbar-margin-inline);
@@ -57,7 +92,7 @@
  }
  
  .urlbar {
-@@ -221,10 +218,27 @@ toolbar[inactive="true"] .urlbar,
+@@ -206,10 +188,27 @@ toolbar[inactive="true"] .urlbar,
    -moz-user-focus: ignore;
    user-select: none;
  
@@ -89,7 +124,7 @@
  }
  
  .urlbar,
-@@ -342,30 +356,16 @@ toolbar[inactive="true"] .urlbar,
+@@ -325,30 +324,16 @@ toolbar[inactive="true"] .urlbar,
      border: var(--urlbar-background-border-focused);
    }
  
@@ -124,7 +159,7 @@
    }
  
    .urlbar[open] > & {
-@@ -390,21 +390,17 @@ toolbar[inactive="true"] .urlbar,
+@@ -373,21 +358,17 @@ toolbar[inactive="true"] .urlbar,
    border-radius: var(--urlbar-border-radius);
    overflow: clip;
  
@@ -152,7 +187,7 @@
      outline: var(--urlbar-input-container-outline-open-focused);
    }
  
-@@ -520,6 +516,10 @@ toolbar[inactive="true"] .urlbar,
+@@ -503,6 +484,10 @@ toolbar[inactive="true"] .urlbar,
    .urlbar:not([focused])[textoverflow="left"][domaindir="rtl"] > .urlbar-input-container > .urlbar-input-box > & {
      mask-image: linear-gradient(to right, transparent var(--urlbar-scheme-size), black calc(var(--urlbar-scheme-size) + 3ch));
    }
@@ -163,3 +198,85 @@
  }
  
  #urlbar-scheme {
+@@ -559,71 +544,20 @@ toolbar[inactive="true"] .urlbar,
+   position: relative;
+ }
+ 
+-/* Neutralize the UA popover rules the view supplies itself. :where() holds the
+-   specificity at zero, so the theme sheets win. */
+-:where(.urlbarView) {
+-  inset: auto;
+-  width: auto;
+-  height: auto;
+-  border: none;
+-  padding: 0;
+-  color: inherit;
+-  background-color: transparent;
+-}
+-
+-.urlbarView {
+-  /* The max-height below has to bound the border box, which the view's block
+-     padding is part of. */
+-  box-sizing: border-box;
+-
+-  &:popover-open {
+-    display: flex;
+-    flex-direction: column;
+-    position: fixed;
+-    position-anchor: --urlbar-anchor;
+-    /* The block-end row of the position area starts at the anchor's block-end
+-       edge, where span-block-end would start at its block-start edge. */
+-    position-area: block-end center;
+-    /* Fill the area, less the view's own margin whichever way it points. */
+-    inset-inline: 0;
+-    justify-self: stretch;
+-    /* The view clips its rows, and the joint background and its shadow reach
+-       past it. */
+-    overflow-clip-margin: var(--urlbar-joint-background-shadow-margin);
+-
+-    max-height: min(calc(100% - var(--urlbarview-joint-background-outset-block)), 100vh);
+-  }
+-}
+-
+-/* The half of the joint background that reaches past the input, which the
+-   input's own background can't paint because a toolbar doesn't extend over the
+-   content area. See .urlbar-background for how the two halves' shadows
+-   meet. */
+-.urlbarView-background {
+-  display: block;
+-  position: absolute;
+-  z-index: -1;
+-  inset-inline: calc(-1 * var(--urlbarview-joint-background-outset-inline));
+-  background-color: var(--urlbar-background-color-focus);
+-  background-clip: border-box;
+-  border: var(--urlbar-background-border-open);
+-  border-radius: var(--urlbar-background-border-radius);
+-  box-shadow: var(--urlbar-background-box-shadow-open);
+-
+-  .urlbar > .urlbarView > & {
+-    inset-block: calc(-1 * var(--urlbarview-margin-block) - var(--urlbar-joint-background-overlap)) calc(-1 * var(--urlbarview-joint-background-outset-block));
+-    border-start-start-radius: 0;
+-    border-start-end-radius: 0;
+-    clip-path: inset(
+-      var(--urlbar-joint-background-overlap) calc(-1 * var(--urlbar-joint-background-shadow-margin)) calc(-1 * var(--urlbar-joint-background-shadow-margin))
+-    );
+-  }
+-}
+-
+ @media not -moz-pref("browser.nova.enabled") {
+   .urlbar-input-container {
+     border: var(--urlbar-input-container-border);
+   }
++
++  .urlbar[popover-open]:where([open], :not([in-page])) {
++    width: calc(var(--urlbar-width) + 2 * var(--urlbar-margin-inline));
++
++    > .urlbar-input-container {
++      height: var(--urlbar-container-height);
++      padding-block: calc((var(--urlbar-container-height) - var(--urlbar-height)) / 2);
++      padding-inline: calc(var(--urlbar-margin-inline) + var(--urlbar-input-container-padding));
++    }
++  }
+ }
+ 
+ :root[popup-window] #urlbar-container {

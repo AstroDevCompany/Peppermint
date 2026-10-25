@@ -1,11 +1,9 @@
-diff --git a/toolkit/xre/nsXREDirProvider.cpp b/toolkit/xre/nsXREDirProvider.cpp
---- a/toolkit/xre/nsXREDirProvider.cpp	2026-10-12 12:58:50
-+++ b/toolkit/xre/nsXREDirProvider.cpp	2026-10-12 12:58:50
-@@ -1232,42 +1232,7 @@
-   return rv;
+--- a/toolkit/xre/nsXREDirProvider.cpp
++++ b/toolkit/xre/nsXREDirProvider.cpp
+@@ -1233,40 +1233,6 @@ nsresult nsXREDirProvider::GetSystemExtensionsDirectory(nsIFile** aFile) {
  }
  #endif
--
+ 
 -nsresult nsXREDirProvider::GetUserDataDirectory(nsIFile** aFile, bool aLocal) {
 -  nsCOMPtr<nsIFile> localDir;
 -  nsCOMPtr<nsIFile> customDir = mozilla::GetFileFromEnv("MOZ_APP_DATA");
@@ -27,7 +25,7 @@ diff --git a/toolkit/xre/nsXREDirProvider.cpp b/toolkit/xre/nsXREDirProvider.cpp
 -  } else {
 -    rv = GetUserDataDirectoryHome(getter_AddRefs(localDir), aLocal);
 -    NS_ENSURE_SUCCESS(rv, rv);
- 
+-
 -    rv = AppendProfilePath(localDir, aLocal);
 -    NS_ENSURE_SUCCESS(rv, rv);
 -  }
@@ -37,18 +35,16 @@ diff --git a/toolkit/xre/nsXREDirProvider.cpp b/toolkit/xre/nsXREDirProvider.cpp
 -
 -  nsXREDirProvider::SetUserDataProfileDirectory(localDir, aLocal);
 -
--  localDir.forget(aFile);
--  return NS_OK;
+-  return localDir->Clone(aFile);
 -}
 -
  nsresult nsXREDirProvider::EnsureDirectoryExists(nsIFile* aDirectory) {
    nsresult rv = aDirectory->Create(nsIFile::DIRECTORY_TYPE, 0700);
  
-@@ -1542,7 +1507,201 @@
-   return NS_OK;
+@@ -1542,6 +1508,199 @@ nsresult nsXREDirProvider::GetLegacyOrXDGHomePath(const char* aHomeDir,
  }
  #endif  // defined(MOZ_WIDGET_GTK)
-+
+ 
 +static bool ReadNativeFile(nsIFile* aFile, nsCString& aOut) {
 +  FILE* fp = nullptr;
 +  if (NS_FAILED(aFile->OpenANSIFileDesc("r", &fp)) || !fp) {
@@ -71,7 +67,7 @@ diff --git a/toolkit/xre/nsXREDirProvider.cpp b/toolkit/xre/nsXREDirProvider.cpp
 +         aText.Find("Zen Browser.app") != kNotFound ||
 +         aText.Find("zen-browser.app") != kNotFound;
 +}
- 
++
 +static bool TextLooksLikePeppermintInstall(const nsACString& aText) {
 +  return aText.Find("Peppermint.app") != kNotFound ||
 +         aText.Find("Peppermint.exe") != kNotFound;
@@ -239,8 +235,7 @@ diff --git a/toolkit/xre/nsXREDirProvider.cpp b/toolkit/xre/nsXREDirProvider.cpp
 +
 +  nsXREDirProvider::SetUserDataProfileDirectory(localDir, aLocal);
 +
-+  localDir.forget(aFile);
-+  return NS_OK;
++  return localDir->Clone(aFile);
 +}
 +
  nsresult nsXREDirProvider::AppendProfilePath(nsIFile* aFile, bool aLocal) {
