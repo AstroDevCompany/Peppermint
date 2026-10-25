@@ -1,5 +1,3 @@
-diff --git a/browser/components/sessionstore/SessionFile.sys.mjs b/browser/components/sessionstore/SessionFile.sys.mjs
-index 3c5cfef8c5c4c4439b2f4eca57a9423f9ae3f0e0..4daf32d50c7ad11fea7f073be5c32397c4c467c7 100644
 --- a/browser/components/sessionstore/SessionFile.sys.mjs
 +++ b/browser/components/sessionstore/SessionFile.sys.mjs
 @@ -25,6 +25,7 @@ const lazy = XPCOMUtils.declareLazy({
@@ -10,11 +8,11 @@ index 3c5cfef8c5c4c4439b2f4eca57a9423f9ae3f0e0..4daf32d50c7ad11fea7f073be5c32397
  });
  
  const PREF_UPGRADE_BACKUP = "browser.sessionstore.upgradeBackup.latestBuildID";
-@@ -387,6 +388,7 @@ var SessionFileInternal = {
-     }
-     this._readOrigin = result.origin;
+@@ -433,6 +434,7 @@ var SessionFileInternal = {
  
+     let isFinalWrite = false;
+     if (lazy.RunState.isClosing) {
 +    await lazy.ZenSessionStore.readFile();
-     return { ...result, noFilesFound };
-   },
- 
+       // If shutdown has started, we will want to stop receiving
+       // write instructions.
+       isFinalWrite = true;

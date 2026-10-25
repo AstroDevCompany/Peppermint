@@ -1,0 +1,25 @@
+--- a/browser/components/tabbrowser/content/tab.js
++++ b/browser/components/tabbrowser/content/tab.js
+@@ -521,6 +521,10 @@
+       event.dataTransfer.mozShowFailAnimation = false;
+       if (event.eventPhase == Event.CAPTURING_PHASE) {
+         this.style.MozUserFocus = "";
++      if (event.target.classList.contains("tab-reset-pin-button")) {
++        gZenPinnedTabManager.onResetPinButtonMouseOver(this, event);
++      }
++
+       } else if (
+         event.target.classList?.contains("tab-close-button") ||
+         gSharedTabWarning.willShowSharedTabWarning(this)
+@@ -1061,9 +1065,11 @@
+         this.setAttribute("aria-label", ariaLabel);
+       }
+     }
++      gZenPinnedTabManager.onResetPinButtonMouseOut(this);
+   }
+ 
+   customElements.define("tabbrowser-tab", MozTabbrowserTab, {
+     extends: "tab",
+   });
+ }
++        event.target.classList?.contains("tab-reset-button") ||

@@ -79,8 +79,24 @@ let applied = 0;
 let skipped = 0;
 let failed = 0;
 
+// A patch whose reverse applies cleanly is already in the engine. Forward
+// matching alone can re-apply a hunk that inserts a block next to identical
+// context, duplicating it.
+function isApplied(patchPath) {
+  const result = spawnSync(
+    patchExe,
+    ["-p1", "-R", "--batch", "--dry-run", "-i", patchPath],
+    { cwd: engineDir, encoding: "utf8" },
+  );
+  return result.status === 0;
+}
+
 for (const patchPath of patches) {
   const rel = path.relative(root, patchPath);
+  if (isApplied(patchPath)) {
+    skipped++;
+    continue;
+  }
   try {
     execFileSync(
       patchExe,

@@ -1,0 +1,13 @@
+--- a/zen/library/sections/ZenLibrarySpaceRoutingSection.mjs
++++ b/zen/library/sections/ZenLibrarySpaceRoutingSection.mjs
+@@ -418,8 +418,8 @@
+             .value=${draft.reference}
+             placeholder=${
+               draft.matchType === "regex"
+-                ? "zen-browser\\.app"
+-                : "zen-browser.app"
++                ? "example\\.com"
++                : "example.com"
+             }
+             ?invalid=${!!draft.reference.trim() && !this.#draftIsValid}
+             @input=${event => {

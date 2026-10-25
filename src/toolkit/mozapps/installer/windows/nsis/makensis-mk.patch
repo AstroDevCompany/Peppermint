@@ -1,16 +1,14 @@
-diff --git a/toolkit/mozapps/installer/windows/nsis/makensis.mk b/toolkit/mozapps/installer/windows/nsis/makensis.mk
-index d081f84b38e601eb6aae78b5ae45e1c771777ca7..00eec74413ef733b69d45e9542badae6a1dd7403 100755
 --- a/toolkit/mozapps/installer/windows/nsis/makensis.mk
 +++ b/toolkit/mozapps/installer/windows/nsis/makensis.mk
-@@ -63,6 +63,11 @@ endif
+@@ -27,6 +27,11 @@ NSIS_STAGE_ARGS = --config-dir=$(CONFIG_DIR) \
  
- ifdef ZIP_IN
- installer:: $(CONFIG_DIR)/setup.exe $(ZIP_IN)
+ $(CONFIG_DIR)/setup.exe::
+ ifdef MOZ_USE_MAKEFILE_INSTALLER_BUILD
 +ifneq ("$(ZEN_SETUP_EXE_PATH)","")
 +	@echo 'setup-zen.exe exists, moving it to setup.exe ($(ZEN_SETUP_EXE_PATH))'
 +	rm $(CONFIG_DIR)/setup.exe
 +	cp $(ZEN_SETUP_EXE_PATH) $(CONFIG_DIR)/setup.exe
 +endif
- 	$(NSINSTALL) -D '$(ABS_DIST)/$(PKG_PATH)'
- 	$(PYTHON3) $(MOZILLA_DIR)/mach repackage installer \
- 	  -o '$(ABS_DIST)/$(PKG_PATH)$(PKG_INST_BASENAME).exe' \
+ 	$(INSTALL) $(addprefix $(MOZILLA_DIR)/toolkit/mozapps/installer/windows/nsis/,$(NSIS_TOOLKIT_FILES)) $(CONFIG_DIR)
+ 	$(INSTALL) $(addprefix $(MOZILLA_DIR)/other-licenses/nsis/Plugins/,$(NSIS_CUSTOM_PLUGINS)) $(CONFIG_DIR)
+ 	$(INSTALL) $(addprefix $(MOZILLA_DIR)/other-licenses/nsis/,$(NSIS_CUSTOM_UI)) $(CONFIG_DIR)

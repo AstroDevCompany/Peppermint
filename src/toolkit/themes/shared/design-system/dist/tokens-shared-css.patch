@@ -1,5 +1,3 @@
-diff --git a/toolkit/themes/shared/design-system/dist/tokens-shared.css b/toolkit/themes/shared/design-system/dist/tokens-shared.css
-index 5564b097da8f2837d4623cd48928640741f0f600..894eef3d2f43db1889438f365f89255fe7b0857d 100644
 --- a/toolkit/themes/shared/design-system/dist/tokens-shared.css
 +++ b/toolkit/themes/shared/design-system/dist/tokens-shared.css
 @@ -7,6 +7,8 @@
@@ -11,7 +9,7 @@ index 5564b097da8f2837d4623cd48928640741f0f600..894eef3d2f43db1889438f365f89255f
  :root,
  :host(.anonymous-content-host) {
    @layer tokens-foundation {
-@@ -28,10 +30,10 @@
+@@ -29,10 +31,10 @@
      --border-color-selected: var(--color-accent-primary);
      --border-color-transparent: transparent;
      --border-radius-circle: 9999px;

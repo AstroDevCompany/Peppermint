@@ -39,7 +39,7 @@
      --urlbar-searchmode-switcher-panel-list-min-width: auto;
    }
  }
-@@ -190,7 +185,7 @@
+@@ -190,7 +185,7 @@ toolbar[inactive="true"] .urlbar,
  .urlbar:not([usertyping]) > .urlbar-input-container > .urlbar-go-button,
  .urlbar:not(#searchbar-new, [focused]) > .urlbar-input-container > .urlbar-go-button,
  #urlbar-revert-button-container {
@@ -48,7 +48,7 @@
  }
  
  /* Document Picture-in-Picture API window */
-@@ -211,6 +206,8 @@
+@@ -211,6 +206,8 @@ toolbar[inactive="true"] .urlbar,
  .urlbar-container {
    padding-block: var(--urlbar-container-padding-block);
    margin-inline: var(--urlbar-margin-inline);
@@ -57,7 +57,7 @@
  }
  
  .urlbar {
-@@ -221,10 +218,27 @@
+@@ -221,10 +218,27 @@ toolbar[inactive="true"] .urlbar,
    -moz-user-focus: ignore;
    user-select: none;
  
@@ -74,14 +74,14 @@
 +  color: initial;
 +  background-color: initial;
 +
-+  &:popover-open {
++  &[popover-open] {
 +    display: block;
 +    inset-block-start: 0;
 +    width: 100%;
 +    margin-block-start: var(--urlbar-margin-block-start-open);
 +  }
 +
-+  &[in-page]:popover-open {
++  &[in-page][popover-open] {
 +    max-height: min(calc(100% - var(--urlbar-background-overhang-open)), 100vh);
 +    display: flex;
 +    flex-direction: column;
@@ -89,12 +89,12 @@
  }
  
  .urlbar,
-@@ -342,30 +356,16 @@
+@@ -342,30 +356,16 @@ toolbar[inactive="true"] .urlbar,
      border: var(--urlbar-background-border-focused);
    }
  
 -  .urlbar[popover-open] > & {
-+  .urlbar:popover-open:where([open], :not([in-page])) > & {
++  .urlbar[popover-open]:where([open], :not([in-page])) > & {
      border: var(--urlbar-background-border-open);
      box-shadow: var(--urlbar-background-box-shadow-open);
 -    inset-inline: calc(-1 * (var(--urlbar-background-overhang-open) + var(--urlbar-input-growth-open-inline)));
@@ -119,40 +119,40 @@
 -      calc(-1 * var(--urlbar-joint-background-shadow-margin)) calc(-1 * var(--urlbar-joint-background-shadow-margin))
 -        calc(var(--urlbar-joint-background-overlap) - var(--urlbar-input-growth-open-block))
 -    );
-+  :root[uidensity="compact"] .urlbar:popover-open:not([open]) > & {
++  :root[uidensity="compact"] .urlbar[popover-open]:not([open]) > & {
 +    box-shadow: var(--urlbar-background-box-shadow-open-compact);
    }
  
    .urlbar[open] > & {
-@@ -390,21 +390,17 @@
+@@ -390,21 +390,17 @@ toolbar[inactive="true"] .urlbar,
    border-radius: var(--urlbar-border-radius);
    overflow: clip;
  
 -  /* The view's popover positions itself against this box. */
 -  anchor-name: --urlbar-anchor;
-+  .urlbar:popover-open > & {
-+    width: 100%;
-+    height: 100%;
-+  }
- 
+-
 -  /* The negative margins keep the bar's own box, so the toolbar's layout
 -     doesn't change when the view opens. */
--  .urlbar[popover-open] > & {
+   .urlbar[popover-open] > & {
 -    margin-block: calc(-1 * var(--urlbar-input-growth-open-block));
 -    margin-inline: calc(-1 * var(--urlbar-input-growth-open-inline));
 -    padding-block: var(--urlbar-input-growth-open-block);
 -    padding-inline: calc(var(--urlbar-input-growth-open-inline) + var(--urlbar-input-container-padding));
-+  .urlbar:popover-open:where([open], :not([in-page])) > & {
++    width: 100%;
++    height: 100%;
++  }
++
++  .urlbar[popover-open]:where([open], :not([in-page])) > & {
      outline: var(--urlbar-input-container-outline-open);
      outline-offset: var(--urlbar-input-container-outline-offset-open);
    }
  
 -  .urlbar[popover-open][focused] > & {
-+  .urlbar[focused]:popover-open:where([open], :not([in-page])) > & {
++  .urlbar[popover-open][focused]:where([open], :not([in-page])) > & {
      outline: var(--urlbar-input-container-outline-open-focused);
    }
  
-@@ -520,6 +516,10 @@
+@@ -520,6 +516,10 @@ toolbar[inactive="true"] .urlbar,
    .urlbar:not([focused])[textoverflow="left"][domaindir="rtl"] > .urlbar-input-container > .urlbar-input-box > & {
      mask-image: linear-gradient(to right, transparent var(--urlbar-scheme-size), black calc(var(--urlbar-scheme-size) + 3ch));
    }
@@ -163,84 +163,3 @@
  }
  
  #urlbar-scheme {
-@@ -576,70 +576,19 @@
-   position: relative;
- }
- 
--/* Neutralize the UA popover rules the view supplies itself. :where() holds the
--   specificity at zero, so the theme sheets win. */
--:where(.urlbarView) {
--  inset: auto;
--  width: auto;
--  height: auto;
--  border: none;
--  padding: 0;
--  color: inherit;
--  background-color: transparent;
--}
--
--.urlbarView {
--  /* The max-height below has to bound the border box, which the view's block
--     padding is part of. */
--  box-sizing: border-box;
--
--  &:popover-open {
--    display: flex;
--    flex-direction: column;
--    position: fixed;
--    position-anchor: --urlbar-anchor;
--    /* The block-end row of the position area starts at the anchor's block-end
--       edge, where span-block-end would start at its block-start edge. */
--    position-area: block-end center;
--    /* Fill the area, less the view's own margin whichever way it points. */
--    inset-inline: 0;
--    justify-self: stretch;
--    /* The view clips its rows, and the joint background and its shadow reach
--       past it. */
--    overflow-clip-margin: var(--urlbar-joint-background-shadow-margin);
--
--    max-height: min(calc(100% - var(--urlbarView-joint-background-outset-block)), 100vh);
--  }
--}
--
--/* The half of the joint background that reaches past the input, which the
--   input's own background can't paint because a toolbar doesn't extend over the
--   content area. See .urlbar-background for how the two halves' shadows
--   meet. */
--.urlbarView-background {
--  display: block;
--  position: absolute;
--  z-index: -1;
--  inset-inline: calc(-1 * var(--urlbarView-joint-background-outset-inline));
--  background-color: var(--urlbar-background-color-focus);
--  background-clip: border-box;
--  border: var(--urlbar-background-border-open);
--  border-radius: var(--urlbar-background-border-radius);
--  box-shadow: var(--urlbar-background-box-shadow-open);
--
--  .urlbar > .urlbarView > & {
--    inset-block: calc(-1 * var(--urlbarView-margin-block) - var(--urlbar-joint-background-overlap)) calc(-1 * var(--urlbarView-joint-background-outset-block));
--    border-start-start-radius: 0;
--    border-start-end-radius: 0;
--    clip-path: inset(
--      var(--urlbar-joint-background-overlap) calc(-1 * var(--urlbar-joint-background-shadow-margin)) calc(-1 * var(--urlbar-joint-background-shadow-margin))
--    );
--  }
--}
--
- @media not -moz-pref("browser.nova.enabled") {
-   .urlbar-input-container {
-     border: var(--urlbar-input-container-border);
-+  }
-+
-+  .urlbar:popover-open:where([open], :not([in-page])) {
-+    width: calc(var(--urlbar-width) + 2 * var(--urlbar-margin-inline));
-+
-+    > .urlbar-input-container {
-+      height: var(--urlbar-container-height);
-+      padding-block: calc((var(--urlbar-container-height) - var(--urlbar-height)) / 2);
-+      padding-inline: calc(var(--urlbar-margin-inline) + var(--urlbar-input-container-padding));
-+    }
-   }
- }
- 

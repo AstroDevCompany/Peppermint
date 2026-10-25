@@ -58,6 +58,22 @@ function failingPatch(output) {
   return rel.startsWith("src/") ? rel : null;
 }
 
+/**
+ * Firefox renames scripts between releases (tab.js became tab.mjs), so a patch
+ * for the next candidate may name a file the pinned engine still calls by its
+ * old name. Returns the path the engine really has, or null.
+ */
+function resolveTarget(target) {
+  const swaps = [
+    [/\.mjs$/, ".js"],
+    [/\.js$/, ".mjs"],
+    [/\.sys\.mjs$/, ".jsm"],
+    [/\.jsm$/, ".sys.mjs"],
+  ];
+  const candidates = [target, ...swaps.filter(([re]) => re.test(target)).map(([re, to]) => target.replace(re, to))];
+  return candidates.find(c => gitShow(engineDir, `HEAD:${c}`)) ?? null;
+}
+
 function targetsOf(text) {
   return [...text.matchAll(/^\+\+\+ b\/(\S+)/gm)].map(m => m[1]);
 }
@@ -99,13 +115,21 @@ function stateBefore(patchPath, targets, dir) {
 
 function regenerate(patchRel) {
   const patchPath = path.join(root, patchRel);
-  const text = fs.readFileSync(patchPath, "utf8");
-  const targets = targetsOf(text);
-  if (!targets.length || /^--- \/dev\/null/m.test(text)) {
+  let text = fs.readFileSync(patchPath, "utf8");
+  if (!targetsOf(text).length || /^--- \/dev\/null/m.test(text)) {
     return false;
   }
+  for (const target of targetsOf(text)) {
+    const actual = resolveTarget(target);
+    if (actual && actual !== target) {
+      text = text.split(target).join(actual);
+    }
+  }
+  const targets = targetsOf(text);
 
   const work = tmpDir("pm-rebase-");
+  const source = path.join(work, "source.patch");
+  fs.writeFileSync(source, text);
   try {
     const before = path.join(work, "before");
     const after = path.join(work, "after");
@@ -123,7 +147,7 @@ function regenerate(patchRel) {
         fs.copyFileSync(path.join(before, target), path.join(after, target));
       }
       const result = runPatch(
-        ["-p1", fuzz, "--forward", "--force", "--batch", "--no-backup-if-mismatch", "-r", "/dev/null", "-i", patchPath],
+        ["-p1", fuzz, "--forward", "--force", "--batch", "--no-backup-if-mismatch", "-r", "/dev/null", "-i", source],
         after
       );
       applied = result.ok || /succeeded/.test(result.output);
@@ -134,13 +158,17 @@ function regenerate(patchRel) {
 
     let out = "";
     for (const target of targets) {
+      // git's indent heuristic keeps inserted blocks aligned to the code
+      // structure; plain diff may slide them so the hunk no longer reads as
+      // "already applied" when the patch is applied a second time.
       const diff = spawnSync(
-        "diff",
-        ["-u", "--label", `a/${target}`, "--label", `b/${target}`, path.join(before, target), path.join(after, target)],
-        { encoding: "utf8", maxBuffer: 1 << 28 }
+        "git",
+        ["diff", "--no-index", "--no-ext-diff", "--indent-heuristic", "-U3", "--", `before/${target}`, `after/${target}`],
+        { cwd: work, encoding: "utf8", maxBuffer: 1 << 28 }
       );
       if (diff.status === 1) {
-        out += diff.stdout;
+        const body = diff.stdout.slice(diff.stdout.indexOf("\n--- ") + 1);
+        out += body.replace(`a/before/${target}`, `a/${target}`).replace(`b/after/${target}`, `b/${target}`);
       }
     }
     if (!out) {
