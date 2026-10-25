@@ -489,3 +489,6 @@ peppermint-tabs-confirm-close-button =
 
 peppermint-tabs-confirm-close-middle-click =
     .label = Also ask for confirmation when closing a tab with middle click
+
+peppermint-tabs-islands =
+    .label = Group tabs opened from a tab into an island

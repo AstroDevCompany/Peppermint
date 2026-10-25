@@ -1319,7 +1319,7 @@
      default: true,
    },
    {
-@@ -1253,10 +1196,120 @@
+@@ -1253,10 +1196,125 @@
      default: true,
    },
    {
@@ -1331,6 +1331,11 @@
 +    id: "peppermint.tabs.confirm-close-middle-click",
 +    type: "bool",
 +    default: false,
++  },
++  {
++    id: "peppermint.tabs.islands.enabled",
++    type: "bool",
++    default: true,
 +  },
 +  {
      id: "zen.window-sync.sync-only-pinned-tabs",
