@@ -213,6 +213,44 @@ find_app() {
   return 1
 }
 
+# The Xcode 27 linker adds an LC_DYLD_ENVIRONMENT load command to the main
+# executable, which Mozilla's pinned llvm-strip rejects ("unsupported load
+# command"). When that happens, strip with Apple's strip for this package run.
+# Configure rewrites config.status on the next build, so this is redone here
+# on every run.
+use_apple_strip() {
+  local root config configured_strip built apple_strip probe
+  apple_strip="$(xcrun --find strip 2>/dev/null)" || return 0
+  for root in "${obj_roots[@]}"; do
+    config="$root/config.statusd/substs/STRIP"
+    [[ -f "$config" ]] || continue
+    configured_strip="$(tr -d '"' < "$config")"
+    [[ "$configured_strip" == *llvm-strip ]] || continue
+    built="$(find "$root/dist" -maxdepth 4 -type f -path '*/Peppermint.app/Contents/MacOS/peppermint' 2>/dev/null | head -1)"
+    [[ -n "$built" ]] || continue
+    probe="$(mktemp)"
+    cp "$built" "$probe"
+    if ! "$configured_strip" -x -S "$probe" >/dev/null 2>&1; then
+      log "llvm-strip cannot process this build, stripping with $apple_strip"
+      # The tool is recorded in three files and buildconfig reads
+      # config.statusd/substs, so all of them are rewritten.
+      python3 - "$root" "$configured_strip" "$apple_strip" <<'PY'
+import sys
+from pathlib import Path
+
+root, old, new = sys.argv[1:4]
+for name in ("config.status", "config.status.json", "config.statusd/substs/STRIP"):
+    path = Path(root, name)
+    if path.exists():
+        path.write_text(path.read_text().replace(old, new))
+PY
+    fi
+    rm -f "$probe"
+  done
+}
+
+use_apple_strip
+
 log "Packaging the disk image"
 (
   cd engine

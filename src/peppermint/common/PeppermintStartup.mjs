@@ -17,6 +17,20 @@ function start(name, run) {
   }
 }
 
+const SIDEBAR_STYLE_URL =
+  "chrome://browser/content/zen-styles/peppermint-sidebar.css";
+
+function loadStyle(window, href) {
+  const doc = window.document;
+  if (doc.querySelector(`link[href="${href}"]`)) {
+    return;
+  }
+  const link = doc.createElement("link");
+  link.rel = "stylesheet";
+  link.href = href;
+  (doc.querySelector("linkset") || doc.documentElement).appendChild(link);
+}
+
 export const PeppermintStartup = {
   early() {
     start("ZenTabUnloader", () =>
@@ -32,6 +46,9 @@ export const PeppermintStartup = {
   },
 
   late(window) {
+    start("Peppermint sidebar styles", () =>
+      loadStyle(window, SIDEBAR_STYLE_URL)
+    );
     start("Popular sites suggestions", () =>
       ChromeUtils.importESModule(
         "moz-src:///peppermint/urlbar/PeppermintUrlbarProviderPopularSites.sys.mjs"

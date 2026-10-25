@@ -3,3 +3,4 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
         content/browser/ZenLazyFeatures.mjs                                     (../../peppermint/common/ZenLazyFeatures.mjs)
+        content/browser/zen-styles/peppermint-sidebar.css                       (../../peppermint/common/peppermint-sidebar.css)
