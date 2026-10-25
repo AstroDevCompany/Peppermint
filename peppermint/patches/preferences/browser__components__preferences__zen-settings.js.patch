@@ -1,6 +1,6 @@
 --- a/browser/components/preferences/zen-settings.js
 +++ b/browser/components/preferences/zen-settings.js
-@@ -3,11 +3,6 @@
+@@ -3,655 +3,13 @@
  // License, v. 2.0. If a copy of the MPL was not distributed with this
  // file, You can obtain one at http://mozilla.org/MPL/2.0/.
  
@@ -12,10 +12,10 @@
  const { nsKeyShortcutModifiers } = ChromeUtils.importESModule(
    "chrome://browser/content/zen-components/ZenKeyboardShortcuts.mjs",
    {
-@@ -15,643 +10,6 @@
+     global: "current",
    }
  );
- 
+-
 -var gZenMarketplaceManager = {
 -  async init() {
 -    const checkForUpdates = document.getElementById("zenThemeMarketplaceCheckForUpdates");
@@ -348,7 +348,7 @@
 -      );
 -
 -      baseHeader.appendChild(mozToggle);
--
+ 
 -      headerDiv.appendChild(headerTitle);
 -      headerDiv.appendChild(closeButton);
 -
@@ -770,7 +770,26 @@
      var tabsUnloaderPrefListener = {
        async observe() {
          let buttonIndex = await confirmRestartPrompt(true, 1, true, true);
-@@ -854,12 +308,53 @@
+@@ -743,6 +197,18 @@
+ 
+     toggleZenCycleByAttrWarning.observe(); // call it once on initial load
+ 
++    const confirmClosePref = "peppermint.tabs.confirm-close-button";
++    const syncConfirmCloseDependents = () => {
++      document.getElementById("peppermintTabsConfirmCloseMiddleClick").disabled =
++        !Services.prefs.getBoolPref(confirmClosePref, false);
++    };
++    const confirmCloseObserver = { observe: syncConfirmCloseDependents };
++    Services.prefs.addObserver(confirmClosePref, confirmCloseObserver);
++    window.addEventListener("unload", () => {
++      Services.prefs.removeObserver(confirmClosePref, confirmCloseObserver);
++    });
++    syncConfirmCloseDependents();
++
+     Services.prefs.addObserver("zen.glance.enabled", tabsUnloaderPrefListener); // We can use the same listener for both prefs
+     Services.prefs.addObserver("zen.workspaces.separate-essentials", tabsUnloaderPrefListener);
+     Services.prefs.addObserver("zen.window-sync.sync-only-pinned-tabs", tabsUnloaderPrefListener);
+@@ -854,9 +320,50 @@
      this.__hasInitialized = true;
      this._currentActionID = null;
      this._initializeEvents();
@@ -778,9 +797,9 @@
      window.addEventListener("unload", () => {
        this.__hasInitialized = false;
        document.getElementById(ZEN_CKS_WRAPPER_ID).innerHTML = "";
-     });
-   },
- 
++    });
++  },
++
 +  _initializeNotepadShortcut() {
 +    const input = document.getElementById("zenNotepadShortcutInput");
 +    const reset = document.getElementById("zenNotepadShortcutReset");
@@ -818,13 +837,10 @@
 +    reset.addEventListener("click", () => {
 +      Services.prefs.setStringPref(pref, "Tab");
 +      show();
-+    });
-+  },
-+
-   _initializeEvents() {
-     const resetAllListener = this.resetAllShortcuts.bind(this);
-     const handleKeyDown = this._handleKeyDown.bind(this);
-@@ -1143,9 +638,400 @@
+     });
+   },
+ 
+@@ -1143,6 +650,397 @@
      input.classList.remove(`${ZEN_CKS_INPUT_FIELD_CLASS}-not-set`);
      input.value = modifiers.toDisplayString() + gZenKeyboardShortcutsManager.getKeyDisplay(shortcut);
      this._latestValidKey = shortcut;
@@ -875,9 +891,9 @@
 +      Services.prefs.setStringPref("zen.homepage.url", value);
 +    };
 +    input.addEventListener("change", commitURL);
-   },
- };
- 
++  },
++};
++
 +var gZenUrlSnippetsSettings = {
 +  _manager: null,
 +  _queue: Promise.resolve(),
@@ -1219,13 +1235,10 @@
 +      });
 +      sync();
 +    }
-+  },
-+};
-+
- Preferences.addAll([
-   {
-     id: "zen.view.compact.toolbar-flash-popup",
-@@ -1158,11 +1044,56 @@
+   },
+ };
+ 
+@@ -1158,11 +1056,56 @@
      default: true,
    },
    {
@@ -1282,7 +1295,7 @@
      id: "zen.pinned-tab-manager.restore-pinned-tabs-to-pinned-url",
      type: "bool",
      default: true,
-@@ -1203,6 +1134,11 @@
+@@ -1203,6 +1146,11 @@
      default: "float",
    },
    {
@@ -1294,7 +1307,7 @@
      id: "zen.workspaces.separate-essentials",
      type: "bool",
      default: false,
-@@ -1225,11 +1161,6 @@
+@@ -1225,11 +1173,6 @@
    {
      id: "zen.workspaces.continue-where-left-off",
      type: "bool",
@@ -1306,7 +1319,21 @@
      default: true,
    },
    {
-@@ -1257,6 +1188,106 @@
+@@ -1253,10 +1196,120 @@
+     default: true,
+   },
+   {
++    id: "peppermint.tabs.confirm-close-button",
++    type: "bool",
++    default: false,
++  },
++  {
++    id: "peppermint.tabs.confirm-close-middle-click",
++    type: "bool",
++    default: false,
++  },
++  {
+     id: "zen.window-sync.sync-only-pinned-tabs",
      type: "bool",
      default: false,
    },

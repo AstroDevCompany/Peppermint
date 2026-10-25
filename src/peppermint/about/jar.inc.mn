@@ -1,0 +1,8 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+        content/browser/zen-images/mintflow-logo.webp                           (../../peppermint/about/mintflow-logo.webp)
+        content/browser/preferences/widgets/peppermint-about.mjs                (../../peppermint/about/peppermint-about.mjs)
+        content/browser/preferences/widgets/peppermint-about.css                (../../peppermint/about/peppermint-about.css)
+        content/browser/preferences/config/peppermint-about.mjs                 (../../peppermint/about/peppermint-about-config.mjs)

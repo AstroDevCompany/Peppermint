@@ -40,10 +40,13 @@
          !event.target.classList.contains("tab-icon-overlay") &&
          !event.target.classList.contains("tab-audio-button")
        ) {
-@@ -736,6 +741,16 @@
-         return;
-       }
- 
+@@ -733,10 +738,33 @@
+             this.toggleMuteAudio();
+           }
+         }
++        return;
++      }
++
 +      if (
 +        !event.getModifierState("Accel") &&
 +        event.target.classList.contains("tab-split-button") &&
@@ -51,9 +54,23 @@
 +      ) {
 +        gZenViewSplitter.contextSplitTabs(null, this);
 +        gBrowser.tabContainer._blockDblClick = true;
-+        return;
-+      }
-+
+         return;
+       }
+ 
        if (!event.getModifierState("Accel") && event.target.classList.contains("tab-close-button")) {
++        gBrowser.tabContainer._blockDblClick = true;
++        const { PeppermintTabCloseConfirm } = ChromeUtils.importESModule(
++          "moz-src:///peppermint/tab-close-confirm/PeppermintTabCloseConfirm.sys.mjs"
++        );
++        if (
++          !PeppermintTabCloseConfirm.confirm(
++            window,
++            "button",
++            this.multiselected ? gBrowser.multiSelectedTabsCount : 1
++          )
++        ) {
++          return;
++        }
          if (this.multiselected) {
            gBrowser.removeMultiSelectedTabs({
+             metricsContext: lazy.TabMetrics.userTriggeredContext(

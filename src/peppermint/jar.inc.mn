@@ -11,3 +11,4 @@
 #include tab-numbers/jar.inc.mn
 #include common/jar.inc.mn
 #include updater/jar.inc.mn
+#include about/jar.inc.mn

@@ -1,0 +1,21 @@
+--- a/browser/components/tabbrowser/content/tabs.mjs
++++ b/browser/components/tabbrowser/content/tabs.mjs
+@@ -502,6 +502,18 @@
+     } else if (event.eventPhase == Event.BUBBLING_PHASE && event.button == 1) {
+       let tab = event.target?.closest("tab");
+       if (tab) {
++        const { PeppermintTabCloseConfirm } = ChromeUtils.importESModule(
++          "moz-src:///peppermint/tab-close-confirm/PeppermintTabCloseConfirm.sys.mjs"
++        );
++        if (
++          !PeppermintTabCloseConfirm.confirm(
++            window,
++            "middle-click",
++            tab.multiselected ? gBrowser.multiSelectedTabsCount : 1
++          )
++        ) {
++          return;
++        }
+         if (tab.multiselected) {
+           gBrowser.removeMultiSelectedTabs({
+             metricsContext: gBrowser.TabMetrics.userTriggeredContext(

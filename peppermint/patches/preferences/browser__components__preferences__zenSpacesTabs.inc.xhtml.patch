@@ -1,0 +1,17 @@
+--- a/browser/components/preferences/zenSpacesTabs.inc.xhtml
++++ b/browser/components/preferences/zenSpacesTabs.inc.xhtml
+@@ -60,6 +60,14 @@
+             hidden="true"/>
+       <checkbox data-l10n-id="zen-tabs-select-recently-used-on-close"
+             preference="zen.tabs.select-recently-used-on-close"/>
++      <checkbox id="peppermintTabsConfirmCloseButton"
++            data-l10n-id="peppermint-tabs-confirm-close-button"
++            preference="peppermint.tabs.confirm-close-button"/>
++      <vbox class="indent">
++            <checkbox id="peppermintTabsConfirmCloseMiddleClick"
++                  data-l10n-id="peppermint-tabs-confirm-close-middle-click"
++                  preference="peppermint.tabs.confirm-close-middle-click"/>
++      </vbox>
+ </groupbox>
+ 
+ <hbox id="zenPinnedTabsManagerCategory"

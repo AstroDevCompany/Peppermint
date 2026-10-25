@@ -1,0 +1,10 @@
+--- a/browser/components/preferences/config/about-firefox.mjs
++++ b/browser/components/preferences/config/about-firefox.mjs
+@@ -6,6 +6,7 @@
+ 
+ import { Preferences } from "chrome://global/content/preferences/Preferences.mjs";
+ import { SettingGroupManager } from "chrome://browser/content/preferences/config/SettingGroupManager.mjs";
++import "chrome://browser/content/preferences/config/peppermint-about.mjs";
+ 
+ const { AppConstants } = ChromeUtils.importESModule(
+   "resource://gre/modules/AppConstants.sys.mjs"

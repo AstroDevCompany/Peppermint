@@ -8,6 +8,7 @@ src/browser/components/extensions/parent/ext-browser-js.patch
 src/browser/components/preferences/preferences-js.patch
 src/browser/components/sessionstore/SessionStore-sys-mjs.patch
 src/browser/components/tabbrowser/Tabbrowser-sys-mjs.patch
+src/browser/components/tabbrowser/content/tab-js.patch
 src/browser/components/urlbar/content/UrlbarInputBase-mjs.patch
 src/browser/components/urlbar/content/UrlbarShared-mjs.patch
 src/browser/components/urlbar/content/UrlbarView-mjs.patch

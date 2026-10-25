@@ -1,5 +1,14 @@
 --- a/browser/components/preferences/preferences.js
 +++ b/browser/components/preferences/preferences.js
+@@ -244,7 +244,7 @@
+   about: {
+     l10nId: "about-firefox-header",
+     iconSrc: "chrome://browser/skin/sidebar/firefox.svg",
+-    groupIds: ["updates", "support"],
++    groupIds: ["peppermintAbout", "updates", "support"],
+     module: "chrome://browser/content/preferences/config/about-firefox.mjs",
+     visible: () => srdSectionPrefs.all,
+   },
 @@ -568,10 +568,16 @@
    }
    register_module("paneSearch", gSearchPane);

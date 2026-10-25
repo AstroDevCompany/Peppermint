@@ -17,6 +17,7 @@ DIRS += [
     "palette",
     "reader",
     "shortcut-tooltips",
+    "tab-close-confirm",
     "tab-numbers",
     "tab-unloader",
     "tests",

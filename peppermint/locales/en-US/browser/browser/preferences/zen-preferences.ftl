@@ -467,3 +467,25 @@ zen-ghost-mode-limits-network = Your network provider, your employer and the sit
 zen-ghost-mode-limits-downloads = Downloaded files and bookmarks you save stay on disk unless you remove them.
 
 zen-ghost-mode-limits-extensions = Extensions only run in Ghost windows if you allow them to.
+
+peppermint-about-heading =
+    .label = About
+    .description = { -brand-short-name } is a Firefox-based browser built around speed, privacy and a calm workspace. Your data stays on your computer unless you turn on sync or choose a service that needs the network.
+
+peppermint-about-logo =
+    .alt = MintFlow
+
+peppermint-about-developer = Developed by MintFlow Technologies
+
+peppermint-about-lead = Lead developer: Luca Montanari
+
+peppermint-about-link = mintflow.dev
+
+# $version (String) - the { -brand-short-name } version, such as 2026.0.2.
+peppermint-about-version = { -brand-short-name } { $version }
+
+peppermint-tabs-confirm-close-button =
+    .label = Ask for confirmation when closing a tab through the close button
+
+peppermint-tabs-confirm-close-middle-click =
+    .label = Also ask for confirmation when closing a tab with middle click
