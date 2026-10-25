@@ -12,6 +12,11 @@
  * Once the opener is in an island, tabbrowser itself adds further children to
  * it; this module only creates the island and dissolves it when it is left
  * with a single tab.
+ *
+ * An island has no name of its own until the user gives it one. Its header
+ * then shows the title and icon of its first tab, kept in sync from here, and
+ * the group's label stays empty. A custom name is the group's regular label,
+ * so session store restores it and clearing it goes back to the automatic one.
  */
 
 const PREF_ENABLED = "peppermint.tabs.islands.enabled";
@@ -21,6 +26,11 @@ const STYLE_URL =
 const MENU_ID = "peppermint-island-menu";
 const ISLAND_ATTR = "peppermint-island";
 const READY_ATTR = "peppermint-island-ready";
+const NAMED_ATTR = "peppermint-island-named";
+const ICON_CLASS = "peppermint-island-icon";
+const NAME_CLASS = "peppermint-island-name";
+const DEFAULT_ICON = "chrome://global/skin/icons/defaultFavicon.svg";
+const HTML_NS = "http://www.w3.org/1999/xhtml";
 const ID_PREFIX = "peppermint-island-";
 
 /**
@@ -111,6 +121,8 @@ class TabIslandsWindow {
       "TabGroupCreate",
       "TabGrouped",
       "TabUngrouped",
+      "TabAttrModified",
+      "TabGroupUpdate",
       "dragend",
     ]) {
       win.addEventListener(type, this);
@@ -134,6 +146,18 @@ class TabIslandsWindow {
         break;
       case "TabGroupCreate":
         this.#adopt(event.target);
+        break;
+      case "TabAttrModified":
+        if (
+          event.detail?.changed?.some(
+            name => name == "label" || name == "image"
+          )
+        ) {
+          this.#refreshHeader(event.target.group);
+        }
+        break;
+      case "TabGroupUpdate":
+        this.#refreshHeader(event.target);
         break;
       case "TabClose":
       case "TabGrouped":
@@ -159,6 +183,37 @@ class TabIslandsWindow {
     }
     group.setAttribute(ISLAND_ATTR, "");
     group.saveOnWindowClose = false;
+    this.#refreshHeader(group);
+  }
+
+  /**
+   * Keeps the island header showing the first tab's icon and, unless the
+   * island has a custom name, its title.
+   *
+   * @param {MozTabbrowserTabGroup} [group]
+   */
+  #refreshHeader(group) {
+    const container = group?.querySelector?.(
+      ":scope > .tab-group-label-container"
+    );
+    if (!container || !group.hasAttribute(ISLAND_ATTR)) {
+      return;
+    }
+    let icon = container.querySelector(`.${ICON_CLASS}`);
+    let name = container.querySelector(`.${NAME_CLASS}`);
+    if (!icon) {
+      const doc = this.#win.document;
+      icon = doc.createElementNS(HTML_NS, "img");
+      icon.className = ICON_CLASS;
+      icon.alt = "";
+      name = doc.createElementNS(HTML_NS, "span");
+      name.className = NAME_CLASS;
+      container.querySelector(".tab-group-label").before(icon, name);
+    }
+    const first = liveTabs(group)[0];
+    group.toggleAttribute(NAMED_ATTR, !!group.label?.trim());
+    name.textContent = first?.label ?? "";
+    icon.src = first?.getAttribute("image") || DEFAULT_ICON;
   }
 
   #onTabOpened(tab) {
@@ -174,6 +229,7 @@ class TabIslandsWindow {
       insertBefore: opener,
     });
     group?.setAttribute(READY_ATTR, "");
+    this.#refreshHeader(group);
   }
 
   #scheduleScan() {
@@ -200,6 +256,7 @@ class TabIslandsWindow {
     for (const group of document.querySelectorAll(
       `tab-group[${ISLAND_ATTR}]`
     )) {
+      this.#refreshHeader(group);
       const count = liveTabs(group).length;
       if (count > 1) {
         group.setAttribute(READY_ATTR, "");

@@ -100,3 +100,37 @@ add_task(async function test_pinned_opener_forms_no_island() {
   gBrowser.unpinTab(opener);
   BrowserTestUtils.removeTab(opener);
 });
+
+add_task(async function test_island_name_is_automatic_until_renamed() {
+  const opener = await openPlainTab();
+  const child = await openTab(opener);
+  const island = await waitForIsland(child);
+  const nameOf = () =>
+    island.querySelector(".peppermint-island-name")?.textContent;
+
+  await TestUtils.waitForCondition(
+    () => nameOf() === opener.label,
+    "The header shows the first tab's title"
+  );
+  Assert.ok(
+    island.querySelector(".peppermint-island-icon")?.src,
+    "The header shows an icon"
+  );
+  Assert.ok(!island.hasAttribute("peppermint-island-named"), "Unnamed");
+
+  island.label = "Research";
+  await TestUtils.waitForCondition(
+    () => island.hasAttribute("peppermint-island-named"),
+    "A custom name takes over"
+  );
+  Assert.equal(island.label, "Research", "The custom name is the label");
+
+  island.label = "";
+  await TestUtils.waitForCondition(
+    () => !island.hasAttribute("peppermint-island-named"),
+    "Clearing the name goes back to the automatic one"
+  );
+
+  BrowserTestUtils.removeTab(child);
+  BrowserTestUtils.removeTab(opener);
+});
