@@ -12,6 +12,10 @@ import {
   startActiveTimeTracking,
 } from "resource:///modules/zen/homepage/ZenHomepage.sys.mjs";
 
+const { PeppermintActivity } = ChromeUtils.importESModule(
+  "moz-src:///peppermint/common/PeppermintActivity.sys.mjs"
+);
+
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 
 const CARDS = [
@@ -50,6 +54,11 @@ class ZenHomepageController {
   #statsTimer = 0;
   #statsToken = 0;
   #lastDateLabel = "";
+  // The clock and the stats stand still while nobody is looking.
+  #activityObserver = {
+    onInactive: () => this.#syncTimers(false),
+    onActive: () => this.sync(),
+  };
 
   init() {
     if (this.#root || !document.getElementById("zen-tabbox-wrapper")) {
@@ -60,6 +69,7 @@ class ZenHomepageController {
     Services.prefs.addObserver("zen.homepage.", this);
     window.addEventListener("TabSelect", this);
     window.addEventListener("unload", this, { once: true });
+    PeppermintActivity.addObserver(this.#activityObserver);
     this.sync();
   }
 
@@ -117,7 +127,7 @@ class ZenHomepageController {
   }
 
   #syncTimers(show) {
-    if (show) {
+    if (show && !PeppermintActivity.inactive) {
       if (!this.#clockTimer) {
         this.#scheduleClock();
       }
@@ -135,6 +145,7 @@ class ZenHomepageController {
   #shutdown() {
     Services.prefs.removeObserver("zen.homepage.", this);
     window.removeEventListener("TabSelect", this);
+    PeppermintActivity.removeObserver(this.#activityObserver);
     window.clearTimeout(this.#clockTimer);
     window.clearInterval(this.#statsTimer);
   }

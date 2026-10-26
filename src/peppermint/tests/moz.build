@@ -5,6 +5,7 @@
 BROWSER_CHROME_MANIFESTS += [
     "accept_language/browser.toml",
     "actions/browser.toml",
+    "activity/browser.toml",
     "adblocker/browser.toml",
     "cookie_consent/browser.toml",
     "ghost_mode/browser.toml",

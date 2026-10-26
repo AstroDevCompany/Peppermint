@@ -445,20 +445,40 @@ export function createSectionView({ section, api, toast, query = "" }) {
     }
   }
 
+  function tickCodes() {
+    let expired = false;
+    for (const entry of liveCodes.values()) {
+      expired = updateTimer(entry) == 0 || expired;
+    }
+    if (expired) {
+      refreshCodes();
+    }
+  }
+
   function startCodeTimer() {
-    if (codeTimer || !section.fields.some(f => f.kind == "code")) {
+    if (
+      codeTimer ||
+      document.hidden ||
+      !section.fields.some(f => f.kind == "code")
+    ) {
       return;
     }
-    codeTimer = setInterval(() => {
-      let expired = false;
-      for (const entry of liveCodes.values()) {
-        expired = updateTimer(entry) == 0 || expired;
-      }
-      if (expired) {
-        refreshCodes();
-      }
-    }, CODE_TICK_MS);
+    codeTimer = setInterval(tickCodes, CODE_TICK_MS);
   }
+
+  // Nobody reads the countdown on a hidden page. Showing it again catches up.
+  function onVisibilityChange() {
+    if (document.hidden) {
+      clearInterval(codeTimer);
+      codeTimer = null;
+      return;
+    }
+    if (liveCodes.size) {
+      tickCodes();
+      startCodeTimer();
+    }
+  }
+  document.addEventListener("visibilitychange", onVisibilityChange);
 
   function renderTime(kind, time) {
     return h(
@@ -718,6 +738,7 @@ export function createSectionView({ section, api, toast, query = "" }) {
     focusSearch: () => search.focus(),
     destroy() {
       clearTimeout(searchTimer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       clearInterval(codeTimer);
       codeTimer = null;
       liveCodes.clear();

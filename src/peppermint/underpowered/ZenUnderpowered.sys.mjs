@@ -5,6 +5,11 @@
 import { isUnloadSafe } from "moz-src:///peppermint/common/PeppermintTabs.sys.mjs";
 import { ResourceMonitor } from "moz-src:///peppermint/underpowered/ZenUnderpoweredResources.sys.mjs";
 
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  PeppermintActivity: "moz-src:///peppermint/common/PeppermintActivity.sys.mjs",
+});
+
 const PREF_ENABLED = "zen.underpowered.enabled";
 const PREF_SAVED = "zen.underpowered.saved-prefs";
 const PREF_AUTO = "zen.underpowered.auto-on-battery";
@@ -137,6 +142,13 @@ class ZenUnderpoweredImpl {
     Services.prefs.addObserver(PREF_NEVER_FREEZE, this);
     Services.obs.addObserver(this, "browser-delayed-startup-finished");
     Services.obs.addObserver(this, MEMORY_PRESSURE_TOPIC);
+    lazy.PeppermintActivity.addObserver({
+      onInactive: () => this.#resources.setPaused(true),
+      onActive: () => {
+        this.#resources.setPaused(false);
+        this.#refreezeAll();
+      },
+    });
     this.#readNeverFreeze();
     this.#resources.threshold = this.#readThreshold();
     this.#update(true);
@@ -715,7 +727,9 @@ class ZenUnderpoweredImpl {
       }
       this.#freezeTab(win, tab);
     }
-    if (live) {
+    // The periodic look at tabs that could change state is not worth a
+    // wake-up while nobody is using the browser; coming back runs it again.
+    if (live && (next !== Infinity || !lazy.PeppermintActivity.inactive)) {
       this.#scheduleFreeze(win, Math.min(next + 50, SWEEP_MS));
     }
   }

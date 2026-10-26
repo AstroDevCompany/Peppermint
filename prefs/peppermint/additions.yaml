@@ -23,6 +23,29 @@
 - name: browser.translations.automaticallyPopup
   value: false
 
+# Idle cost: no background traffic for pages the user has not opened.
+# Link prefetch and DNS prefetch keep the network awake while the browser sits
+# unused; the sockets Firefox opens ahead of a click do the same.
+- name: network.prefetch-next
+  value: false
+
+- name: network.dns.disablePrefetch
+  value: true
+
+- name: network.http.speculative-parallel-limit
+  value: 0
+
+- name: browser.places.speculativeConnect.enabled
+  value: false
+
+# The Pocket stories feed only adds fetches while the browser sits unused.
+- name: browser.newtabpage.activity-stream.discoverystream.enabled
+  value: false
+
+# A hidden tab stops decoding its video sooner.
+- name: media.suspend-background-video.delay-ms
+  value: 5000
+
 
 # --- firefox/urlbar.yaml
 

@@ -20,6 +20,8 @@ function start(name, run) {
 const SIDEBAR_STYLE_URL =
   "chrome://browser/content/zen-styles/peppermint-sidebar.css";
 
+const IDLE_STYLE_URL = "chrome://browser/content/zen-styles/peppermint-idle.css";
+
 function loadStyle(window, href) {
   const doc = window.document;
   if (doc.querySelector(`link[href="${href}"]`)) {
@@ -46,9 +48,20 @@ export const PeppermintStartup = {
   },
 
   late(window) {
+    start("PeppermintActivity", () =>
+      ChromeUtils.importESModule(
+        "moz-src:///peppermint/common/PeppermintActivity.sys.mjs"
+      ).PeppermintActivity.init(window)
+    );
     start("Peppermint sidebar styles", () =>
       loadStyle(window, SIDEBAR_STYLE_URL)
     );
+    start("Live folders idle", () =>
+      ChromeUtils.importESModule(
+        "moz-src:///peppermint/common/PeppermintLiveFoldersIdle.sys.mjs"
+      ).pauseLiveFoldersWhenInactive()
+    );
+    start("Peppermint idle styles", () => loadStyle(window, IDLE_STYLE_URL));
     start("Popular sites suggestions", () =>
       ChromeUtils.importESModule(
         "moz-src:///peppermint/urlbar/PeppermintUrlbarProviderPopularSites.sys.mjs"

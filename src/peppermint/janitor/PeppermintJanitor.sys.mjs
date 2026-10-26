@@ -153,12 +153,20 @@ class PeppermintJanitorImpl {
 
   #schedule() {
     if (Services.prefs.getBoolPref(PREFS.enabled, false)) {
-      const check = atStart =>
+      const check = atStart => {
+        // Only a daily or weekly schedule has anything to look for later.
+        if (
+          !atStart &&
+          Services.prefs.getStringPref(PREFS.schedule, "startup") === "startup"
+        ) {
+          return;
+        }
         ChromeUtils.idleDispatch(() => {
           this.runIfDue({ atStart }).catch(e =>
             console.error("Janitor: run failed", e)
           );
         });
+      };
       lazy.setTimeout(() => check(true), START_DELAY_MS);
       lazy.setInterval(() => check(false), DUE_CHECK_INTERVAL_MS);
     } else if (this.shouldPrompt()) {

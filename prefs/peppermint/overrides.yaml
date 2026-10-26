@@ -4,6 +4,15 @@
 
 # Peppermint defaults. Each entry replaces Zen's pref with the same name and condition (see tools/ffprefs).
 
+# --- firefox/browser.yaml
+
+# Zen writes the session twice (its own store too), so every save costs double.
+# A minute still loses little after a crash; the idle interval is hourly.
+- name: browser.sessionstore.interval
+  # Interval in milliseconds (60 seconds, firefox defaults to 15000)
+  value: 60000
+
+
 # --- firefox/pip.yaml
 
 - name: media.videocontrols.picture-in-picture.enable-when-switching-tabs.enabled

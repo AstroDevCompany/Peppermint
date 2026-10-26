@@ -4,3 +4,4 @@
 
         content/browser/ZenLazyFeatures.mjs                                     (../../peppermint/common/ZenLazyFeatures.mjs)
         content/browser/zen-styles/peppermint-sidebar.css                       (../../peppermint/common/peppermint-sidebar.css)
+        content/browser/zen-styles/peppermint-idle.css                          (../../peppermint/common/peppermint-idle.css)

@@ -4,6 +4,8 @@
 
 MOZ_SRC_FILES += [
     "PeppermintActions.sys.mjs",
+    "PeppermintActivity.sys.mjs",
+    "PeppermintLiveFoldersIdle.sys.mjs",
     "PeppermintStartup.mjs",
     "PeppermintTabs.sys.mjs",
 ]

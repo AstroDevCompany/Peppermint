@@ -1,0 +1,27 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/*
+ * Zen's endless animations keep the compositor and the main thread busy even
+ * when nobody can see the window react. While the window has no focus they
+ * stand still and carry on from the same frame when it returns. Only
+ * animations that never end are listed, so a one-shot one that starts while
+ * the window is unfocused still finishes.
+ */
+:root:-moz-window-inactive {
+  /* Sidebar update notice and onboarding callout title gradients */
+  & .zen-sidebar-notification-link-container[special],
+  & #feature-callout #mainContentHeader,
+  /* Loading bar, including its long-load sweep */
+  & #zen-loading-progress-bar,
+  & #zen-loading-progress-bar::before,
+  /* Library: media tile skeleton and the unknown-size download ring */
+  & .zen-library-media-skeleton::before,
+  & .zen-library-row[indeterminate] .zen-library-row-progress-arc,
+  /* Media controls: scrolling title and the playing note sprite */
+  & .zen-media-info-vbox label[overflow],
+  & .zen-media-notes::before {
+    animation-play-state: paused !important;
+  }
+}

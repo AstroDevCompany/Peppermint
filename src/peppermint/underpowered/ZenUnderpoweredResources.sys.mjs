@@ -37,6 +37,7 @@ export class ResourceMonitor {
   #generation = 0;
   #slow = false;
   #running = false;
+  #paused = false;
   /** CPU or RAM at or above this percent counts as very high. */
   threshold = HIGH_PERCENT;
   /**
@@ -66,6 +67,40 @@ export class ResourceMonitor {
     this.stop();
     this.#high = high;
     this.#running = true;
+    if (this.#paused) {
+      return;
+    }
+    this.#timer = setInterval(() => this.#poll(), this.#interval());
+    this.#poll();
+  }
+
+  /**
+   * Stop reading while nobody is using the browser, and read again at once
+   * when they return. The counting restarts, so readings from before and
+   * after the gap never add up to a sustained peak.
+   *
+   * @param {boolean} paused
+   */
+  setPaused(paused) {
+    if (this.#paused === paused) {
+      return;
+    }
+    this.#paused = paused;
+    if (!this.#running) {
+      return;
+    }
+    this.#generation++;
+    this.#polling = false;
+    this.#overSamples = 0;
+    this.#stableSince = null;
+    if (this.#timer) {
+      clearInterval(this.#timer);
+      this.#timer = 0;
+    }
+    if (paused) {
+      this.#dropWorker();
+      return;
+    }
     this.#timer = setInterval(() => this.#poll(), this.#interval());
     this.#poll();
   }
