@@ -14,6 +14,7 @@ zen-action-clear-cookie-exceptions = Clear Cookie Banner Exceptions
 zen-action-toggle-reader-mode = Toggle Reader Mode
 zen-action-save-article-offline = Save Article for Offline Reading
 zen-action-open-saved-articles = Open Saved Articles
+zen-action-open-report = Open Peppermint Report
 zen-action-almost-maximize-window = Almost Maximize Window
 zen-action-fullscreen-window = Fullscreen Window
 
@@ -72,3 +73,53 @@ peppermint-site-clear-data = Clear Cookies and Site Data for This Site
 peppermint-site-cookie-banners-pause = Pause Cookie Banner Blocking on This Site
 peppermint-site-cookie-banners-resume = Resume Cookie Banner Blocking on This Site
 peppermint-site-rule-changed = Rules for { $site } updated
+
+# Tabs. Each action in PeppermintPaletteTabs.sys.mjs needs a label.
+peppermint-action-close-duplicate-tabs = Close Duplicate Tabs
+peppermint-action-close-other-tabs = Close All Other Tabs
+peppermint-action-close-tabs-below = Close Tabs Below
+peppermint-action-copy-tab-urls = Copy URLs of All Tabs
+peppermint-action-copy-tabs-markdown = Copy All Tabs as Markdown List
+peppermint-action-copy-page-markdown-link = Copy Page as Markdown Link
+peppermint-action-copy-page-title = Copy Page Title
+
+peppermint-duplicates-closed =
+    { $count ->
+        [one] Closed { $count } duplicate tab
+       *[other] Closed { $count } duplicate tabs
+    }
+peppermint-tabs-copied =
+    { $count ->
+        [one] Copied { $count } tab
+       *[other] Copied { $count } tabs
+    }
+peppermint-page-copied = Copied
+
+# Developer tools.
+peppermint-action-toggle-responsive-design = Toggle Responsive Design Mode
+peppermint-action-open-web-console = Open Web Console
+peppermint-action-view-page-source = View Page Source
+peppermint-action-toggle-disable-cache = Toggle Disable Cache (Developer Tools)
+
+# Address bar developer tools (PeppermintUrlbarProviderOmniUtils.sys.mjs).
+peppermint-omni-copied = Copied to clipboard
+
+# Tab archive and snooze (PeppermintArchiveActions.sys.mjs).
+peppermint-action-open-tab-archive = Open Tab Archive
+peppermint-action-archive-this-tab = Archive This Tab
+peppermint-action-archive-idle-tabs-now = Archive Idle Tabs Now
+peppermint-action-snooze-tab-later = Snooze This Tab for 3 Hours
+peppermint-action-snooze-tab-tomorrow = Snooze This Tab Until Tomorrow Morning
+peppermint-action-snooze-tab-next-week = Snooze This Tab Until Next Monday
+
+peppermint-tab-archived = Tab archived
+# $count (Number) - how many tabs were archived.
+peppermint-idle-tabs-archived =
+    { $count ->
+        [one] Archived { $count } idle tab
+       *[other] Archived { $count } idle tabs
+    }
+# $time (String) - when the tab comes back, in the local format.
+peppermint-tab-snoozed = Tab snoozed until { $time }
+# $title (String) - the title of the page that came back.
+peppermint-snooze-woke = Snoozed tab is back: { $title }

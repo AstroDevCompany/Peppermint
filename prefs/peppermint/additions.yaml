@@ -70,6 +70,9 @@
 - name: services.sync.prefs.sync.zen.homepage.cards.version
   value: true
 
+- name: services.sync.prefs.sync.zen.homepage.cards.report
+  value: true
+
 - name: services.sync.prefs.sync.zen.homepage.cards.clock
   value: true
 

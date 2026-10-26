@@ -12,3 +12,5 @@ prefs = [
 ["browser_palette_settings.js"]
 
 ["browser_palette_site.js"]
+
+["browser_palette_tabs.js"]

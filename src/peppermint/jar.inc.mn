@@ -6,6 +6,9 @@
 #include notepad/jar.inc.mn
 #include urlbar/jar.inc.mn
 #include reader/jar.inc.mn
+#include report/jar.inc.mn
+#include tab-archive/jar.inc.mn
+#include screenshot-editor/jar.inc.mn
 #include vault/jar.inc.mn
 #include fonts/jar.inc.mn
 #include tab-numbers/jar.inc.mn

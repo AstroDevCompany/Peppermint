@@ -1,0 +1,9 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Hours a tab can sit idle before it is closed into the archive (about:archive).
+# Pinned tabs, Essentials, folders, split views and private windows are never
+# archived. 0 turns the automatic archive off.
+- name: peppermint.tab-archive.hours
+  value: 72

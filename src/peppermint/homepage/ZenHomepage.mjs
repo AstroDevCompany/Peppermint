@@ -15,21 +15,32 @@ import {
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 
 const CARDS = [
-  { id: "time-spent", l10nId: "zen-homepage-card-time-spent", field: "timeSpent" },
+  {
+    id: "time-spent",
+    l10nId: "zen-homepage-card-time-spent",
+    field: "timeSpent",
+  },
   { id: "top-site", l10nId: "zen-homepage-card-top-site", field: "topSite" },
   {
     id: "network-speed",
     l10nId: "zen-homepage-card-network-speed",
     field: "networkSpeed",
   },
-  { id: "downloads", l10nId: "zen-homepage-card-downloads", field: "downloads" },
+  {
+    id: "downloads",
+    l10nId: "zen-homepage-card-downloads",
+    field: "downloads",
+  },
   {
     id: "visited-sites",
     l10nId: "zen-homepage-card-visited-sites",
     field: "visitedSites",
   },
   { id: "version", l10nId: "zen-homepage-card-version", field: "version" },
+  { id: "report", l10nId: "zen-homepage-card-report", field: "report" },
 ];
+
+const REPORT_URL = "about:report";
 
 function htmlElement(tag, attributes = {}) {
   const node = document.createElementNS(HTML_NS, tag);
@@ -119,7 +130,10 @@ class ZenHomepageController {
         this.#scheduleClock();
       }
       if (!this.#statsTimer) {
-        this.#statsTimer = window.setInterval(() => this.#refreshStats(), 60000);
+        this.#statsTimer = window.setInterval(
+          () => this.#refreshStats(),
+          60000
+        );
       }
       return;
     }
@@ -185,10 +199,11 @@ class ZenHomepageController {
       const uri = Services.io.newURI(target);
       const originAttributes = browser.contentPrincipal?.originAttributes || {};
       browser.loadURI(uri, {
-        triggeringPrincipal: Services.scriptSecurityManager.createContentPrincipal(
-          uri,
-          originAttributes
-        ),
+        triggeringPrincipal:
+          Services.scriptSecurityManager.createContentPrincipal(
+            uri,
+            originAttributes
+          ),
       });
       this.#appliedSpec = target;
     } catch (error) {
@@ -295,6 +310,18 @@ class ZenHomepageController {
       cardEl.appendChild(
         htmlElement("div", { class: "zen-homepage-card-value" })
       );
+      if (card.id === "report") {
+        cardEl.setAttribute("role", "link");
+        cardEl.setAttribute("tabindex", "0");
+        const open = () => window.openTrustedLinkIn(REPORT_URL, "tab");
+        cardEl.addEventListener("click", open);
+        cardEl.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            open();
+          }
+        });
+      }
       grid.appendChild(cardEl);
     }
     const clockCard = htmlElement("div", {

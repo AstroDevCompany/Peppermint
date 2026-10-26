@@ -4,6 +4,7 @@
 
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
+  bumpReport: "moz-src:///peppermint/report/PeppermintReportStore.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
@@ -145,6 +146,9 @@ class ZenCookieConsentManager {
     }
     this.init();
     this.#handledTotal++;
+    if (!browser.browsingContext?.usePrivateBrowsing) {
+      lazy.bumpReport("banners");
+    }
     if (!this.#statsTimer) {
       this.#statsTimer = lazy.setTimeout(
         () => this.#flushStats(),

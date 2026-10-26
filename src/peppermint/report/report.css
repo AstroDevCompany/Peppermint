@@ -1,0 +1,206 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+:root {
+  color-scheme: light dark;
+  --report-accent: var(--zen-primary-color, #14b8a6);
+  --report-ink: light-dark(#10211e, #e8f6f1);
+  --report-muted: light-dark(#5c726c, #9db5ad);
+  --report-paper: light-dark(#f7fbf8, #16302b);
+  --report-page: light-dark(#d5ebe4, #0c1f1c);
+  --report-line: light-dark(rgb(16 33 30 / 12%), rgb(232 246 241 / 14%));
+  --report-fill: light-dark(rgb(255 255 255 / 72%), rgb(255 255 255 / 10%));
+  --report-stroke: light-dark(rgb(0 0 0 / 12%), rgb(255 255 255 / 25%));
+  --report-hover: light-dark(rgb(0 0 0 / 6%), rgb(255 255 255 / 10%));
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+  background: var(--report-page);
+  color: var(--report-ink);
+  font:
+    16px/1.5 system-ui,
+    sans-serif;
+}
+
+.report {
+  box-sizing: border-box;
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.report-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-block-end: 1.25rem;
+}
+
+.report-title {
+  margin: 0;
+  margin-inline-end: auto;
+  font-size: 1.5rem;
+  font-weight: 650;
+}
+
+.report-periods {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.report-period {
+  appearance: none;
+  padding: 0.2rem 0.7rem;
+  border: 1px solid var(--report-stroke);
+  border-radius: 999px;
+  background: var(--report-fill);
+  color: inherit;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--report-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--report-accent);
+    outline-offset: 1px;
+  }
+
+  &[aria-pressed="true"] {
+    border-color: var(--report-accent);
+    background: color-mix(in srgb, var(--report-accent) 22%, transparent);
+  }
+}
+
+.report-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.75rem;
+}
+
+.report-tile {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  border: 1px solid var(--report-line);
+  border-radius: 14px;
+  background: var(--report-paper);
+}
+
+.report-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--report-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.report-label {
+  color: var(--report-ink);
+  font-size: 0.9rem;
+}
+
+.report-hint {
+  color: var(--report-muted);
+  font-size: 0.8rem;
+}
+
+.report-section-title {
+  margin: 2rem 0 0.5rem;
+  color: var(--report-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.report-site-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report-site {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--report-line);
+  border-radius: 12px;
+  background: var(--report-paper);
+}
+
+.report-site-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.report-site-host {
+  margin-inline-end: auto;
+  overflow-wrap: anywhere;
+}
+
+.report-site-visits {
+  color: var(--report-muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-note {
+  margin: 0 0 0.75rem;
+  color: var(--report-muted);
+  font-size: 0.9rem;
+}
+
+.report-share-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-block-end: 0.5rem;
+}
+
+.report-button {
+  appearance: none;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--report-stroke);
+  border-radius: 10px;
+  background: var(--report-fill);
+  color: inherit;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--report-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--report-accent);
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.report-footer {
+  margin-block-start: 2rem;
+  color: var(--report-muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+[hidden] {
+  display: none !important;
+}

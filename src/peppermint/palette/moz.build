@@ -6,4 +6,5 @@ MOZ_SRC_FILES += [
     "PeppermintPaletteAction.sys.mjs",
     "PeppermintPaletteSettings.sys.mjs",
     "PeppermintPaletteSite.sys.mjs",
+    "PeppermintPaletteTabs.sys.mjs",
 ]

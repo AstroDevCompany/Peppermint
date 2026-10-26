@@ -262,6 +262,9 @@ zen-homepage-card-visited-sites-toggle =
 zen-homepage-card-version-toggle =
     .label = Current Version
 
+zen-homepage-card-report-toggle =
+    .label = Protected This Week (Peppermint report)
+
 zen-homepage-card-clock-toggle =
     .label = Clock
 
@@ -311,6 +314,10 @@ zen-performance-essentials-favicon =
 zen-tab-unloader-minutes-label = Unload idle tabs after
 
 zen-tab-unloader-minutes-description = Minutes. Pinned tabs, essentials, the tab you are viewing, and tabs playing sound stay loaded.
+
+peppermint-tab-archive-hours-label = Archive idle tabs after
+
+peppermint-tab-archive-hours-description = Hours. Archived tabs can be opened again from the tab archive. Pinned tabs, essentials, folders, split views and tabs playing sound are never archived. 0 turns it off.
 
 zen-underpowered-auto-header = Underpowered Mode
 

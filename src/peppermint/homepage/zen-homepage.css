@@ -36,11 +36,7 @@
   overflow: auto;
   color: light-dark(#f4fffc, #f4fffc);
   background-color: transparent;
-  background-image: radial-gradient(
-    ellipse 80% 62% at 50% 42%,
-    color-mix(in srgb, var(--zen-primary-color, #2dd4bf) 48%, transparent) 0%,
-    transparent 72%
-  );
+  background-image: radial-gradient(ellipse 80% 62% at 50% 42%, color-mix(in srgb, var(--zen-primary-color, #2dd4bf) 48%, transparent) 0%, transparent 72%);
 }
 
 #zen-homepage[hidden] {
@@ -119,15 +115,7 @@
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  filter: drop-shadow(
-    0 1px 6px
-      color-mix(
-        in oklch,
-        color-mix(in oklch, var(--zen-primary-color, #2dd4bf) 40%, black)
-          light-dark(80%, 60%),
-        transparent
-      )
-  );
+  filter: drop-shadow(0 1px 6px color-mix(in oklch, color-mix(in oklch, var(--zen-primary-color, #2dd4bf) 40%, black) light-dark(80%, 60%), transparent));
 }
 
 .zen-homepage-fresh {
@@ -181,6 +169,20 @@
   justify-items: center;
   min-height: var(--zen-home-card-min-height);
   padding: 14px 12px 16px;
+}
+
+.zen-homepage-card[data-card="report"] {
+  grid-column: 1 / -1;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--zen-frosted-hover, rgb(255 255 255 / 12%));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--zen-primary-color, currentColor);
+    outline-offset: 2px;
+  }
 }
 
 .zen-homepage-card[hidden],
