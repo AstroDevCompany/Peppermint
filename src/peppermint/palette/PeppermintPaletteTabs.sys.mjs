@@ -53,9 +53,9 @@ export function markdownList(pages) {
 
 /**
  * Picks the tabs that repeat a page already open. The selected tab always
- * stays; otherwise the first of the repeated tabs does.
+ * stays; otherwise the one used most recently does.
  *
- * @param {{tab: object, url: string}[]} entries - In tab order
+ * @param {{tab: object, url: string, lastAccessed?: number}[]} entries
  * @param {object} selected - The selected tab
  * @returns {object[]} The tabs to close
  */
@@ -69,15 +69,19 @@ export function pickDuplicates(entries, selected) {
     if (!groups.has(key)) {
       groups.set(key, []);
     }
-    groups.get(key).push(entry.tab);
+    groups.get(key).push(entry);
   }
   const doomed = [];
-  for (const tabs of groups.values()) {
-    if (tabs.length < 2) {
+  for (const group of groups.values()) {
+    if (group.length < 2) {
       continue;
     }
-    const keep = tabs.includes(selected) ? selected : tabs[0];
-    doomed.push(...tabs.filter(tab => tab !== keep));
+    const keep =
+      group.find(entry => entry.tab === selected) ??
+      group.reduce((best, entry) =>
+        (entry.lastAccessed ?? 0) > (best.lastAccessed ?? 0) ? entry : best
+      );
+    doomed.push(...group.filter(entry => entry !== keep).map(e => e.tab));
   }
   return doomed;
 }
@@ -116,7 +120,11 @@ function isClosable(tab) {
 function duplicateTabs(window) {
   const entries = spaceTabs(window)
     .filter(isClosable)
-    .map(tab => ({ tab, url: tabUrl(tab) }));
+    .map(tab => ({
+      tab,
+      url: tabUrl(tab),
+      lastAccessed: tab.lastAccessed || 0,
+    }));
   return pickDuplicates(entries, window.gBrowser.selectedTab);
 }
 

@@ -126,10 +126,7 @@ export function startActiveTimeTracking() {
   for (const win of Services.wm.getEnumerator("navigator:browser")) {
     watch(win);
   }
-  Services.obs.addObserver(
-    subject => watch(subject),
-    "browser-delayed-startup-finished"
-  );
+  Services.obs.addObserver(subject => watch(subject), "browser-delayed-startup-finished");
   Services.obs.addObserver(() => pauseActiveTime(), "sleep_notification");
   Services.obs.addObserver(() => resumeActiveTime(), "wake_notification");
   Services.obs.addObserver(() => pauseActiveTime(), "quit-application");

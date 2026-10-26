@@ -15,22 +15,14 @@ import {
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 
 const CARDS = [
-  {
-    id: "time-spent",
-    l10nId: "zen-homepage-card-time-spent",
-    field: "timeSpent",
-  },
+  { id: "time-spent", l10nId: "zen-homepage-card-time-spent", field: "timeSpent" },
   { id: "top-site", l10nId: "zen-homepage-card-top-site", field: "topSite" },
   {
     id: "network-speed",
     l10nId: "zen-homepage-card-network-speed",
     field: "networkSpeed",
   },
-  {
-    id: "downloads",
-    l10nId: "zen-homepage-card-downloads",
-    field: "downloads",
-  },
+  { id: "downloads", l10nId: "zen-homepage-card-downloads", field: "downloads" },
   {
     id: "visited-sites",
     l10nId: "zen-homepage-card-visited-sites",
@@ -130,10 +122,7 @@ class ZenHomepageController {
         this.#scheduleClock();
       }
       if (!this.#statsTimer) {
-        this.#statsTimer = window.setInterval(
-          () => this.#refreshStats(),
-          60000
-        );
+        this.#statsTimer = window.setInterval(() => this.#refreshStats(), 60000);
       }
       return;
     }
@@ -199,11 +188,10 @@ class ZenHomepageController {
       const uri = Services.io.newURI(target);
       const originAttributes = browser.contentPrincipal?.originAttributes || {};
       browser.loadURI(uri, {
-        triggeringPrincipal:
-          Services.scriptSecurityManager.createContentPrincipal(
-            uri,
-            originAttributes
-          ),
+        triggeringPrincipal: Services.scriptSecurityManager.createContentPrincipal(
+          uri,
+          originAttributes
+        ),
       });
       this.#appliedSpec = target;
     } catch (error) {

@@ -65,17 +65,25 @@ add_task(function test_markdown_helpers() {
   );
 });
 
-add_task(function test_pick_duplicates_keeps_selected_or_first() {
+add_task(function test_pick_duplicates_keeps_selected_or_latest() {
   const [t1, t2, t3, t4, t5] = [{}, {}, {}, {}, {}];
   const entries = [
-    { tab: t1, url: PAGE_A },
-    { tab: t2, url: `${PAGE_A}#section` },
-    { tab: t3, url: PAGE_B },
-    { tab: t4, url: PAGE_B },
-    { tab: t5, url: "about:blank" },
+    { tab: t1, url: PAGE_A, lastAccessed: 5 },
+    { tab: t2, url: `${PAGE_A}#section`, lastAccessed: 9 },
+    { tab: t3, url: PAGE_B, lastAccessed: 1 },
+    { tab: t4, url: PAGE_B, lastAccessed: 2 },
+    { tab: t5, url: "about:blank", lastAccessed: 3 },
   ];
-  Assert.deepEqual(pickDuplicates(entries, t3), [t2, t4], "Selected one stays");
-  Assert.deepEqual(pickDuplicates(entries, t5), [t2, t4], "First one stays");
+  Assert.deepEqual(
+    pickDuplicates(entries, t3),
+    [t1, t4],
+    "The selected one stays, the older of the others goes"
+  );
+  Assert.deepEqual(
+    pickDuplicates(entries, t5),
+    [t1, t3],
+    "The most recently used one stays"
+  );
   Assert.deepEqual(
     pickDuplicates(
       [
@@ -99,11 +107,11 @@ add_task(async function test_close_duplicate_tabs() {
   const closeDuplicates = byId("peppermint:close-duplicate-tabs");
   try {
     ok(closeDuplicates.isAvailable(window), "Duplicates are offered");
-    const closed = BrowserTestUtils.waitForEvent(second, "TabClose");
+    const closed = BrowserTestUtils.waitForEvent(first, "TabClose");
     closeDuplicates.command(window);
     await closed;
-    ok(first.isConnected, "The first tab stays");
-    ok(!second.isConnected, "The repeated tab is closed");
+    ok(!first.isConnected, "The tab used least recently is closed");
+    ok(second.isConnected, "The tab used most recently stays");
     ok(other.isConnected, "A different page stays");
     ok(!closeDuplicates.isAvailable(window), "Nothing left to close");
   } finally {

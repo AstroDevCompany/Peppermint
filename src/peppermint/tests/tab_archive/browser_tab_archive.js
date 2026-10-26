@@ -147,7 +147,10 @@ add_task(async function test_archive_and_restore() {
 
   const restored = await restoreRecord(record.id, window, { select: false });
   Assert.ok(restored, "The tab came back");
-  Assert.equal(restored.linkedBrowser.currentURI.spec, PAGE);
+  await TestUtils.waitForCondition(
+    () => restored.linkedBrowser.currentURI.spec == PAGE,
+    "the restored tab opened the page"
+  );
   Assert.equal(await getRecord(record.id), null, "The record is gone");
   BrowserTestUtils.removeTab(restored);
 });

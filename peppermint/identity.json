@@ -4,7 +4,7 @@
   "appId": "peppermint",
   "binaryName": "peppermint",
   "updateHostname": "updates.peppermint.invalid",
-  "displayVersion": "0.1.3",
+  "displayVersion": "2026.0.3",
   "repository": "AstroDevCompany/Peppermint",
   "npmName": "peppermint-desktop",
   "brands": {

@@ -30,7 +30,7 @@ add_task(function test_day_keys_and_periods() {
 add_task(function test_reversed_hosts() {
   Assert.equal(hostFromReversed("moc.elpmaxe."), "example.com");
   Assert.equal(hostFromReversed("moc.elpmaxe.www."), "example.com");
-  Assert.equal(hostFromReversed("gro.allizom.pord."), "dorp.mozilla.org");
+  Assert.equal(hostFromReversed("gro.allizom.dorp."), "prod.mozilla.org");
 });
 
 add_task(async function test_counters_add_up_and_persist() {
