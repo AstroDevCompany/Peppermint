@@ -27,6 +27,9 @@
 - name: zen.homepage.cards.version
   value: true
 
+- name: zen.homepage.cards.report
+  value: true
+
 - name: zen.homepage.cards.clock
   value: true
 

@@ -134,3 +134,38 @@ add_task(async function test_island_name_is_automatic_until_renamed() {
   BrowserTestUtils.removeTab(child);
   BrowserTestUtils.removeTab(opener);
 });
+
+add_task(async function test_context_menu_groups_selected_tabs_into_island() {
+  const first = await openPlainTab();
+  const second = await openPlainTab();
+  const third = await openPlainTab();
+  gBrowser.selectedTab = first;
+  gBrowser.addToMultiSelectedTabs(second);
+  gBrowser.addToMultiSelectedTabs(third);
+
+  const menu = document.getElementById("tabContextMenu");
+  const shown = BrowserTestUtils.waitForEvent(menu, "popupshown");
+  EventUtils.synthesizeMouseAtCenter(second, { type: "contextmenu" });
+  await shown;
+
+  const item = document.getElementById("context_peppermintTabsToIsland");
+  Assert.ok(item && !item.hidden, "The island item is shown");
+  Assert.equal(
+    JSON.parse(item.getAttribute("data-l10n-args")).tabCount,
+    gBrowser.selectedTabs.length,
+    "It counts the selected tabs"
+  );
+
+  const hidden = BrowserTestUtils.waitForEvent(menu, "popuphidden");
+  menu.activateItem(item);
+  await hidden;
+
+  const island = await waitForIsland(first);
+  Assert.equal(islandOf(second), island, "Second tab joined the island");
+  Assert.equal(islandOf(third), island, "Third tab joined the island");
+
+  gBrowser.clearMultiSelectedTabs();
+  for (const tab of [first, second, third]) {
+    BrowserTestUtils.removeTab(tab);
+  }
+});

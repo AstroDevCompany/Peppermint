@@ -19,6 +19,7 @@ const CARD_PREFS = [
   "zen.homepage.cards.downloads",
   "zen.homepage.cards.visited-sites",
   "zen.homepage.cards.version",
+  "zen.homepage.cards.report",
   "zen.homepage.cards.clock",
 ];
 

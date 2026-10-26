@@ -29,7 +29,10 @@ const CARDS = [
     field: "visitedSites",
   },
   { id: "version", l10nId: "zen-homepage-card-version", field: "version" },
+  { id: "report", l10nId: "zen-homepage-card-report", field: "report" },
 ];
+
+const REPORT_URL = "about:report";
 
 function htmlElement(tag, attributes = {}) {
   const node = document.createElementNS(HTML_NS, tag);
@@ -295,6 +298,18 @@ class ZenHomepageController {
       cardEl.appendChild(
         htmlElement("div", { class: "zen-homepage-card-value" })
       );
+      if (card.id === "report") {
+        cardEl.setAttribute("role", "link");
+        cardEl.setAttribute("tabindex", "0");
+        const open = () => window.openTrustedLinkIn(REPORT_URL, "tab");
+        cardEl.addEventListener("click", open);
+        cardEl.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            open();
+          }
+        });
+      }
       grid.appendChild(cardEl);
     }
     const clockCard = htmlElement("div", {

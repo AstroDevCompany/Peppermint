@@ -8,7 +8,7 @@
   "type": "module",
   "scripts": {
     "postinstall": "node scripts/patch-async-icns.mjs && node peppermint/scripts/setup-git.mjs",
-    "build": "surfer build",
+    "build": "node peppermint/scripts/build.mjs",
     "prebuild": "node peppermint/scripts/check-path-budget.mjs && node scripts/run-python.mjs scripts/update_en_US_packs.py",
     "build:ui": "surfer build --ui",
     "prebuild:ui": "node peppermint/scripts/check-path-budget.mjs && node scripts/run-python.mjs scripts/update_en_US_packs.py",

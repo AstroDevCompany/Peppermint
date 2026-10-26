@@ -8,6 +8,11 @@ import {
 } from "moz-src:///peppermint/palette/PeppermintPaletteAction.sys.mjs";
 import { settingsActions } from "moz-src:///peppermint/palette/PeppermintPaletteSettings.sys.mjs";
 import { siteActions } from "moz-src:///peppermint/palette/PeppermintPaletteSite.sys.mjs";
+import { archiveActions } from "moz-src:///peppermint/tab-archive/PeppermintArchiveActions.sys.mjs";
+import {
+  devActions,
+  tabActions,
+} from "moz-src:///peppermint/palette/PeppermintPaletteTabs.sys.mjs";
 
 const PREF_UNDERPOWERED = "zen.underpowered.enabled";
 
@@ -179,6 +184,12 @@ const ACTIONS = [
     window => lazy.PeppermintReader.openSavedArticles(window)
   ),
   action(
+    "open-report",
+    "zen-action-open-report",
+    "chrome://browser/skin/zen-icons/tracking-protection.svg",
+    window => window.openTrustedLinkIn("about:report", "tab")
+  ),
+  action(
     "manage-url-snippets",
     "zen-action-manage-url-snippets",
     "chrome://browser/skin/zen-icons/link.svg",
@@ -205,6 +216,9 @@ const ACTIONS = [
   ),
   ...settingsActions(),
   ...siteActions(),
+  ...tabActions(),
+  ...archiveActions(),
+  ...devActions(),
 ];
 
 let registered = false;

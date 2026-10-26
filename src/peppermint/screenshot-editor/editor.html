@@ -1,0 +1,77 @@
+<!doctype html>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this file,
+   - You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title data-l10n-id="peppermint-shot-title"></title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src chrome:; img-src blob:; object-src 'none';"
+    />
+    <link rel="localization" href="browser/peppermint-screenshot.ftl" />
+    <link
+      rel="stylesheet"
+      href="chrome://browser/content/zen-styles/peppermint-screenshot.css"
+    />
+    <script src="chrome://browser/content/zenThemeModifier.js"></script>
+    <script
+      type="module"
+      src="chrome://browser/content/peppermint-screenshot/editor.mjs"
+    ></script>
+  </head>
+
+  <body>
+    <header class="shot-toolbar" role="toolbar">
+      <div
+        id="shot-tools"
+        class="shot-group"
+        role="group"
+        data-l10n-id="peppermint-shot-tools"
+      >
+        <button type="button" class="shot-button" data-tool="arrow" data-l10n-id="peppermint-shot-tool-arrow"></button>
+        <button type="button" class="shot-button" data-tool="rect" data-l10n-id="peppermint-shot-tool-rect"></button>
+        <button type="button" class="shot-button" data-tool="text" data-l10n-id="peppermint-shot-tool-text"></button>
+        <button type="button" class="shot-button" data-tool="pen" data-l10n-id="peppermint-shot-tool-pen"></button>
+        <button type="button" class="shot-button" data-tool="redact" data-l10n-id="peppermint-shot-tool-redact"></button>
+      </div>
+      <div
+        id="shot-colors"
+        class="shot-group"
+        role="group"
+        data-l10n-id="peppermint-shot-colors"
+      >
+        <button type="button" class="shot-swatch" data-color="#e5484d" data-l10n-id="peppermint-shot-color-red"></button>
+        <button type="button" class="shot-swatch" data-color="#f5d90a" data-l10n-id="peppermint-shot-color-yellow"></button>
+        <button type="button" class="shot-swatch" data-color="#30a46c" data-l10n-id="peppermint-shot-color-green"></button>
+        <button type="button" class="shot-swatch" data-color="#3e63dd" data-l10n-id="peppermint-shot-color-blue"></button>
+        <button type="button" class="shot-swatch" data-color="#ffffff" data-l10n-id="peppermint-shot-color-white"></button>
+        <button type="button" class="shot-swatch" data-color="#111111" data-l10n-id="peppermint-shot-color-black"></button>
+      </div>
+      <div class="shot-group">
+        <button type="button" id="shot-undo" class="shot-button" data-l10n-id="peppermint-shot-undo" disabled="disabled"></button>
+        <button type="button" id="shot-redo" class="shot-button" data-l10n-id="peppermint-shot-redo" disabled="disabled"></button>
+      </div>
+      <span class="shot-spacer"></span>
+      <div class="shot-group">
+        <button type="button" id="shot-cancel" class="shot-button" data-l10n-id="peppermint-shot-cancel"></button>
+        <button type="button" id="shot-copy" class="shot-button" data-l10n-id="peppermint-shot-copy"></button>
+        <button type="button" id="shot-save" class="shot-button" data-l10n-id="peppermint-shot-save"></button>
+        <button type="button" id="shot-both" class="shot-button shot-primary" data-l10n-id="peppermint-shot-copy-and-save"></button>
+      </div>
+    </header>
+    <main class="shot-stage">
+      <div id="shot-wrap" class="shot-wrap">
+        <canvas id="shot-canvas" class="shot-canvas"></canvas>
+        <input
+          id="shot-text"
+          class="shot-text"
+          type="text"
+          hidden="hidden"
+          data-l10n-id="peppermint-shot-text-input"
+        />
+      </div>
+    </main>
+  </body>
+</html>

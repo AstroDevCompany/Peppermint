@@ -14,6 +14,7 @@ const CARD_PREFS = {
   downloads: "zen.homepage.cards.downloads",
   "visited-sites": "zen.homepage.cards.visited-sites",
   version: "zen.homepage.cards.version",
+  report: "zen.homepage.cards.report",
   clock: "zen.homepage.cards.clock",
 };
 
@@ -22,6 +23,8 @@ const MODES = new Set(["builtin", "blank", "custom"]);
 let lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  bumpReport: "moz-src:///peppermint/report/PeppermintReportStore.sys.mjs",
+  collectReport: "moz-src:///peppermint/report/PeppermintReport.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   Downloads: "resource://gre/modules/Downloads.sys.mjs",
 });
@@ -64,6 +67,7 @@ function flushActiveTime() {
   ensureToday();
   const total = Services.prefs.getIntPref(PREF_ACTIVE_MS, 0) + pendingMs;
   Services.prefs.setIntPref(PREF_ACTIVE_MS, total);
+  lazy.bumpReport("activeMs", pendingMs);
   pendingMs = 0;
 }
 
@@ -397,6 +401,15 @@ export async function collectHomepageStats({ isPrivate = false } = {}) {
       console.error("Zen homepage history stats failed", error);
     }
   }
+  let report = "—";
+  if (!isPrivate) {
+    try {
+      const week = await lazy.collectReport(7, { withHistory: false });
+      report = new Intl.NumberFormat().format(week.trackers + week.banners);
+    } catch (error) {
+      console.error("Zen homepage report stats failed", error);
+    }
+  }
   return {
     name,
     dateLabel: formatToday(),
@@ -407,6 +420,7 @@ export async function collectHomepageStats({ isPrivate = false } = {}) {
     downloads: downloads.count,
     visitedSites,
     version: `v${Services.appinfo.version}`,
+    report,
   };
 }
 

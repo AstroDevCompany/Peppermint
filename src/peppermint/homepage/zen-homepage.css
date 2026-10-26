@@ -183,6 +183,20 @@
   padding: 14px 12px 16px;
 }
 
+.zen-homepage-card[data-card="report"] {
+  grid-column: 1 / -1;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--zen-frosted-hover, rgb(255 255 255 / 12%));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--zen-primary-color, currentColor);
+    outline-offset: 2px;
+  }
+}
+
 .zen-homepage-card[hidden],
 .zen-homepage-clock-card[hidden] {
   display: none;

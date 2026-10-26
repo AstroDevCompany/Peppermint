@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title data-l10n-id="peppermint-archive-title"></title>
+    <link rel="localization" href="browser/peppermint-tab-archive.ftl" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="chrome://browser/skin/zen-icons/history.svg"
+    />
+    <link
+      rel="stylesheet"
+      href="chrome://browser/content/zen-styles/peppermint-archive.css"
+    />
+    <script src="chrome://browser/content/zenThemeModifier.js"></script>
+  </head>
+  <body>
+    <main class="archive">
+      <header class="archive-header">
+        <h1 class="archive-title" data-l10n-id="peppermint-archive-title"></h1>
+        <input
+          type="search"
+          id="archive-search"
+          class="archive-search"
+          data-l10n-id="peppermint-archive-search"
+        />
+        <button
+          type="button"
+          id="archive-clear"
+          class="archive-text-button"
+          data-l10n-id="peppermint-archive-clear-all"
+          hidden="hidden"
+        ></button>
+      </header>
+      <nav
+        id="archive-tabs"
+        class="archive-tabs"
+        data-l10n-id="peppermint-archive-tabs"
+      >
+        <button
+          type="button"
+          class="archive-tab"
+          data-kind="archive"
+          aria-pressed="true"
+        ></button>
+        <button
+          type="button"
+          class="archive-tab"
+          data-kind="snooze"
+          aria-pressed="false"
+        ></button>
+      </nav>
+      <div id="archive-list" class="archive-groups"></div>
+      <section id="archive-empty" class="archive-empty" hidden="hidden">
+        <img
+          class="archive-empty-icon"
+          src="chrome://browser/skin/zen-icons/history.svg"
+          alt=""
+        />
+        <h2 data-l10n-id="peppermint-archive-empty-title"></h2>
+        <p id="archive-empty-description"></p>
+      </section>
+      <p
+        id="archive-no-results"
+        class="archive-note"
+        data-l10n-id="peppermint-archive-no-results"
+        hidden="hidden"
+      ></p>
+      <p
+        id="archive-private"
+        class="archive-note"
+        data-l10n-id="peppermint-archive-private"
+        hidden="hidden"
+      ></p>
+      <p
+        id="archive-error"
+        class="archive-note archive-error"
+        data-l10n-id="peppermint-archive-restore-error"
+        hidden="hidden"
+        role="alert"
+      ></p>
+    </main>
+    <script
+      type="module"
+      src="chrome://browser/content/peppermint-archive/archive.mjs"
+    ></script>
+  </body>
+</html>

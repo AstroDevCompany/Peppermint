@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title data-l10n-id="peppermint-report-title"></title>
+    <link rel="localization" href="browser/peppermint-report.ftl" />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="chrome://browser/skin/zen-icons/tracking-protection.svg"
+    />
+    <link
+      rel="stylesheet"
+      href="chrome://browser/content/zen-styles/peppermint-report.css"
+    />
+    <script src="chrome://browser/content/zenThemeModifier.js"></script>
+  </head>
+  <body>
+    <main class="report">
+      <header class="report-header">
+        <h1 class="report-title" data-l10n-id="peppermint-report-title"></h1>
+        <nav
+          id="report-periods"
+          class="report-periods"
+          data-l10n-id="peppermint-report-periods"
+        >
+          <button type="button" class="report-period" data-period="week" aria-pressed="true" data-l10n-id="peppermint-report-period-week"></button>
+          <button type="button" class="report-period" data-period="month" aria-pressed="false" data-l10n-id="peppermint-report-period-month"></button>
+          <button type="button" class="report-period" data-period="year" aria-pressed="false" data-l10n-id="peppermint-report-period-year"></button>
+        </nav>
+      </header>
+
+      <section id="report-tiles" class="report-tiles">
+        <div class="report-tile" data-tile="trackers">
+          <span class="report-value"></span>
+          <span class="report-label" data-l10n-id="peppermint-report-trackers"></span>
+        </div>
+        <div class="report-tile" data-tile="banners">
+          <span class="report-value"></span>
+          <span class="report-label" data-l10n-id="peppermint-report-banners"></span>
+        </div>
+        <div class="report-tile" data-tile="active">
+          <span class="report-value"></span>
+          <span class="report-label" data-l10n-id="peppermint-report-active"></span>
+        </div>
+        <div class="report-tile" data-tile="unloaded">
+          <span class="report-value"></span>
+          <span class="report-label" data-l10n-id="peppermint-report-unloaded"></span>
+          <span class="report-hint"></span>
+        </div>
+        <div class="report-tile" data-tile="archived">
+          <span class="report-value"></span>
+          <span class="report-label" data-l10n-id="peppermint-report-archived"></span>
+        </div>
+      </section>
+
+      <section class="report-sites">
+        <h2 class="report-section-title" data-l10n-id="peppermint-report-top-sites"></h2>
+        <ol id="report-site-list" class="report-site-list"></ol>
+        <p id="report-no-sites" class="report-note" data-l10n-id="peppermint-report-no-sites" hidden="hidden"></p>
+      </section>
+
+      <section class="report-share">
+        <h2 class="report-section-title" data-l10n-id="peppermint-report-share"></h2>
+        <p class="report-note" data-l10n-id="peppermint-report-share-description"></p>
+        <div class="report-share-actions">
+          <button type="button" id="report-copy" class="report-button" data-l10n-id="peppermint-report-copy-image"></button>
+          <button type="button" id="report-save" class="report-button" data-l10n-id="peppermint-report-save-image"></button>
+        </div>
+        <p id="report-share-status" class="report-note" role="status" aria-live="polite"></p>
+      </section>
+
+      <footer class="report-footer" data-l10n-id="peppermint-report-footer"></footer>
+    </main>
+    <script
+      type="module"
+      src="chrome://browser/content/peppermint-report/report.mjs"
+    ></script>
+  </body>
+</html>

@@ -4,6 +4,13 @@
 
 import { isUnloadSafe } from "moz-src:///peppermint/common/PeppermintTabs.sys.mjs";
 
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  bumpReport: "moz-src:///peppermint/report/PeppermintReportStore.sys.mjs",
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+});
+
 const PREF = "zen.tab-unloader.timeout-minutes";
 const CHECK_INTERVAL_MS = 3 * 60 * 1000;
 
@@ -100,9 +107,16 @@ class ZenTabUnloaderImpl {
         stale.push(tab);
       }
       if (stale.length) {
-        win.gBrowser.explicitUnloadTabs(stale).catch(error => {
-          console.error("ZenTabUnloader could not unload tabs", error);
-        });
+        win.gBrowser
+          .explicitUnloadTabs(stale)
+          .then(() => {
+            if (!lazy.PrivateBrowsingUtils.isWindowPrivate(win)) {
+              lazy.bumpReport("unloaded", stale.length);
+            }
+          })
+          .catch(error => {
+            console.error("ZenTabUnloader could not unload tabs", error);
+          });
       }
     }
   }

@@ -5,7 +5,7 @@ Peppermint is a Firefox-based browser maintained as a fork of Zen (zen-browser/d
 ## Commands
 
 - `npm run import`: generate prefs, apply Zen patches (adapted to the pinned Firefox when needed), apply Peppermint overlay patches, copy locale packs. Run it after every change and fix any error.
-- `npm run build:ui`: rebuild the UI only. `npm run build`: full rebuild (needed for C++, `moz.build` or new `.patch` changes).
+- `npm run build:ui`: rebuild the UI only. `npm run build`: full rebuild (needed for C++, `moz.build` or new `.patch` changes). `npm run build` caps parallel jobs to the machine (one per 4 GB of RAM, two cores free, lower priority; CI keeps every core). Override with `PM_BUILD_JOBS=<n>` or `-- -j <n>`. Each `npm run import` touches every patched file, so only re-run it after changing patches, `src/` build files or prefs.
 - `npm test -- <suite> --headless`: run `peppermint/tests/<suite>` or `zen/tests/<suite>`.
 - `npm run pm:record -- <engine path> <feature>`: save an edit to a Zen or Firefox file as an overlay patch.
 - `npm run pm:verify`: compare the engine with the pre-restructure snapshot (differences are expected after intentional changes).

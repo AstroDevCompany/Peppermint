@@ -108,6 +108,8 @@ zen-homepage-card-visited-sites = Nº Visited websites
 
 zen-homepage-card-version = Current Version
 
+zen-homepage-card-report = Protected This Week
+
 # Variables:
 #   $shortcut (String): The keyboard shortcut that toggles compact mode.
 peppermint-toggle-compact-mode-button-shortcut =

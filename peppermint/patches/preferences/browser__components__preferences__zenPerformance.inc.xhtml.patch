@@ -1,9 +1,15 @@
 --- a/browser/components/preferences/zenPerformance.inc.xhtml
 +++ b/browser/components/preferences/zenPerformance.inc.xhtml
-@@ -33,6 +33,33 @@
+@@ -33,6 +33,39 @@
              <html:input id="zenTabUnloaderMinutes" type="number" min="0" max="1440" style="width: 5em"/>
        </hbox>
        <description class="description-deemphasized" data-l10n-id="zen-tab-unloader-minutes-description"/>
++
++      <hbox align="center">
++            <label data-l10n-id="peppermint-tab-archive-hours-label" control="peppermintTabArchiveHours"/>
++            <html:input id="peppermintTabArchiveHours" type="number" min="0" max="8760" style="width: 5em"/>
++      </hbox>
++      <description class="description-deemphasized" data-l10n-id="peppermint-tab-archive-hours-description"/>
 +
 +      <label><html:h2 data-l10n-id="zen-underpowered-auto-header"/></label>
 +      <checkbox data-l10n-id="zen-underpowered-auto-resources"

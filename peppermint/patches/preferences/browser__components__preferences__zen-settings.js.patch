@@ -348,7 +348,7 @@
 -      );
 -
 -      baseHeader.appendChild(mozToggle);
- 
+-
 -      headerDiv.appendChild(headerTitle);
 -      headerDiv.appendChild(closeButton);
 -
@@ -356,7 +356,7 @@
 -      mainDialogDiv.appendChild(contentDiv);
 -      dialog.appendChild(mainDialogDiv);
 -      base.appendChild(dialog);
--
+ 
 -      closeButton.addEventListener("click", () => {
 -        dialog.close();
 -      });
@@ -664,10 +664,15 @@
      for (const pref of [kZenExtendedSidebar, kZenSingleToolbar]) {
        Services.prefs.addObserver(pref, this);
      }
-@@ -720,8 +77,105 @@
-   },
- };
- 
+@@ -715,13 +72,123 @@
+           layout.getAttribute("layout") != "collapsed"
+         );
+         Services.prefs.setBoolPref(kZenSingleToolbar, layout.getAttribute("layout") == "single");
++      });
++    }
++  },
++};
++
 +var gZenToolbarUrlbarSettings = {
 +  init() {},
 +};
@@ -733,6 +738,19 @@
 +      );
 +    }
 +    this._initUnderpoweredOptions();
++    const archiveInput = document.getElementById("peppermintTabArchiveHours");
++    if (archiveInput) {
++      const archivePref = "peppermint.tab-archive.hours";
++      archiveInput.value = Services.prefs.getIntPref(archivePref, 72);
++      archiveInput.addEventListener("change", () => {
++        const hours = Math.max(
++          0,
++          Math.min(8760, Number(archiveInput.value) || 0)
++        );
++        archiveInput.value = hours;
++        Services.prefs.setIntPref(archivePref, hours);
+       });
+     }
 +    const input = document.getElementById("zenTabUnloaderMinutes");
 +    if (!input) {
 +      return;
@@ -744,9 +762,9 @@
 +      input.value = minutes;
 +      Services.prefs.setIntPref(pref, minutes);
 +    });
-+  },
-+};
-+
+   },
+ };
+ 
  var gZenWorkspacesSettings = {
    init() {
 +    const syncLink = document.getElementById("zenSpacesOpenSyncSettings");
@@ -770,7 +788,7 @@
      var tabsUnloaderPrefListener = {
        async observe() {
          let buttonIndex = await confirmRestartPrompt(true, 1, true, true);
-@@ -743,6 +197,18 @@
+@@ -743,6 +210,18 @@
  
      toggleZenCycleByAttrWarning.observe(); // call it once on initial load
  
@@ -789,7 +807,7 @@
      Services.prefs.addObserver("zen.glance.enabled", tabsUnloaderPrefListener); // We can use the same listener for both prefs
      Services.prefs.addObserver("zen.workspaces.separate-essentials", tabsUnloaderPrefListener);
      Services.prefs.addObserver("zen.window-sync.sync-only-pinned-tabs", tabsUnloaderPrefListener);
-@@ -854,9 +320,50 @@
+@@ -854,12 +333,53 @@
      this.__hasInitialized = true;
      this._currentActionID = null;
      this._initializeEvents();
@@ -797,9 +815,9 @@
      window.addEventListener("unload", () => {
        this.__hasInitialized = false;
        document.getElementById(ZEN_CKS_WRAPPER_ID).innerHTML = "";
-+    });
-+  },
-+
+     });
+   },
+ 
 +  _initializeNotepadShortcut() {
 +    const input = document.getElementById("zenNotepadShortcutInput");
 +    const reset = document.getElementById("zenNotepadShortcutReset");
@@ -837,10 +855,13 @@
 +    reset.addEventListener("click", () => {
 +      Services.prefs.setStringPref(pref, "Tab");
 +      show();
-     });
-   },
- 
-@@ -1143,6 +650,397 @@
++    });
++  },
++
+   _initializeEvents() {
+     const resetAllListener = this.resetAllShortcuts.bind(this);
+     const handleKeyDown = this._handleKeyDown.bind(this);
+@@ -1143,9 +663,400 @@
      input.classList.remove(`${ZEN_CKS_INPUT_FIELD_CLASS}-not-set`);
      input.value = modifiers.toDisplayString() + gZenKeyboardShortcutsManager.getKeyDisplay(shortcut);
      this._latestValidKey = shortcut;
@@ -914,7 +935,7 @@
 +      .getElementById("zenUrlSnippetsAdd")
 +      .addEventListener("command", () => this._addRow());
 +    this._manager.ready().then(() => this._render());
-+  },
+   },
 +
 +  _enqueue(task) {
 +    this._queue = this._queue.then(task, task);
@@ -1011,8 +1032,8 @@
 +      row.remove();
 +    });
 +  },
-+};
-+
+ };
+ 
 +var gZenAdblockSettings = {
 +  init() {
 +    if (this.__hasInitialized) {
@@ -1235,18 +1256,25 @@
 +      });
 +      sync();
 +    }
-   },
- };
- 
-@@ -1158,11 +1056,56 @@
-     default: true,
++  },
++};
++
+ Preferences.addAll([
+   {
+     id: "zen.view.compact.toolbar-flash-popup",
+@@ -1154,15 +1065,60 @@
    },
    {
-+    id: "zen.workspaces.switch-animation",
+     id: "zen.workspaces.hide-default-container-indicator",
 +    type: "bool",
 +    default: true,
 +  },
 +  {
++    id: "zen.workspaces.switch-animation",
+     type: "bool",
+     default: true,
+   },
+   {
 +    id: "zen.downloads.download-animation",
 +    type: "bool",
 +    default: true,
@@ -1295,8 +1323,8 @@
      id: "zen.pinned-tab-manager.restore-pinned-tabs-to-pinned-url",
      type: "bool",
      default: true,
-@@ -1203,6 +1146,11 @@
-     default: "float",
+@@ -1198,6 +1154,11 @@
+     default: true,
    },
    {
 +    id: "zen.library.default-section",
@@ -1307,7 +1335,7 @@
      id: "zen.workspaces.separate-essentials",
      type: "bool",
      default: false,
-@@ -1225,11 +1173,6 @@
+@@ -1220,11 +1181,6 @@
    {
      id: "zen.workspaces.continue-where-left-off",
      type: "bool",
@@ -1319,7 +1347,7 @@
      default: true,
    },
    {
-@@ -1253,10 +1196,125 @@
+@@ -1248,10 +1204,130 @@
      default: true,
    },
    {
@@ -1384,6 +1412,11 @@
 +  },
 +  {
 +    id: "zen.homepage.cards.version",
++    type: "bool",
++    default: true,
++  },
++  {
++    id: "zen.homepage.cards.report",
 +    type: "bool",
 +    default: true,
 +  },

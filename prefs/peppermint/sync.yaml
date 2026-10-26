@@ -39,6 +39,21 @@
   value: true
 
 
+# Address bar developer tools
+- name: services.sync.prefs.sync.peppermint.urlbar.omni-utils.enabled
+  value: true
+
+
+# Screenshot editor
+- name: services.sync.prefs.sync.peppermint.screenshot.editor.enabled
+  value: true
+
+
+# Tab archive
+- name: services.sync.prefs.sync.peppermint.tab-archive.hours
+  value: true
+
+
 # Tab search
 - name: services.sync.prefs.sync.peppermint.urlbar.tab-search.enabled
   value: true

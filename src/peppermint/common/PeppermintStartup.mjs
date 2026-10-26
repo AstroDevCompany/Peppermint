@@ -59,6 +59,26 @@ export const PeppermintStartup = {
         "moz-src:///peppermint/urlbar/PeppermintUrlbarProviderTabSearch.sys.mjs"
       ).registerTabSearchProvider()
     );
+    start("Omni utils", () =>
+      ChromeUtils.importESModule(
+        "moz-src:///peppermint/omni-utils/PeppermintUrlbarProviderOmniUtils.sys.mjs"
+      ).registerOmniUtilsProvider()
+    );
+    start("Tab archive search", () =>
+      ChromeUtils.importESModule(
+        "moz-src:///peppermint/tab-archive/PeppermintUrlbarProviderArchive.sys.mjs"
+      ).registerArchiveProvider()
+    );
+    start("PeppermintTabArchive", () =>
+      ChromeUtils.importESModule(
+        "moz-src:///peppermint/tab-archive/PeppermintTabArchive.sys.mjs"
+      ).initTabArchive()
+    );
+    start("PeppermintScreenshotEditor", () =>
+      ChromeUtils.importESModule(
+        "moz-src:///peppermint/screenshot-editor/PeppermintScreenshotEditor.sys.mjs"
+      ).initScreenshotEditor()
+    );
     start("Notepad watcher", () =>
       ChromeUtils.importESModule(
         "resource:///actors/ZenNotepadParent.sys.mjs"
