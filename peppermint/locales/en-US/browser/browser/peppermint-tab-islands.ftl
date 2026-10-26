@@ -2,6 +2,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+## Tab context menu
+
+# Variables:
+#   $tabCount (Number): The number of selected tabs that will be grouped.
+peppermint-tabs-to-new-island =
+    .label = Add { $tabCount } Tabs to a New Island
+
 ## Context menu of a tab island header
 
 peppermint-island-collapse =

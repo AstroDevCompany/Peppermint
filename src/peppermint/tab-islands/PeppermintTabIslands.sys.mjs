@@ -24,6 +24,8 @@ const FTL_FILE = "browser/peppermint-tab-islands.ftl";
 const STYLE_URL =
   "chrome://browser/content/zen-styles/peppermint-tab-islands.css";
 const MENU_ID = "peppermint-island-menu";
+const TAB_MENU_ID = "tabContextMenu";
+const TAB_MENU_ITEM_ID = "context_peppermintTabsToIsland";
 const ISLAND_ATTR = "peppermint-island";
 const READY_ATTR = "peppermint-island-ready";
 const NAMED_ATTR = "peppermint-island-named";
@@ -42,32 +44,44 @@ export function isIslandId(id) {
 }
 
 /**
+ * @param {MozTabbrowserTab} tab
+ * @returns {boolean} Whether the tab is free to be put into a new island
+ */
+function isIslandCandidate(tab) {
+  return !(
+    tab.closing ||
+    tab.pinned ||
+    tab.group ||
+    tab.splitView ||
+    tab.hasAttribute("zen-essential") ||
+    tab.hasAttribute("zen-empty-tab") ||
+    tab.hasAttribute("zen-glance-tab")
+  );
+}
+
+/**
+ * @param {MozTabbrowserTab[]} tabs
+ * @returns {boolean} Whether the tabs can be grouped into one new island
+ */
+export function canGroupIntoIsland(tabs) {
+  if (tabs.length < 2 || !tabs.every(tab => tab?.isConnected)) {
+    return false;
+  }
+  if (!tabs.every(isIslandCandidate)) {
+    return false;
+  }
+  const workspace = tabs[0].getAttribute("zen-workspace-id");
+  return tabs.every(tab => tab.getAttribute("zen-workspace-id") === workspace);
+}
+
+/**
  * @param {MozTabbrowserTab} opener The tab that opened the other one
  * @param {MozTabbrowserTab} tab The newly opened tab
  * @returns {boolean} Whether the two should be grouped into a new island
  */
 export function canFormIsland(opener, tab) {
-  if (!opener || !tab || opener === tab || !opener.isConnected) {
-    return false;
-  }
-  if (opener.closing || tab.closing) {
-    return false;
-  }
-  for (const candidate of [opener, tab]) {
-    if (
-      candidate.pinned ||
-      candidate.group ||
-      candidate.splitView ||
-      candidate.hasAttribute("zen-essential") ||
-      candidate.hasAttribute("zen-empty-tab") ||
-      candidate.hasAttribute("zen-glance-tab")
-    ) {
-      return false;
-    }
-  }
   return (
-    opener.getAttribute("zen-workspace-id") ===
-    tab.getAttribute("zen-workspace-id")
+    !!opener && !!tab && opener !== tab && canGroupIntoIsland([opener, tab])
   );
 }
 
@@ -127,6 +141,7 @@ class TabIslandsWindow {
     ]) {
       win.addEventListener(type, this);
     }
+    doc.getElementById(TAB_MENU_ID)?.addEventListener("popupshowing", this);
     // Capture, so the tab context menu never gets to claim the island header.
     win.addEventListener("contextmenu", this, true);
     win.addEventListener("unload", () => this.#destroy(), { once: true });
@@ -169,10 +184,18 @@ class TabIslandsWindow {
         this.#onContextMenu(event);
         break;
       case "command":
-        this.#onMenuCommand(event);
+        if (event.target.id == TAB_MENU_ITEM_ID) {
+          this.#groupSelectedTabs();
+        } else {
+          this.#onMenuCommand(event);
+        }
         break;
       case "popupshowing":
-        this.#updateMenu();
+        if (event.target.id == TAB_MENU_ID) {
+          this.#updateTabMenuItem(event.target);
+        } else if (event.target.id == MENU_ID) {
+          this.#updateMenu();
+        }
         break;
     }
   }
@@ -224,12 +247,71 @@ class TabIslandsWindow {
     if (!canFormIsland(opener, tab) || isViewSource(tab)) {
       return;
     }
-    const group = this.#win.gBrowser.addTabGroup([opener, tab], {
+    this.#createIsland([opener, tab]);
+  }
+
+  /**
+   * @param {MozTabbrowserTab[]} tabs The tabs to group, in tab strip order
+   * @returns {MozTabbrowserTabGroup} The new island
+   */
+  #createIsland(tabs) {
+    const group = this.#win.gBrowser.addTabGroup(tabs, {
       id: `${ID_PREFIX}${Date.now()}-${Math.round(Math.random() * 1000)}`,
-      insertBefore: opener,
+      insertBefore: tabs[0],
     });
     group?.setAttribute(READY_ATTR, "");
     this.#refreshHeader(group);
+    return group;
+  }
+
+  /**
+   * @param {XULPopupElement} menu The tab context menu
+   * @returns {MozTabbrowserTab[]} The multi-selected tabs the menu was opened
+   *   on, or none when it was opened on a single tab
+   */
+  #contextSelection(menu) {
+    const { gBrowser } = this.#win;
+    const trigger = menu.triggerNode;
+    const tab =
+      trigger?.tab || trigger?.closest?.("tab") || gBrowser.selectedTab;
+    return tab.multiselected ? gBrowser.selectedTabs : [];
+  }
+
+  /**
+   * Adds the "Add n Tabs to a New Island" item next to Zen's "Join n Tabs"
+   * and shows it when the selected tabs can form an island.
+   */
+  #updateTabMenuItem(menu) {
+    const doc = this.#win.document;
+    let item = doc.getElementById(TAB_MENU_ITEM_ID);
+    if (!item) {
+      const anchor = doc.getElementById("context_zenSplitTabs");
+      if (!anchor) {
+        return;
+      }
+      item = doc.createXULElement("menuitem");
+      item.id = TAB_MENU_ITEM_ID;
+      item.setAttribute("hidden", "true");
+      item.addEventListener("command", this);
+      anchor.after(item);
+    }
+    const tabs = this.#contextSelection(menu);
+    const show =
+      Services.prefs.getBoolPref(PREF_ENABLED, true) &&
+      canGroupIntoIsland(tabs);
+    item.hidden = !show;
+    if (show) {
+      doc.l10n.setAttributes(item, "peppermint-tabs-to-new-island", {
+        tabCount: tabs.length,
+      });
+    }
+  }
+
+  #groupSelectedTabs() {
+    const tabs = this.#win.gBrowser.selectedTabs;
+    if (canGroupIntoIsland(tabs)) {
+      this.#createIsland(tabs);
+    }
   }
 
   #scheduleScan() {
