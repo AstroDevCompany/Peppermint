@@ -62,6 +62,9 @@ jobs:
       CARGO_TERM_COLOR: always
       CARGO_INCREMENTAL: "0"
       BRAND: ${{ github.event_name == 'workflow_dispatch' && inputs.brand || 'release' }}
+      # The release brand would download the pinned Firefox release, but src/
+      # targets the candidate in surfer.json (what local builds use).
+      SURFER_FORCE_CANDIDATE: "1"
 
     steps:
       - name: Free disk space

@@ -113,9 +113,24 @@ function stateBefore(patchPath, targets, dir) {
   }
 }
 
+/**
+ * Splits a patch into the sections that edit existing files and the sections
+ * that create new files. New files have nothing in the engine to adapt
+ * against, so they are carried over unchanged.
+ */
+function splitCreated(text) {
+  const sections = text.split(/^(?=diff --git )/m);
+  const isCreated = section => /^--- \/dev\/null/m.test(section);
+  return {
+    edits: sections.filter(s => !isCreated(s)).join(""),
+    created: sections.filter(isCreated).join(""),
+  };
+}
+
 function regenerate(patchRel) {
   const patchPath = path.join(root, patchRel);
-  let text = fs.readFileSync(patchPath, "utf8");
+  const { edits, created } = splitCreated(fs.readFileSync(patchPath, "utf8"));
+  let text = edits;
   if (!targetsOf(text).length || /^--- \/dev\/null/m.test(text)) {
     return false;
   }
@@ -174,7 +189,7 @@ function regenerate(patchRel) {
     if (!out) {
       return applied;
     }
-    fs.writeFileSync(patchPath, out);
+    fs.writeFileSync(patchPath, out + created);
     // Surfer applies the new patch on top of this state in the next round.
     for (const target of targets) {
       fs.copyFileSync(path.join(before, target), path.join(engineDir, target));
