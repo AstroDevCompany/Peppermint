@@ -13,8 +13,6 @@
 
 _Peppermint is an independent fork._
 
-> Note: ~~No auto-update feature exists yet~~. The auto-update system was developed, it will be released in v2026.0.2 (the next one). **The windows build was also fixed**.
-
 [![License: MPL-2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 [![Firefox Version](https://img.shields.io/badge/Firefox-158.0-orange.svg)](https://www.mozilla.org/firefox/)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/AstroDevCompany/Peppermint/actions)
@@ -58,12 +56,14 @@ Modern browsers focus too much on adding useless features that you'll maybe end 
 
 ## Highlight features
 
-- Sophisticated Ad-Blocker (standard + video)
-- Cookie blocker & auto-refusal
+- Tab Islands
 - Custom temporary markdown editor (MD Notepad) with integrated encrypted saving
-- Temporary permissions
 - URL Snippets
 - Underpowered mode
+- Advanced idle resource consumption reduction
+- Cookie blocker & auto-refusal
+- Auto ad-blocker setup system
+- Temporary permissions
 - Peppermint Janitor (opt-in space saver that clears stale temp files, caches and traces on launch)
 - Rich homepage
 - Light & Fast
@@ -85,7 +85,6 @@ Modern browsers focus too much on adding useless features that you'll maybe end 
 ### Known issues
 
 - No QR code passkey sign-in on MacOS
-- Cookie refusal & ad-blocker can interfere with some websites
 
 [Temporary Fixes](KITF.md)
 
