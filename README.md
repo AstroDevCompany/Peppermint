@@ -15,10 +15,10 @@ _Peppermint is an independent fork._
 
 [![License: MPL-2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 [![Firefox Version](https://img.shields.io/badge/Firefox-158.0-orange.svg)](https://www.mozilla.org/firefox/)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/AstroDevCompany/Peppermint/actions)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/AstroDevCompany/Peppermint/releases)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/montanari-luca/Peppermint/actions)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/montanari-luca/Peppermint/releases)
 
-[📥 Download Latest Release](https://github.com/AstroDevCompany/Peppermint/releases/latest) • [🐛 Report Bug](https://github.com/AstroDevCompany/Peppermint/issues/new?template=bug_report.md) • [💡 Request Feature](https://github.com/AstroDevCompany/Peppermint/issues/new?template=feature_request.md) • [📖 Documentation](https://github.com/AstroDevCompany/Peppermint/wiki)
+[📥 Download Latest Release](https://github.com/montanari-luca/Peppermint/releases/latest) • [🐛 Report Bug](https://github.com/montanari-luca/Peppermint/issues/new?template=bug_report.md) • [💡 Request Feature](https://github.com/montanari-luca/Peppermint/issues/new?template=feature_request.md) • [📖 Documentation](https://github.com/montanari-luca/Peppermint/wiki)
 
 </div>
 
@@ -118,7 +118,7 @@ Modern browsers focus too much on adding useless features that you'll maybe end 
 
 ```bash
 # Clone with submodules
-git clone --recurse-submodules https://github.com/AstroDevCompany/Peppermint.git peppermint
+git clone --recurse-submodules https://github.com/montanari-luca/Peppermint.git peppermint
 cd peppermint
 
 # Guided first build (macOS/Linux)

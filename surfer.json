@@ -22,7 +22,7 @@
       "release": {
         "displayVersion": "2026.0.3",
         "github": {
-          "repo": "AstroDevCompany/Peppermint"
+          "repo": "montanari-luca/Peppermint"
         },
         "archives": {
           "windows": "windows.mar",
@@ -42,15 +42,13 @@
       "release": {
         "displayVersion": "2026.0.3",
         "github": {
-          "repo": "AstroDevCompany/Peppermint"
+          "repo": "montanari-luca/Peppermint"
         }
       }
     }
   },
   "license": {
-    "ignoredFiles": [
-      ".*\\.json"
-    ],
+    "ignoredFiles": [".*\\.json"],
     "licenseType": "MPL-2.0"
   },
   "updateHostname": "updates.peppermint.invalid"

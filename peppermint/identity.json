@@ -5,7 +5,7 @@
   "binaryName": "peppermint",
   "updateHostname": "updates.peppermint.invalid",
   "displayVersion": "2026.0.3",
-  "repository": "AstroDevCompany/Peppermint",
+  "repository": "montanari-luca/Peppermint",
   "npmName": "peppermint-desktop",
   "brands": {
     "release": {

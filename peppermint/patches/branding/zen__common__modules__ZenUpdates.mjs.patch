@@ -5,7 +5,7 @@
        },
        {
 -        url: "https://www.zen-browser.app/donate",
-+        url: "https://github.com/AstroDevCompany/Peppermint",
++        url: "https://github.com/montanari-luca/Peppermint",
          l10nId: "zen-sidebar-notification-donate",
          icon: "chrome://browser/skin/zen-icons/heart-circle-fill.svg",
        },

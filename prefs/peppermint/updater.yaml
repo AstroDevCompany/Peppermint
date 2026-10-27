@@ -8,7 +8,7 @@
 
 # JSON with "latest" (the newest version) and "downloads" (one file per OS).
 - name: peppermint.update.url
-  value: "https://raw.githubusercontent.com/AstroDevCompany/MintFlow-Releases/refs/heads/main/peppermint.json"
+  value: "https://raw.githubusercontent.com/montanari-luca/MintFlow-Releases/refs/heads/main/peppermint.json"
 
 # Seconds between checks while the browser stays open (minimum 600).
 - name: peppermint.update.interval-seconds

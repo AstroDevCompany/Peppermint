@@ -43,15 +43,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AstroDevCompany/Peppermint.git"
+    "url": "git+https://github.com/montanari-luca/Peppermint.git"
   },
   "keywords": [],
   "author": "",
   "license": "MPL-2.0",
   "bugs": {
-    "url": "https://github.com/AstroDevCompany/Peppermint/issues"
+    "url": "https://github.com/montanari-luca/Peppermint/issues"
   },
-  "homepage": "https://github.com/AstroDevCompany/Peppermint#readme",
+  "homepage": "https://github.com/montanari-luca/Peppermint#readme",
   "devDependencies": {
     "@babel/preset-typescript": "^7.27.0",
     "@zen-browser/prettier": "^3.9.3",
