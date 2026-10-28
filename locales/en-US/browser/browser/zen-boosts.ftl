@@ -28,6 +28,10 @@ zen-boost-share-author-input =
 zen-boost-share-scribble-text = No great work of art is complete without a signature, so scribble your name, write a poem or draw something
 zen-boost-share-hide-screenshot =
     .label = Hide screenshot
+zen-boost-share-info =
+    .tooltiptext = About sharing
+    .aria-label = About sharing
+zen-boost-share-info-text = Double-check this info because you won't be able to edit a shared Boost. Anyone with the link can install it, and any updates you make only apply to your own version.
 
 zen-boost-share-pane-sign =
     .tooltiptext = Add a signature
@@ -55,7 +59,8 @@ zen-boost-receive-info =
     .tooltiptext = About this Boost
 zen-boost-receive-info-text = Boost creator names are not verified. Boosts can change how a page looks using CSS and visual filters. They can't run code or send your data anywhere. This Boost will only run on { $domain }.
 zen-boost-receive-title = Add this Boost to Zen?
-zen-boost-receive-description = Try it on! You can always switch back from the Library.
+# The span carries the Library icon in front of the word.
+zen-boost-receive-description = Try it on! You can always switch back from the <span data-l10n-name="library">Library</span>.
 zen-boost-received-toast = Boost added!
 zen-boost-receive-error-toast = Couldn't load this shared Boost
 zen-boost-back = Back
