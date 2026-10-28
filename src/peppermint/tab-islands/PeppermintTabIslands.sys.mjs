@@ -206,6 +206,10 @@ class TabIslandsWindow {
     }
     group.setAttribute(ISLAND_ATTR, "");
     group.saveOnWindowClose = false;
+    // A restored island that is already full has been seen with several tabs.
+    if (liveTabs(group).length > 1) {
+      group.setAttribute(READY_ATTR, "");
+    }
     this.#refreshHeader(group);
   }
 
@@ -343,8 +347,22 @@ class TabIslandsWindow {
       if (count > 1) {
         group.setAttribute(READY_ATTR, "");
       } else if (count == 1 && group.hasAttribute(READY_ATTR)) {
-        group.ungroupTabs();
+        this.#ungroup(group);
       }
+    }
+  }
+
+  /**
+   * Moves every tab out of the island, which removes the island once empty.
+   * Not group.ungroupTabs(): it walks the group's direct children, while Zen
+   * keeps the tabs in the group's container element, so it ungroups nothing.
+   *
+   * @param {MozTabbrowserTabGroup} group
+   */
+  #ungroup(group) {
+    const { gBrowser } = this.#win;
+    for (const tab of liveTabs(group).reverse()) {
+      gBrowser.ungroupTab(tab);
     }
   }
 
@@ -418,7 +436,7 @@ class TabIslandsWindow {
         gBrowser.tabGroupMenu.openEditModal(group);
         break;
       case "ungroup":
-        group.ungroupTabs(metricsContext);
+        this.#ungroup(group);
         break;
       case "close":
         gBrowser.removeTabGroup(group, { metricsContext });

@@ -169,3 +169,47 @@ add_task(async function test_context_menu_groups_selected_tabs_into_island() {
     BrowserTestUtils.removeTab(tab);
   }
 });
+
+add_task(async function test_island_made_elsewhere_dissolves_with_one_tab() {
+  const first = await openPlainTab();
+  const second = await openPlainTab();
+  const island = gBrowser.addTabGroup([first, second], {
+    id: `peppermint-island-test-${Date.now()}`,
+    insertBefore: first,
+  });
+  await TestUtils.waitForCondition(
+    () => island.hasAttribute("peppermint-island-ready"),
+    "An island that arrives full is ready to dissolve"
+  );
+
+  BrowserTestUtils.removeTab(second);
+  await TestUtils.waitForCondition(
+    () => !first.group,
+    "It dissolves once a single tab is left"
+  );
+  BrowserTestUtils.removeTab(first);
+});
+
+add_task(async function test_ungroup_menu_action_releases_the_tabs() {
+  const opener = await openPlainTab();
+  const child = await openTab(opener);
+  const island = await waitForIsland(child);
+
+  const shown = BrowserTestUtils.waitForEvent(document, "popupshown", true);
+  EventUtils.synthesizeMouseAtCenter(
+    island.querySelector(".tab-group-label-container"),
+    { type: "contextmenu" }
+  );
+  const menu = (await shown).target;
+  Assert.equal(menu.id, "peppermint-island-menu", "The island menu opens");
+  const hidden = BrowserTestUtils.waitForEvent(menu, "popuphidden");
+  menu.activateItem(menu.querySelector('[data-action="ungroup"]'));
+  await hidden;
+
+  await TestUtils.waitForCondition(
+    () => !opener.group && !child.group,
+    "Ungrouping releases both tabs"
+  );
+  BrowserTestUtils.removeTab(child);
+  BrowserTestUtils.removeTab(opener);
+});
