@@ -1,17 +1,19 @@
 --- a/zen/common/sys/ZenCustomizableUI.sys.mjs
 +++ b/zen/common/sys/ZenCustomizableUI.sys.mjs
-@@ -6,7 +6,10 @@
+@@ -6,9 +6,12 @@
  
  const lazy = {};
  ChromeUtils.defineESModuleGetters(lazy, {
 +  ZenGhostModeWidget: "moz-src:///peppermint/ghost-mode/ZenGhostModeWidget.sys.mjs",
+   ZenKeyboardShortcuts:
+     "resource:///modules/zen/kbs/ZenKeyboardShortcuts.sys.mjs",
    ZenLibraryWidget: "moz-src:///zen/library/ZenLibraryWidget.sys.mjs",
 +  ZenUnderpoweredWidget:
 +    "moz-src:///peppermint/underpowered/ZenUnderpoweredWidget.sys.mjs",
  });
  
  const kCollapseSidebarWidth = 60;
-@@ -21,12 +24,16 @@
+@@ -23,12 +26,16 @@
      Services.prefs.getBoolPref("zen.library.enabled")
        ? "zen-library-button"
        : "downloads-button",

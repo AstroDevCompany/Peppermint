@@ -1,3 +1,6 @@
+src/browser/base/content/browser-commands-js.patch
+src/browser/base/content/browser-sets-inc-xhtml.patch
+src/browser/components/migration/ChromeMigrationUtils-sys-mjs.patch
 src/browser/components/tabbrowser/content/tab-mjs.patch
 src/browser/locales/en-US/browser/policies__policies-descriptions-ftl.patch
 src/browser/locales/en-US/browser/preferences__preferences-ftl.patch

@@ -1,5 +1,3 @@
-diff --git a/browser/components/migration/ChromeMigrationUtils.sys.mjs b/browser/components/migration/ChromeMigrationUtils.sys.mjs
-index 8e9e34c92c85d655216ccf8cb8dfdf9599329e69..3f801099340382a0efce9446efe5c2968b1922e4 100644
 --- a/browser/components/migration/ChromeMigrationUtils.sys.mjs
 +++ b/browser/components/migration/ChromeMigrationUtils.sys.mjs
 @@ -285,6 +285,18 @@ export var ChromeMigrationUtils = {

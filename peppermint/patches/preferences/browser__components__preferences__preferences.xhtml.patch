@@ -31,7 +31,7 @@
 +        data-l10n-id="pane-zen-spaces-tabs-title">
        </html:moz-page-nav-button>
        <html:moz-page-nav-button id="category-zen-CKS"
-         view="paneZenCKS"
+         href="about:keyboard"
 -        iconsrc="chrome://browser/skin/preferences/category-accessibility.svg"
 -        data-l10n-id="pane-zen-CKS-title">
 +        iconsrc="chrome://browser/skin/zen-icons/brackets-curly.svg"
@@ -45,12 +45,12 @@
 +        view="paneZenUrlSnippets"
 +        iconsrc="chrome://browser/skin/zen-icons/link.svg"
 +        data-l10n-id="pane-zen-url-snippets-title">
-+      </html:moz-page-nav-button>
+       </html:moz-page-nav-button>
 +      <html:moz-page-nav-button id="category-zen-adblock"
 +        view="paneZenAdblock"
 +        iconsrc="chrome://browser/skin/zen-icons/tracking-protection-fill.svg"
 +        data-l10n-id="pane-zen-adblock-title">
-       </html:moz-page-nav-button>
++      </html:moz-page-nav-button>
 +      <html:moz-page-nav-button id="category-zen-performance"
 +        view="paneZenPerformance"
 +        iconsrc="chrome://browser/skin/preferences/category-general.svg"
@@ -69,17 +69,16 @@
        <html:moz-page-nav-button id="category-sync"
          hidden="true"
          view="paneSync"
-@@ -279,10 +309,16 @@
+@@ -279,9 +309,15 @@
  #include privacy.inc.xhtml
  #include sync.inc.xhtml
  #include moreFromMozilla.inc.xhtml
 -#include zenLooksAndFeel.inc.xhtml
+-#include zenTabsManagement.inc.xhtml
+-#include zenMarketplace.inc.xhtml
 +#include zenSidebarLayout.inc.xhtml
 +#include zenToolbarUrlbar.inc.xhtml
 +#include zenSpacesTabs.inc.xhtml
- #include zenKeyboardShortcuts.inc.xhtml
--#include zenTabsManagement.inc.xhtml
--#include zenMarketplace.inc.xhtml
 +#include zenAdblock.inc.xhtml
 +#include zenHomepage.inc.xhtml
 +#include zenUrlSnippets.inc.xhtml

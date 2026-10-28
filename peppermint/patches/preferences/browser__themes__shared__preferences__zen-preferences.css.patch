@@ -90,10 +90,10 @@
 +  display: none !important;
 +}
 +
- .zenCKSOption-input {
-   padding: 5px;
-   border-radius: 5px;
-@@ -237,7 +261,7 @@
+ /* Theme builder */
+ 
+ #zen-theme-builder {
+@@ -160,7 +184,7 @@
    flex-direction: column;
    justify-content: center;
    padding: 15px;
@@ -102,7 +102,7 @@
    border-radius: 10px;
    margin-bottom: 10px;
  }
-@@ -265,7 +289,12 @@
+@@ -188,7 +212,12 @@
    border-radius: 10px;
    margin: 10px;
    background: light-dark(rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.3));
@@ -116,7 +116,7 @@
    border: 2px solid light-dark(rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.1));
  }
  
-@@ -279,167 +308,8 @@
+@@ -202,167 +231,8 @@
    border-radius: 50px;
    background: var(--zen-primary-color);
    transform: translate(-50%, -50%);
@@ -208,8 +208,8 @@
 -  overflow: hidden;
 -  text-overflow: ellipsis;
 -  width: 100%;
- }
- 
+-}
+-
 -.zenThemeMarketplaceItemActions {
 -  width: 100%;
 -  display: flex;
@@ -226,8 +226,8 @@
 -
 -#zenThemeMarketplaceList:has(> *) {
 -  margin: 15px 0;
--}
--
+ }
+ 
 -.zenThemeMarketplaceItemUninstallButton,
 -#zenThemeMarketplaceImport {
 -  margin-left: auto;
@@ -284,7 +284,7 @@
  #zenLayoutList {
    display: flex;
    gap: 20px;
-@@ -478,8 +348,8 @@
+@@ -401,8 +271,8 @@
  /* Disable mozilla's settings */
  
  #dataCollectionCategory,
@@ -294,7 +294,7 @@
  #websiteAdvertisingGroup,
  #helpButton,
  #support-firefox,
-@@ -496,12 +366,78 @@
+@@ -419,14 +289,116 @@
    list-style-image: url("chrome://devtools/skin/images/tool-storage.svg");
  }
  
@@ -373,3 +373,41 @@
  @media -moz-pref("zen.urlbar.replace-newtab") {
    #category-home {
      display: none !important;
+   }
+ }
++
++.zenNotepadOption {
++  margin-bottom: 10px;
++  display: flex;
++  align-items: center;
++
++  & > label {
++    font-size: 14px;
++    color: light-dark(rgba(0, 0, 0, 0.7), rgba(255, 255, 255, 0.7));
++    width: 100%;
++  }
++
++  & > vbox {
++    width: fit-content;
++    justify-content: end;
++    min-width: 70%;
++  }
++
++  & input {
++    padding: 5px;
++    border-radius: 5px;
++    border: 1px solid var(--zen-colors-border);
++    overflow: hidden;
++    white-space: nowrap;
++    text-overflow: ellipsis;
++    user-select: none;
++    cursor: text;
++    background: transparent;
++    transition: border-color 0.1s;
++
++    &:focus {
++      border-color: transparent;
++      box-shadow: 0 0 0 2px var(--zen-primary-color);
++    }
++  }
++}

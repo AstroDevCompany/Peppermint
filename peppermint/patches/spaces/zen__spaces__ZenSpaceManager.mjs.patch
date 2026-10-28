@@ -1,6 +1,6 @@
 --- a/zen/spaces/ZenSpaceManager.mjs
 +++ b/zen/spaces/ZenSpaceManager.mjs
-@@ -4,18 +4,24 @@
+@@ -4,7 +4,6 @@
  
  /* eslint-disable no-shadow */
  
@@ -8,8 +8,9 @@
  import { ZenSpacesSwipe } from "resource:///modules/zen/ZenSpacesSwipe.mjs";
  
  const lazy = {};
- 
- ChromeUtils.defineESModuleGetters(lazy, {
+@@ -13,11 +12,18 @@
+   ZenKeyboardShortcuts:
+     "resource:///modules/zen/kbs/ZenKeyboardShortcuts.sys.mjs",
    ZenSessionStore: "resource:///modules/zen/ZenSessionManager.sys.mjs",
 +  ZenHomepage: "resource:///modules/zen/homepage/ZenHomepage.sys.mjs",
  });
@@ -27,7 +28,7 @@
    { global: "current" }
  );
  
-@@ -157,7 +163,7 @@
+@@ -159,7 +165,7 @@
        document.documentElement.setAttribute("zen-private-window", "true");
      }
  
@@ -36,7 +37,7 @@
      this.addPopupListeners();
  
      if (this.privateWindowOrDisabled) {
-@@ -238,11 +244,10 @@
+@@ -240,11 +246,10 @@
          return this._emptyTab;
        }
  
@@ -51,7 +52,7 @@
        let tab = gZenUIManager.openAndChangeToTab(newTabUrl);
  
        // Set workspace ID if available
-@@ -310,6 +315,10 @@
+@@ -312,6 +317,10 @@
      );
    }
  
@@ -62,7 +63,7 @@
    get shouldAnimateEssentials() {
      return this.containerSpecificEssentials || !!this.creatingWorkspaceId;
    }
-@@ -347,6 +356,7 @@
+@@ -349,6 +358,7 @@
      if (markupTabs.length) {
        gBrowser.tabContainer._invalidateCachedTabs();
      }
@@ -70,7 +71,7 @@
      for (const workspace of workspaces) {
        this.workspaceElement(workspace.uuid)?.checkPinsExistence();
      }
-@@ -431,15 +441,28 @@
+@@ -483,15 +493,28 @@
      workspaceWrapper.checkPinsExistence();
    }
  
@@ -107,7 +108,7 @@
      const getFolderRoot = tab => {
        let root = tab?.group;
        while (root?.group) {
-@@ -447,32 +470,48 @@
+@@ -499,32 +522,48 @@
        }
        return root || tab;
      };
@@ -173,7 +174,7 @@
    }
  
    /** @type {Map<Element, DocumentFragment>|null} */
-@@ -868,7 +907,7 @@
+@@ -920,7 +959,7 @@
      this.activeWorkspace = activeWorkspace?.uuid;
      try {
        if (activeWorkspace) {
@@ -182,7 +183,7 @@
          gZenThemePicker.onWorkspaceChange(activeWorkspace);
        }
      } catch (e) {
-@@ -896,9 +935,16 @@
+@@ -948,9 +987,16 @@
      this.#fixTabPositions();
      this.onWindowResize();
  
@@ -200,7 +201,7 @@
      window.addEventListener("TabAddedToEssentials", tabUpdateListener);
      window.addEventListener("TabRemovedFromEssentials", tabUpdateListener);
      window.addEventListener("TabPinned", tabUpdateListener);
-@@ -1805,6 +1851,7 @@
+@@ -1862,6 +1908,7 @@
        }
      }
      gBrowser.tabContainer._invalidateCachedTabs();
@@ -208,7 +209,7 @@
      return true;
    }
  
-@@ -1887,7 +1934,10 @@
+@@ -1962,7 +2009,10 @@
    }
  
    _cancelSwipeAnimation() {
@@ -220,7 +221,7 @@
    }
  
    async #performWorkspaceChange(
-@@ -2613,7 +2663,9 @@
+@@ -2688,7 +2738,9 @@
      this.workspaceIcons.activeIndex = workspace.uuid;
      await this.#animateTabs(
        workspace,
@@ -231,7 +232,7 @@
        tabToSelect,
        {
          previousWorkspaceIndex,
-@@ -2768,16 +2820,22 @@
+@@ -2843,16 +2895,22 @@
        let label =
          ContextualIdentityService.getUserContextLabel(containerTabId) ||
          "Default";
@@ -256,7 +257,7 @@
        containerTabId,
      };
      return workspace;
-@@ -2870,14 +2928,21 @@
+@@ -2945,14 +3003,21 @@
  
    #allPinnedContainers() {
      const containers = [];
@@ -285,7 +286,7 @@
      return containers.length ? containers : [this.pinnedTabsContainer];
    }
  
-@@ -3053,6 +3118,7 @@
+@@ -3128,6 +3193,7 @@
        isEmpty
      );
      document.documentElement.setAttribute("zen-has-empty-tab", isEmpty);
@@ -293,7 +294,7 @@
    }
  
    async onLocationChange(event) {
-@@ -3326,6 +3392,24 @@
+@@ -3402,6 +3468,24 @@
    }
  
    // Session restore functions
@@ -318,7 +319,7 @@
    get allStoredTabs() {
      if (this._allStoredTabs) {
        return this._allStoredTabs;
-@@ -3600,6 +3684,7 @@
+@@ -3679,6 +3763,7 @@
          pinnedContainer.insertBefore(tab, pinnedContainer.lastChild);
        }
      }

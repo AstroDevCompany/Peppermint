@@ -9,17 +9,16 @@
      module: "chrome://browser/content/preferences/config/about-firefox.mjs",
      visible: () => srdSectionPrefs.all,
    },
-@@ -568,10 +568,16 @@
+@@ -569,9 +569,15 @@
    }
    register_module("paneSearch", gSearchPane);
    register_module("panePrivacy", gPrivacyPane);
 -  register_module("paneZenLooks", gZenLooksAndFeel);
 -  register_module("paneZenTabManagement", gZenWorkspacesSettings);
+-  register_module("paneZenMarketplace", gZenMarketplaceManager);
 +  register_module("paneZenSidebarLayout", gZenLooksAndFeel);
 +  register_module("paneZenToolbarUrlbar", gZenToolbarUrlbarSettings);
 +  register_module("paneZenSpacesTabs", gZenWorkspacesSettings);
-   register_module("paneZenCKS", gZenCKSSettings);
--  register_module("paneZenMarketplace", gZenMarketplaceManager);
 +  register_module("paneZenAdblock", gZenAdblockSettings);
 +  register_module("paneZenHomepage", gZenHomepageSettings);
 +  register_module("paneZenUrlSnippets", gZenUrlSnippetsSettings);

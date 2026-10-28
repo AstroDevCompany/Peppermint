@@ -31,11 +31,6 @@ const FEATURES = [
       "chrome://browser/content/zen-components/ZenSpaceBookmarksStorage.js",
   },
   {
-    id: "shortcuts",
-    global: "gZenKeyboardShortcutsManager",
-    module: "chrome://browser/content/zen-components/ZenKeyboardShortcuts.mjs",
-  },
-  {
     id: "session-store",
     global: "gZenSessionStore",
     module: "chrome://browser/content/zen-components/ZenSessionStore.mjs",
